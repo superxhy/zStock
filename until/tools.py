@@ -90,7 +90,7 @@ def sendTable(subject, dictList, schema, config=None):
     maker = getHtmlTable(dictList, schema)
     #fname = maker.getTitle() + '.html'
     fname = 'curattach.html'
-    tabcontent = getPrettyTable(dictList, schema)
+    tabcontent = str(getPrettyTable(dictList, schema))
     tabcontent += '\n'
     tabcontent += getMarkDownTable(dictList, schema)
     '''maker.getHtml()'''
