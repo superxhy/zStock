@@ -261,11 +261,6 @@ class DSUtil(object):
             bundleList.append(bundle)
         #schema = ['code','name','industry','close','wave','inert']
         schema = ['code','name','industry','close']
-        table = getPrettyTable(bundleList, schema) 
-        print table
-        mdtable = getMarkDownTable(bundleList, schema)
-        print mdtable
         configloader = DSUtil.getConfigLoader()
         if sendMail:
-            sendTable(DS_CLASS_NAME, bundleList, schema, configloader.getEmailConfig() if (configloader != None) else None)
-        return table
+            print sendTable(DS_CLASS_NAME, bundleList, schema, configloader.getEmailConfig() if (configloader != None) else None)
