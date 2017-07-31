@@ -690,7 +690,10 @@ class SecurityDataSrcBase(object):
         run_minutes = self.GET_RUN_MINUTES(context)
         if run_minutes==0:
             return 0
-        volumPre = volumLast * 1.0 * 240 / run_minutes
+        alltime = 240
+        if run_minutes==alltime:
+            return volumLast
+        volumPre = volumLast * 1.0 * alltime / run_minutes
         '''
         9:30 4.15 ,9:45 2.99 , 10:00 2.25 ,10:30 (1.5) , 2:00 (1.01) , 2:30 (1.005)  
         '''
