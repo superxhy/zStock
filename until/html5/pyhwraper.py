@@ -11,7 +11,9 @@ import datetime
 
 #protect html keyword convert
 def quote(s):
-    return s.replace('&','&amp;').replace('<', '&lt;').replace('>', '&gt;').replace(' ','&nbsp;').replace('\n', '<br/>')
+    return s.replace('&','&amp;').replace('<', '&lt;').replace('>', '&gt;').replace(' ','&nbsp;').replace('\n', '<br/>').replace(
+'≡','&equiv;').replace('±', '&plusmn;').replace('⌈', '&lceil;').replace('⌊','&lfloor;').replace('§', '&sect;').replace('ψ', '&psi;').replace('⌉', '&rceil;').replace('⌋', '&rfloor;')
+
 
 class HtmlPageMaker(object):
     
@@ -162,7 +164,7 @@ class HtmlPageMaker(object):
         return self.getHtml()
         
     def quote(self, s):
-        return s.replace('&','&amp;').replace('<', '&lt;').replace('>', '&gt;').replace(' ','&nbsp;').replace('\n', '<br/>')
+        return quote(s)
         
     def addDiv(self, content, st='',curDom=None):
         if curDom == None:
