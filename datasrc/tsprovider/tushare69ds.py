@@ -19,8 +19,26 @@ class TsDatasrc(SecurityDataSrcBase):
     def __init__(self, name):
         super(TsDatasrc, self).__init__(name)
         print 'security init begin ...'
+        self.__initFlag__()
         self.__df_allsecurities__ = ts.get_stock_basics().sort_index()
         print 'security init end ...'
+    
+    def __initFlag__(self):
+        #use sh for index flag
+        flagindex = self.INDEX_LABELS[0]
+        df_data = ts.get_k_data(flagindex, index=False, ktype='D').tail(1)
+        if df_data.empty == True:
+            print "security:%s NO __initFlag__!" %(str(flagindex))
+            return
+        if len(df_data['close'].values) < 1:
+            print "security:%s noclose data __initFlag__!" %(str(flagindex))
+        dateStr = df_data['date'].values[0]
+        close = df_data['close'].values[0]
+        print "init flagindex last time:%s,close:%s" %(str(dateStr),str(close)) 
+        current_dt =  self.__getdatetime__(dateStr)
+        self.__indexc__= close
+        self.__context__= TsContext(current_dt)
+        
     def __getdatetime__(self,timestr):
         #'2017-03-31 15:00'.split()[0].split('-')
         timetemp = timestr.split()
@@ -343,7 +361,7 @@ class TsDatasrc(SecurityDataSrcBase):
         if df_data.empty == True:
             print "security:%s NO GET_CLOSE_DAY!" %(str(security))
             return np.nan
-        if len(df_data['close']) < ref:
+        if len(df_data['close']) < ref + 1:
             return np.nan
         return df_data['close'].values[-ref]
     
@@ -657,3 +675,25 @@ class TsDatasrc(SecurityDataSrcBase):
             print "security:%s in context:%s NO GET_VOL_DATA_DAY!" %(str(security),str(context))
             return np.nan
         return df_data['volume'].values
+    
+    # overide
+    def VOL_PRE(self, context, security, data={}, isFix=True):
+        df_data = ts.get_k_data(security, index=False, ktype='D')
+        if df_data.empty == True:
+            print "security:%s in context:%s NO GET_VOL_DAY!" %(str(security),str(context))
+            return np.nan
+        dateStr = df_data['date'].values[0]
+        current_dt =  self.__getdatetime__(dateStr)
+        return super(TsDatasrc, self).VOL_PRE(TsContext(current_dt),security)
+    
+class TsContext(object):
+    
+    def __init__(self, time):
+        self.current_dt = time
+        #TODO
+        self.run_params = {'start':time,
+        'end':None}
+        #self.portfolio = None
+        
+    def updatetime(self, time):
+        self.current_dt = time
