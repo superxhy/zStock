@@ -585,7 +585,71 @@ class SecurityDataSrcBase(object):
         return inerformat
     
     '''
-    ['code','name','industry','close','wave','inert']
+                ( 天 )              
+      ( 泽 )      ≡       ( 风 )    
+            ⌋     |      ⌈          
+            |     |     |           
+  ( 火 ) ψ ———————|———————— § ( 水 ) 
+            |     |     |           
+            ⌊     |     ⌉            
+      ( 雷 )      ±      ( 山 )      
+                ( 地 )               
+                
+    ≡     ±     ⌈     ⌊     §    ψ    ⌉     ⌋
+    天    地    风    雷    水    火   山    泽
+    乾    坤    巽    震    坎    離   艮    兌
+   +++   ---   ++-   __+   -+-  +-+  +--   _++  
+    period#waveindex:wavechr kd%k/kmaxindex:kmaxchr kmaxkd%kmax|waveseqstr
+    exp:
+    D#19:C0.46%77.15/17:B7.18%81.96|@ABCD4E3F2A2B2C2
+    '''
+    def GET_VOL_CRYPTO(self, context, security, period = 'D', data={}):
+        trigrams421 = [
+            {'mark':'±','element':'地','name':'坤'},#000
+            {'mark':'⌊','element':'雷','name':'震'},#001
+            {'mark':'§','element':'水','name':'坎'},#010
+            {'mark':'⌋','element':'泽','name':'兌'},#011
+            {'mark':'⌉','element':'山','name':'艮'},#100
+            {'mark':'ψ','element':'火','name':'離'},#101
+            {'mark':'⌈','element':'风','name':'巽'},#110
+            {'mark':'≡','element':'天','name':'乾'},#111
+                       ]
+        DATACAL = 4
+        DATALEN = 5
+        DATACOUNT = DATACAL + (DATALEN -1)
+        volData = self.GET_VOL_DATA_DAY(context, security,True,{},DATACOUNT)
+        volArray = []
+        for i in range(0, DATALEN):
+            lenth = len(volData)
+            index = lenth-1-(DATACAL-1) - i
+            des = np.array([])
+            if index >= 0 and index < lenth: 
+                des= volData[index:index+DATACAL]
+            if len(des) < DATACAL:
+                break
+            volArray.insert(0, des)
+            
+        def comp(volarr):
+            bcd = []
+            lenth = len(volarr)
+            if lenth < 2:
+                return bcd
+            for i in range(1, lenth):
+                if volarr[i] > volarr[i-1]:
+                    bcd.append('1')
+                else:
+                    bcd.append('0')
+            bcdstr = ''.join(bcd)
+            return int(bcdstr, 2)
+        cryptoindex = map(comp,volArray)
+        cryptomk = [trigrams421[x]['mark'] for x in cryptoindex]
+        cryptoel = [trigrams421[x]['element'] for x in cryptoindex]
+        #print '.'.join(cryptomk)
+        #print '.'.join(cryptoel)
+        return '.'.join(cryptomk) + '.'.join(cryptoel)
+    
+    '''
+    ['code','name','industry','close','wave','inert','vol']
     '''
     def GET_BUNDLE(self, context, security, crypto=False):
         code = security.split('.')[0]
@@ -611,8 +675,10 @@ class SecurityDataSrcBase(object):
         self.GET_INERT_CRYPTO(context, security, 30),
         self.GET_INERT_CRYPTO(context, security, 'D'),
         self.GET_INERT_CRYPTO(context, security, 'W')]
+        vol = [self.GET_VOL_CRYPTO(context, security)]
         bundle['wave'] = wave
         bundle['inert'] = inert
+        bundle['vol'] = vol
         return bundle
     
     def CCI_DAY(self, security, data={}, ref=0):
