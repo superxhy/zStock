@@ -614,21 +614,6 @@ class SecurityDataSrcBase(object):
             {'mark':'⌈','element':'风','name':'巽'},#110
             {'mark':'≡','element':'天','name':'乾'},#111
                        ]
-        DATACAL = 4
-        DATALEN = 5
-        DATACOUNT = DATACAL + (DATALEN -1)
-        volData = self.GET_VOL_DATA_DAY(context, security,True,{},DATACOUNT)
-        volArray = []
-        for i in range(0, DATALEN):
-            lenth = len(volData)
-            index = lenth-1-(DATACAL-1) - i
-            des = np.array([])
-            if index >= 0 and index < lenth: 
-                des= volData[index:index+DATACAL]
-            if len(des) < DATACAL:
-                break
-            volArray.insert(0, des)
-            
         def comp(volarr):
             bcd = []
             lenth = len(volarr)
@@ -641,6 +626,24 @@ class SecurityDataSrcBase(object):
                     bcd.append('0')
             bcdstr = ''.join(bcd)
             return int(bcdstr, 2)
+        DATACAL = 4
+        DATALEN = 5
+        DATACOUNT = DATACAL + (DATALEN -1)
+        volData = self.GET_VOL_DATA_DAY(context, security,True,{},DATACOUNT)
+        volLast = volData[-1]
+        volPre = self.VOL_PRE(context, security, data, True)
+        vopDataPre = np.append(volData[:-1],volPre)
+        volArray = []
+        for i in range(0, DATALEN):
+            lenth = len(vopDataPre)
+            index = lenth-1-(DATACAL-1) - i
+            des = np.array([])
+            if index >= 0 and index < lenth: 
+                des= vopDataPre[index:index+DATACAL]
+            if len(des) < DATACAL:
+                break
+            volArray.insert(0, des)
+            
         cryptoindex = map(comp,volArray)
         cryptomk = [trigrams421[x]['mark'] for x in cryptoindex]
         cryptoel = [trigrams421[x]['element'] for x in cryptoindex]
