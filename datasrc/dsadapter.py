@@ -107,6 +107,11 @@ def GET_INERT_CRYPTO(context, security, period = 'D', data={}):
     ret = dsobj.invokeMethod(curname, context, security, period, data)
     return ret
 
+def GET_VOL_CRYPTO(context, security, period = 'D', data={}):
+    curname = sys._getframe().f_code.co_name
+    ret = dsobj.invokeMethod(curname, context, security, period, data)
+    return ret
+
 def GET_BUNDLE(context, security, crypto=False):
     curname = sys._getframe().f_code.co_name
     ret = dsobj.invokeMethod(curname, context, security, crypto)
