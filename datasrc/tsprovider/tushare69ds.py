@@ -678,11 +678,13 @@ class TsDatasrc(SecurityDataSrcBase):
     
     # overide
     def VOL_PRE(self, context, security, data={}, isFix=True):
-        df_data = ts.get_k_data(security, index=False, ktype='D')
+       df_data = ts.get_k_data(security, index=False, ktype='5')
         if df_data.empty == True:
             print "security:%s in context:%s NO GET_VOL_DAY!" %(str(security),str(context))
             return np.nan
-        dateStr = df_data['date'].values[0]
+        if len(df_data) < 1:
+            return np.nan
+        dateStr = df_data.tail(1)['date'].values[0]
         current_dt =  self.__getdatetime__(dateStr)
         return super(TsDatasrc, self).VOL_PRE(TsContext(current_dt),security)
     
