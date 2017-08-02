@@ -632,18 +632,20 @@ class SecurityDataSrcBase(object):
         volData = self.GET_VOL_DATA_DAY(context, security,True,{},DATACOUNT)
         volLast = volData[-1]
         volPre = self.VOL_PRE(context, security, data, True)
-        vopDataPre = np.append(volData[:-1],volPre)
+        volDataPre = np.append(volData[:-1],volPre)
         volArray = []
         for i in range(0, DATALEN):
-            lenth = len(vopDataPre)
+            lenth = len(volDataPre)
             index = lenth-1-(DATACAL-1) - i
             des = np.array([])
-            if index >= 0 and index < lenth: 
-                des= vopDataPre[index:index+DATACAL]
+            if index >= 0 and index < lenth:
+                if np.isnan(volDataPre[index]):
+                    break
+                des= volDataPre[index:index+DATACAL]
             if len(des) < DATACAL:
                 break
             volArray.insert(0, des)
-            
+                
         cryptoindex = map(comp,volArray)
         cryptomk = [trigrams421[x]['mark'] for x in cryptoindex]
         cryptoel = [trigrams421[x]['element'] for x in cryptoindex]
