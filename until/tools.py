@@ -146,7 +146,7 @@ def sendHtmlMail(subject , contentHtml, attachments, config=None):
         config = "emailconfig.json"
     MailSender.sendHtmlMail(config, subject, contentHtml, attachments)
     
-def sendTable(subject, dictList, schema, config=None):
+def sendTable(subject, dictList, schema, config=None ,isSend=True):
     maker = getHtmlTable(dictList, schema)
     #fname = maker.getTitle() + '.html'
     fname = 'curattach.html'
@@ -155,5 +155,6 @@ def sendTable(subject, dictList, schema, config=None):
     comments = 'false'
     mdblog = getBlogMd(title, 'stock', comments, tab)
     '''maker.getHtml()'''
-    sendHtmlMail(subject, quoteHtml(mdblog) , [maker.saveFile(fname)], config)
+    if isSend:
+        sendHtmlMail(subject, quoteHtml(mdblog) , [maker.saveFile(fname)], config)
     return mdblog
