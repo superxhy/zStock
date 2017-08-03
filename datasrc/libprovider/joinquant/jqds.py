@@ -601,5 +601,14 @@ class JqConfigLoader(object):
         config = read_file(self.__emailconfigf__)
         return json.loads(config)
     
+    def getRunConfig(self,context):
+        params = context.run_params
+        config = {
+            'start_date' : params.start_date, #回测/模拟开始日期, datetime.date对象
+            'end_date' : params.end_date,  #回测/模拟结束日期, datetime.date对象
+            'type' :params.type, #simple_backtest’: 回测, 通过点击’编译运行’运行 full_backtest’: 回测, 通过点击’运行回测’运行 sim_trade’: 模拟交易
+            'frequency':params.frequency, #运行频率
+            'onbacktest': params.type == 'simple_backtest' or params.type == 'full_backtest'
+        }
+        return config
     #def getXXConfig():
-        
