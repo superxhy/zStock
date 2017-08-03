@@ -267,5 +267,6 @@ class DSUtil(object):
         #schema = ['code','name','industry','close','wave','inert']
         schema = ['code','name','industry','close']
         configloader = DSUtil.getConfigLoader()
-        if sendMail:
-            print sendTable(DS_CLASS_NAME, bundleList, schema, configloader.getEmailConfig() if (configloader != None) else None)
+        backtest = configloader != None and configloader.getRunConfig()['onbacktest']
+        isSend = sendMail and (not backtest)
+        print sendTable(DS_CLASS_NAME, bundleList, schema, configloader.getEmailConfig() if (configloader != None) else None, isSend)
