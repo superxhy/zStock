@@ -450,6 +450,15 @@ class SecurityDataSrcBase(object):
             low = self.GET_LOW_DATA_INTRADAY(context, security, data, freq,dataCount)
         if len(close) == 0 or np.isnan(close[-1]):
             return np.array([np.nan]),np.array([np.nan]),np.array([np.nan])
+        len1 = len(close)
+        len2 = len(high)
+        len3 = len(low)
+        if len1 != len2 or len1 != len3:
+            print "GET_PERIOD_DATA len neq!!!:%s,%s,%s" %(str(len1),str(len2),str(len3))
+            lenmin = min(np.array[len1,len2,len3])
+            close = close[:-(len1-lenmin)]
+            high = high[:-(len2-lenmin)]
+            low = low[:-(len3-lenmin)]
         return high, low ,close
     
     def KDJ_DATA(self, context, security, freq = 'D', data={}, dataCount=1):
@@ -599,21 +608,42 @@ class SecurityDataSrcBase(object):
     天    地    风    雷    水    火   山    泽
     乾    坤    巽    震    坎    離   艮    兌
    +++   ---   ++-   __+   -+-  +-+  +--   _++  
-    period#waveindex:wavechr kd%k/kmaxindex:kmaxchr kmaxkd%kmax|waveseqstr
+    左放转上，右缩转下
+    右放转左，左缩转右
+    木性(雷风)转位为两格，变盘关键转折如:
+    雷阴 或者 雷+水阳 可转泽位 火阳位 易长红
+    风阳 或者 风+火阴 可转山位 水阴位 易长黑
+    
+    period#volyinyang/volbody%volPreStr:volmk volRate~volBB%volBand
+    cryptomk 
+    cryptoel
     exp:
-    D#19:C0.46%77.15/17:B7.18%81.96|@ABCD4E3F2A2B2C2
+    D#-94.05/0.79%2.75E+8:(ψ’^) 118.27~100.0%51.41
+    ψ‘.§‘v.ψ’^.§’.(ψ’^) 
+    火陽.水陽v.火陰^.水陰.(火陰^)
+    卦象:
+    当天#近光脚/0.79百分点幅程2.75亿空方:火阴量(5天内最大) 比昨天1.18倍放量~8天内量能宽度顶部%8天内量能宽度为51个点
+    5天内乾坤量为
+    火阳.水阳'背离低吸'.火阴'背离高抛'.水阴.火阴'背离高抛'
     '''
     def GET_VOL_CRYPTO(self, context, security, period = 'D', data={}):
         trigrams421 = [
             {'mark':'±','element':'地','name':'坤'},#000
             {'mark':'⌊','element':'雷','name':'震'},#001
             {'mark':'§','element':'水','name':'坎'},#010
-            {'mark':'⌋','element':'泽','name':'兌'},#011
+            {'mark':'⌋','element':'澤','name':'兌'},#011
             {'mark':'⌉','element':'山','name':'艮'},#100
             {'mark':'ψ','element':'火','name':'離'},#101
-            {'mark':'⌈','element':'风','name':'巽'},#110
+            {'mark':'⌈','element':'風','name':'巽'},#110
             {'mark':'≡','element':'天','name':'乾'},#111
                        ]
+        yinmark = '’'
+        yinelement = '陰'
+        yangmark = '‘'
+        yangelement = '陽'
+        yindepart = 'v'
+        yangdepart = '^'
+        #量能缩放组合编码
         def comp(volarr):
             bcd = []
             lenth = len(volarr)
@@ -626,13 +656,53 @@ class SecurityDataSrcBase(object):
                     bcd.append('0')
             bcdstr = ''.join(bcd)
             return int(bcdstr, 2)
+        #量能行程多空编码
+        def yinyang(karr):
+            if len(karr) < 3:
+                return -1
+            high = karr[0]
+            low = karr[1]
+            close = karr[2]
+            mid = (high + low)*1.0/2
+            route = (high - low)*1.0/2
+            res = 0
+            if (route > 0):
+                res = (close-mid)/route
+            return float(float(decimal.Decimal(res * 100).quantize(decimal.Decimal('0.00'))))
+                         
         DATACAL = 4
         DATALEN = 5
         DATACOUNT = DATACAL + (DATALEN -1)
         volData = self.GET_VOL_DATA_DAY(context, security,True,{},DATACOUNT)
-        volLast = volData[-1]
+        #volLast = volData[-1]
+        volRef = 0
+        volRate = 0
+        volmk =''
+        volyinyang = 0
+        volbody = 0
         volPre = self.VOL_PRE(context, security, data, True)
+        if len(volData) > 1 :
+            volRef = volData[-2]
+        if np.isnan(volRef) or volRef == 0:
+            #print no ref data
+            pass
+        else:
+            volRate = float(decimal.Decimal(volPre/volRef * 100).quantize(decimal.Decimal('0.00')))
+            #print volRate
+        volPreStr = decimal.Context(prec=3, rounding=decimal.ROUND_DOWN).create_decimal(volPre)
+        #print volPreStr
         volDataPre = np.append(volData[:-1],volPre)
+        #max point
+        volMax = volDataPre.max()
+        volMaxIndex = np.where(volDataPre==volMax)[0][0]
+        volMaxOffset = len(volDataPre) -1 - volMaxIndex
+        #min point 
+        volMin = volDataPre.min()
+        volMinIndex = np.where(volDataPre==volMin)[0][0]
+        volMinOffset = len(volDataPre) -1 - volMinIndex
+        #band
+        volBand = float(decimal.Decimal((volMax - volMin)/volMin * 100).quantize(decimal.Decimal('0.00')))
+        volBB = float(decimal.Decimal((volPre -volMin)/(volMax - volMin) * 100).quantize(decimal.Decimal('0.00')))
         volArray = []
         for i in range(0, DATALEN):
             lenth = len(volDataPre)
@@ -645,13 +715,45 @@ class SecurityDataSrcBase(object):
             if len(des) < DATACAL:
                 break
             volArray.insert(0, des)
-                
+            
         cryptoindex = map(comp,volArray)
         cryptomk = [trigrams421[x]['mark'] for x in cryptoindex]
         cryptoel = [trigrams421[x]['element'] for x in cryptoindex]
-        #print '.'.join(cryptomk)
-        #print '.'.join(cryptoel)
-        return '.'.join(cryptomk) + '.'.join(cryptoel)
+        #cryptomkMax = cryptomk[0] if volMaxOffset > len(cryptomk) else cryptomk[-1-volMaxOffset]
+        #cryptoelMax = cryptoel[0] if volMaxOffset > len(cryptoel) else cryptoel[-1-volMaxOffset]
+        #yin yang
+        high, low, close = self.GET_PERIOD_DATA(context, security, 'D', data, DATALEN)
+        kArray = []
+        for i in range(0, len(close)):
+            kdata = [high[i],low[i],close[i]]
+            kArray.append(kdata)
+        yy = map(yinyang, kArray)
+        yymk = [yinmark if(x < 0) else yangmark for x in yy]
+        yyel = [yinelement if(x < 0) else yangelement for x in yy]
+        for i in range(0,len(cryptomk)):
+            if len(yymk)-1-i >= 0:
+                cryptomk[-1-i] +=  yymk[-1-i]
+                cryptoel[-1-i] +=  yyel[-1-i]
+            if cryptoindex[-1-i] % 2 == 0 and yy[-1-i] >= 0:
+                cryptomk[-1-i]+= yindepart
+                cryptoel[-1-i]+= yindepart
+            if cryptoindex[-1-i] % 2 == 1 and yy[-1-i] < 0:
+                cryptomk[-1-i]+= yangdepart
+                cryptoel[-1-i]+= yangdepart
+        if len(cryptomk) - volMaxOffset >0 :
+            cryptomk[-1-volMaxOffset] = '('+ cryptomk[-1-volMaxOffset]+')'
+            cryptoel[-1-volMaxOffset] = '('+ cryptoel[-1-volMaxOffset]+')'
+        if len(cryptomk) - volMinOffset >0 :
+            cryptomk[-1-volMinOffset] = '['+ cryptomk[-1-volMinOffset]+']'
+            cryptoel[-1-volMinOffset] = '['+ cryptoel[-1-volMinOffset]+']'
+        if len(cryptomk) > 0:
+            volmk = cryptomk[-1]
+        if len(yy) > 0:
+            volyinyang = yy[-1]
+        if len(kArray) >0:
+            volbody = float(decimal.Decimal((kArray[-1][0] - kArray[-1][1])/kArray[-1][1] * 100).quantize(decimal.Decimal('0.00')))
+        volformat = "%s#%s/%s%%%s:%s %s~%s%%%s" %(str(period),str(volyinyang),str(volbody),str(volPreStr),str(volmk),str(volRate),str(volBB),str(volBand))
+        return [volformat,'.'.join(cryptomk),'.'.join(cryptoel)]
     
     '''
     ['code','name','industry','close','wave','inert','vol']
@@ -680,10 +782,9 @@ class SecurityDataSrcBase(object):
         self.GET_INERT_CRYPTO(context, security, 30),
         self.GET_INERT_CRYPTO(context, security, 'D'),
         self.GET_INERT_CRYPTO(context, security, 'W')]
-        vol = [self.GET_VOL_CRYPTO(context, security)]
         bundle['wave'] = wave
         bundle['inert'] = inert
-        bundle['vol'] = vol
+        bundle['vol'] = self.GET_VOL_CRYPTO(context, security)
         return bundle
     
     def CCI_DAY(self, security, data={}, ref=0):
