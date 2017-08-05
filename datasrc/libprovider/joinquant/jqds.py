@@ -595,10 +595,15 @@ class JqConfigLoader(object):
     
     def __init__(self):
         self.__emailconfigf__ = 'emailconfig.json'
+        self.__obsererconfigf__ = 'obsererconfig.json'
         #self.__xxconfig__ = 
         
     def getEmailConfig(self):
         config = read_file(self.__emailconfigf__)
+        return json.loads(config)
+    
+    def getObserverConfig(self):
+        config = read_file(self.__obsererconfigf__)
         return json.loads(config)
     
     def getRunConfig(self,context):
