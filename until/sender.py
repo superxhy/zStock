@@ -173,14 +173,14 @@ class MailSender(object):
         print "thread %s start end" %(str(t))
         
     @staticmethod
-    def sendPlainMail(config, subject , contentText, attachments):
+    def sendPlainMail(config, subject , contentText, attachments=[]):
         sender = MailSender(config)
         sender.writePlain(subject, contentText)
         sender.addAttach(attachments)
         sender.send()
 
     @staticmethod
-    def sendHtmlMail(config, subject , contentHtml, attachments):
+    def sendHtmlMail(config, subject , contentHtml, attachments=[]):
         sender = MailSender(config)
         sender.writeHtml(subject, contentHtml)
         sender.addAttach(attachments)
