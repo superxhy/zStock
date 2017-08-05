@@ -60,10 +60,12 @@ class SecurityDataSrcBase(object):
     '''
     @staticmethod
     def GET_RUN_MINUTES(context):
+        if context == None:
+            return 240
         #9:30-11:30 13:00-15:00
         hour = context.current_dt.hour
         minute = context.current_dt.minute
-        run_hours = 0
+        #run_hours = 0
         run_minutes = 0
         if hour < 13:
             run_minutes = (hour-9)*60 + minute - 30
