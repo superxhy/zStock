@@ -279,3 +279,81 @@ class InTradayObserver(object):
         if self.__state__ == self.STATE_LOW_5 or self.__state__ == self.STATE_HIGH_5:
             return self.__observe_state5__(context, lastclose)
         return 0
+
+'''
+observer for securities on present by freq to send message
+typically watch the INDEX to monitor the current change of market
+'''
+class PresentObserver(object):
+    FREQ_DEF = 15
+    
+    def __init__(self, config):
+        #default first index
+        self.__index__ = GET_ALL_INDEXES()[0]
+        self.__stocks__= [self.__index__]
+        self.__freq__ = self.FREQ_DEF
+        self.__started__ = False
+        if type(config) == str:
+            self.__parsefile__(config)
+        else:
+            self.__parseconfig__(config)
+    
+    def __parsefile__(self, fname):
+        configobj = None
+        f = open(fname)
+        try:
+            import json
+            configobj = json.load(f)
+            self.__parseconfig__(configobj)
+        except Exception,e:
+            print Exception,":",e
+        finally:
+            f.close()
+            
+    def __parseconfig__(self, config):
+        stocks = config.get('stocks',[])
+        if len(stocks) == 0:
+            print "can not get config stocks!"
+        else:
+            for i in range(0, len(stocks)):
+                self.addSecurity(stocks[i])
+        freq = config.get('freq',0)
+        if freq == 0:
+            print "can not get freq, use def:%s" %(str(self.FREQ_DEF))
+        else:
+            self.__freq__ = freq
+    
+    def addSecurity(self,security):
+        if security in self.__stocks__:
+            print "security:%s has in stocks" %(str(security))
+        else:
+            self.__stocks__.append(security)
+    
+    def removeSecurity(self,security):
+        if security == self.__index__:
+            print "can not remove default index!"
+        else:
+            self.__stocks__.remove(security)
+            
+    def start(self, start):
+        print "start obserse:%s" %(str(start))
+        self.__start__ = start
+        
+    def observe(self, context):
+        if self.__start__ == False:
+            return
+        runTime = GET_RUN_MINUTES(context)
+        if runTime == 0 or runTime % self.__freq__ != 0:
+            return
+        #freq to monitor
+        DSUtil.sendSecurities(context, self.__stocks__, True, True, False)
+        
+    @staticmethod
+    def getPresentObserver():
+        configloader = DSUtil.getConfigLoader()
+        config = configloader.getObserverConfig() if (configloader != None) else None
+        if config == None:
+            config = "obsererconfig.json"
+        ins = PresentObserver(config)
+        ins.start(True)
+        return ins
