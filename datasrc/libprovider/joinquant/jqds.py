@@ -599,12 +599,24 @@ class JqConfigLoader(object):
         #self.__xxconfig__ = 
         
     def getEmailConfig(self):
-        config = read_file(self.__emailconfigf__)
-        return json.loads(config)
+        try:
+            config = read_file(self.__emailconfigf__)
+            configobj = json.loads(config)
+        except Exception,e:
+            print Exception,":",e
+            configobj = {}
+        finally:
+            return configobj
     
     def getObserverConfig(self):
-        config = read_file(self.__obsererconfigf__)
-        return json.loads(config)
+        try:
+            config = read_file(self.__obsererconfigf__)
+            configobj = json.loads(config)
+        except Exception,e:
+            print Exception,":",e
+            configobj = {}
+        finally:
+            return configobj
     
     def getRunConfig(self,context):
         params = context.run_params
