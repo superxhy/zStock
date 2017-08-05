@@ -162,6 +162,13 @@ def VOL_PV(context, security, n=20, data={}, isFix=True):
     ret = dsobj.invokeMethod(curname, context, security, n, data, isFix)
     return ret
 
+# 获取所有指数代码
+#return list
+def GET_ALL_INDEXES():
+    curname = sys._getframe().f_code.co_name
+    ret = dsobj.invokeMethod(curname)
+    return ret
+
 # 获取所有股票代码
 #return list
 def GET_ALL_SECURITIES(filtPaused=True, filtSt=True):
@@ -256,7 +263,7 @@ class DSUtil(object):
         return None
     
     @staticmethod
-    def sendSecurities(context, stocks, cryptal=False, sendMail=True):
+    def sendSecurities(context, stocks, cryptal=False, sendMail=True, useAttach=True):
         if len(stocks) == 0:
             return
         bundleList= []
@@ -269,4 +276,4 @@ class DSUtil(object):
         configloader = DSUtil.getConfigLoader()
         backtest = configloader != None and configloader.getRunConfig(context)['onbacktest']
         isSend = sendMail and (not backtest)
-        print sendTable(DS_CLASS_NAME, bundleList, schema, configloader.getEmailConfig() if (configloader != None) else None, isSend)
+        print sendTable(DS_CLASS_NAME, bundleList, schema, configloader.getEmailConfig() if (configloader != None) else None, isSend, useAttach)
