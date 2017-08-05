@@ -142,11 +142,14 @@ def getHtmlTable(dictList, schema):
     return maker
 
 def sendHtmlMail(subject , contentHtml, attachments, config=None):
-    if (config == None):
+    if config == None:
         config = "emailconfig.json"
-    MailSender.sendHtmlMail(config, subject, contentHtml, attachments)
+    if attachments == None:
+        MailSender.sendHtmlMail(config, subject, contentHtml)
+    else:
+        MailSender.sendHtmlMail(config, subject, contentHtml, attachments)
     
-def sendTable(subject, dictList, schema, config=None ,isSend=True):
+def sendTable(subject, dictList, schema, config=None, isSend=True, useAttach=True):
     maker = getHtmlTable(dictList, schema)
     #fname = maker.getTitle() + '.html'
     fname = 'curattach.html'
@@ -154,7 +157,11 @@ def sendTable(subject, dictList, schema, config=None ,isSend=True):
     title = maker.getTitle()
     comments = 'false'
     mdblog = getBlogMd(title, 'stock', comments, tab)
-    '''maker.getHtml()'''
     if isSend:
-        sendHtmlMail(subject, quoteHtml(mdblog) , [maker.saveFile(fname)], config)
+        #use attachment which contains htmlcontent AND simple markdowntext for content
+        if useAttach:
+            sendHtmlMail(subject, quoteHtml(mdblog) , [maker.saveFile(fname)], config)
+        #ONLY use htmlcontent for content 
+        else:
+            sendHtmlMail(subject, maker.getHtml() , None, config)
     return mdblog
