@@ -181,7 +181,7 @@ class JqDatasrc(SecurityDataSrcBase):
                 closeLast = attribute_history(security, get_count, unit='1m', fields=('close'), skip_paused=True, df=False)['close'][-1]
                 high_intraday = np.append(high_intraday, closeLast)
             elif(offset!=0):
-                highLast = highMin[-offset].max()
+                highLast = highMin[-offset:].max()
                 high_intraday = np.append(high_intraday, highLast)
             else:
                 #use cur data
@@ -206,7 +206,7 @@ class JqDatasrc(SecurityDataSrcBase):
                 closeLast = attribute_history(security, get_count, unit='1m', fields=('close'), skip_paused=True, df=False)['close'][-1]
                 low_intraday = np.append(low_intraday, closeLast)
             elif(offset!=0):
-                highLast = lowMin[-offset].min()
+                highLast = lowMin[-offset:].min()
                 low_intraday = np.append(low_intraday, highLast)
             else:
                 #use cur data
