@@ -97,7 +97,7 @@ class JqDatasrc(SecurityDataSrcBase):
         'S90':'综合',#'综合'
     }
             
-    
+
     def __init__(self, name):
         super(JqDatasrc, self).__init__(name)
     
@@ -159,7 +159,9 @@ class JqDatasrc(SecurityDataSrcBase):
         else:
             closeLast = closeMin[-1]
         if not np.isnan(closeLast) and closeLast != 0:
-            if(run_minutes==0 or offset!=0):
+            if(run_minutes==0):
+                close_intraday = np.append(close_intraday, get_current_data()[security].day_open)
+            elif(offset!=0):
                 close_intraday = np.append(close_intraday, closeLast)
         return close_intraday
 
@@ -177,8 +179,7 @@ class JqDatasrc(SecurityDataSrcBase):
             highLast = highMin[-1]
         if not np.isnan(highLast) and highLast != 0:
             if(run_minutes==0):
-                #TODO use 9:25 open data
-                closeLast = attribute_history(security, get_count, unit='1m', fields=('close'), skip_paused=True, df=False)['close'][-1]
+                closeLast = get_current_data()[security].day_open
                 high_intraday = np.append(high_intraday, closeLast)
             elif(offset!=0):
                 highLast = highMin[-offset:].max()
@@ -202,8 +203,7 @@ class JqDatasrc(SecurityDataSrcBase):
             lowLast = lowMin[-1]
         if not np.isnan(lowLast) and lowLast != 0:
             if(run_minutes==0):
-                #TODO use 9:25 open data
-                closeLast = attribute_history(security, get_count, unit='1m', fields=('close'), skip_paused=True, df=False)['close'][-1]
+                closeLast = get_current_data()[security].day_open
                 low_intraday = np.append(low_intraday, closeLast)
             elif(offset!=0):
                 highLast = lowMin[-offset:].min()
@@ -235,6 +235,14 @@ class JqDatasrc(SecurityDataSrcBase):
             #df True 倒序
             return attribute_history(security, ref, '1d', ('low'), True)['low'][0]
             
+    def GET_OPEN_DAY(self, context, security, ref=0):
+        if ref==0:
+            current_data = get_current_data()
+            return current_data[security].day_open
+        else:
+            #df True 倒序
+            return attribute_history(security, ref, '1d', ('open'), True)['open'][0]
+        
     # 获取日线历史数据最大值
     def GET_HIGH_DATA_DAY(self, context,security,isLastest=True,data={},dataCount=1):
         high = attribute_history(security, dataCount, unit='1d', fields=('high'), skip_paused=True, df=False)['high']
@@ -585,11 +593,11 @@ class JqDatasrc(SecurityDataSrcBase):
             if not np.isnan(volumeLast) and volumeLast != 0:
                 volumeDay = np.append(volume,volumeLast)
             return volumeDay
-        
+
     # other for config-----------------------
     def getConfigLoader(self):
         return JqConfigLoader()
-
+    
 import json  
 class JqConfigLoader(object):
     
