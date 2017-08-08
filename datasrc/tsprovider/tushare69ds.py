@@ -170,6 +170,14 @@ class TsDatasrc(SecurityDataSrcBase):
             return np.array([np.nan])
         return df_data['low'].values
     
+    def GET_VOL_DATA_INTRADAY(self, context, security, data={}, freq=5, dataCount=1):
+        periodtype = str(freq)
+        df_data = ts.get_k_data(security, index=False, ktype=periodtype).tail(dataCount)
+        if df_data.empty == True:
+            print "security:%s in context:%s NO GET_VOL_DATA_INTRADAY!" %(str(security),str(context))
+            return np.array([np.nan])
+        return df_data['volume'].values
+    
     def GET_HIGH_DAY(self, context, security, ref=0):
         dataCount =  ref + 1
         df_data = ts.get_k_data(security, index=False, ktype='D').tail(dataCount)
@@ -190,6 +198,22 @@ class TsDatasrc(SecurityDataSrcBase):
             return np.nan
         return df_data['low'].values[-ref]
             
+    def GET_OPEN_DAY(self, context, security, ref=0):
+        if ref==0:
+            dfreal = ts.get_realtime_quotes(security)
+            if dfreal.empty == True:
+                return np.nan
+            return float(dfreal['open'][0])
+        else:
+            dataCount =  ref + 1
+            df_data = ts.get_k_data(security, index=False, ktype='D').tail(dataCount)
+            if df_data.empty == True:
+                print "security:%s in context:%s NO GET_OPEN_DAY!" %(str(security),str(context))
+                return np.nan
+            if len(df_data['open']) < ref:
+                return np.nan
+            return df_data['open'].values[-ref]
+        
     # 获取日线历史数据最大值
     def GET_HIGH_DATA_DAY(self, context,security,isLastest=True,data={},dataCount=1):
         df_data = ts.get_k_data(security, index=False, ktype='D').tail(dataCount)
@@ -677,10 +701,22 @@ class TsDatasrc(SecurityDataSrcBase):
         return df_data['volume'].values
     
     # overide
-    def VOL_PRE(self, context, security, data={}, isFix=True):
-       df_data = ts.get_k_data(security, index=False, ktype='5')
+    def GET_INDEXO_CRYPTO(self, context, security, period = 'D', data={}):
+        df_data = ts.get_k_data(security, index=False, ktype='5')
         if df_data.empty == True:
-            print "security:%s in context:%s NO GET_VOL_DAY!" %(str(security),str(context))
+            print "security:%s in context:%s NO GET_INDEXO_CRYPTO!" %(str(security),str(context))
+            return np.nan
+        if len(df_data) < 1:
+            return np.nan
+        dateStr = df_data.tail(1)['date'].values[0]
+        current_dt =  self.__getdatetime__(dateStr)
+        return super(TsDatasrc, self).GET_INDEXO_CRYPTO(TsContext(current_dt),security)
+    
+    # overide
+    def VOL_PRE(self, context, security, data={}, isFix=True):
+        df_data = ts.get_k_data(security, index=False, ktype='5')
+        if df_data.empty == True:
+            print "security:%s in context:%s NO VOL_PRE!" %(str(security),str(context))
             return np.nan
         if len(df_data) < 1:
             return np.nan
