@@ -346,7 +346,12 @@ class PresentObserver(object):
         if runTime == 0 or runTime % self.__freq__ != 0:
             return
         #freq to monitor
-        DSUtil.sendSecurities(context, self.__stocks__, True, True, False)
+        bundlelist = DSUtil.sendSecurities(context, self.__stocks__, True, True, False)
+        bundleidx = bundlelist[0]['bidx']
+        idxH = bundleidx[1]
+        idxL = bundleidx[2]
+        print idxH
+        print idxL
         
     @staticmethod
     def getPresentObserver():
