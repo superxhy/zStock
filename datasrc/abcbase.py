@@ -71,6 +71,8 @@ class SecurityDataSrcBase(object):
             run_minutes = (hour-9)*60 + minute - 30
         else:
             run_minutes = (hour-13+2)*60 + minute
+        if run_minutes < 0:
+            run_minutes = 0
         if run_minutes > 240:
             run_minutes = 240
         #run_hours = run_minutes//60
@@ -120,6 +122,23 @@ class SecurityDataSrcBase(object):
                         if data < data_l:
                             data_l = data
                 des= np.append(data_l,des)
+        return des
+    
+    @staticmethod
+    def SIMPLE_DATA_SUM(src, count, freq, offset=0):
+        des = np.array([])
+        for i in range (0,count):
+            lenth = len(src)
+            index = lenth-1-i*freq-offset
+            if index >= 0 and index < lenth:
+                data_v = src[index]
+                data_s = np.array([data_v])
+                for j in range (1,freq):
+                    index_j = index - j
+                    if index_j >= 0 and index_j < lenth:
+                        data = src[index_j] 
+                        data_s = np.append(data,data_s)
+                des= np.append(np.sum(data_s),des)
         return des
     
     @staticmethod
@@ -758,6 +777,109 @@ class SecurityDataSrcBase(object):
         return [volformat,'.'.join(cryptomk),'.'.join(cryptoel)]
     
     '''
+    ≡     ±     ⌈     ⌊     §    ψ    ⌉     ⌋
+    天    地    风    雷    水    火   山    泽
+    乾    坤    巽    震    坎    離   艮    兌
+   三红  三黑  红红黑 黑黑红 黑红黑 红黑红 红黑黑 黑红红
+   三高  三低  震荡高 震荡低 反覆低 反覆高 瞬间高 瞬间低
+   
+   三高:多方气势强盛，伴随量增一般收中长红，标准低点高点逐高，一盘低点破掉会转弱
+   三低:空方气势强盛，伴随量增一般收中长黑，标准低点高点逐低，一盘高点破掉会转强
+   震荡高:多方稳步推升，一般收小红，盘中有两波以上的波动（两个高点，两个低点），标准两波半， 上下上下上，一盘低点破掉会转弱
+   震荡低:空方稳步压制，一般收小黑，盘中有两波以上的波动（两个低点，两个高点），标准两波半， 下上下上下，一盘高点破掉会转强
+   反覆低:多空反复，空方略占，一般收小黑小红，一盘低点破掉会转弱
+   反覆高:多空反复，多方略占，一般收小黑小红，一盘高点破掉会转强
+   瞬间高:多方最后一击后被空方反击，反而会中长黑，一盘高点破掉会转强
+   瞬间低:空方最后一击后被多方反击，反而会中长红，一盘低点破掉会转弱
+    period#idxK/idxbody%idx1volStr:idxmk ~idxBand
+    idxMax
+    idxMin
+    '''
+    def GET_INDEXO_CRYPTO(self, context, security, period = 'D', data={}):
+        trigrams421 = [
+            {'mark':'±','element':'地','name':'坤'},#000
+            {'mark':'⌊','element':'雷','name':'震'},#001
+            {'mark':'§','element':'水','name':'坎'},#010
+            {'mark':'⌋','element':'澤','name':'兌'},#011
+            {'mark':'⌉','element':'山','name':'艮'},#100
+            {'mark':'ψ','element':'火','name':'離'},#101
+            {'mark':'⌈','element':'風','name':'巽'},#110
+            {'mark':'≡','element':'天','name':'乾'},#111
+                       ]
+        yinmark = '’'
+        yangmark = '‘'
+        #三盘组合编码
+        def compk(karr):
+            bcd = []
+            lenth = len(karr)
+            if lenth < 3:
+                return bcd
+            for i in range(0, lenth):
+                high = karr[i][0]
+                low = karr[i][1]
+                close = karr[i][2]
+                open = karr[i][3]
+                if close > open:
+                    bcd.append('1')
+                else:
+                    bcd.append('0')
+            bcdstr = ''.join(bcd)
+            return int(bcdstr, 2)
+        
+        if  not security in self.GET_ALL_INDEXES():
+            #开盘八法只适用于指数
+            return None
+        freq = 5 
+        panCount = 0
+        runTime = self.GET_RUN_MINUTES(context)
+        if runTime == 0 :
+            #TODO 集合竞价
+            return None
+        else:
+            panCount = runTime//freq 
+            if runTime % freq != 0:
+                panCount +=1
+        DATACAL = 3
+        DATALEN = panCount
+        #yin yang
+        high, low, close = self.GET_PERIOD_DATA(context, security, freq, data, DATALEN)
+        openday = self.GET_OPEN_DAY(context, security)
+        vol = self.GET_VOL_DATA_INTRADAY(context, security, data, freq, DATALEN)
+        idxV = vol[-panCount:-(panCount-DATACAL)] if panCount > DATACAL else vol[-panCount:]
+        idxC = close[-panCount:-(panCount-DATACAL)] if panCount > DATACAL else close[-panCount:]
+        idxH = high[-panCount:-(panCount-DATACAL)] if panCount > DATACAL else high[-panCount:]
+        idxL = low[-panCount:-(panCount-DATACAL)] if panCount > DATACAL else low[-panCount:]
+        idxO = np.array([openday])
+        idxlen = len(idxC)
+        for i in range(0,idxlen-1):
+            idxO = np.append(idxO, idxC[i])
+        idxMax = idxH.max()
+        idxMaxIndex = np.where(idxH==idxMax)[0][0]
+        idxMin = idxL.min()
+        idxMinIndex = np.where(idxL==idxMin)[0][0]
+        idx1volStr = decimal.Context(prec=3, rounding=decimal.ROUND_DOWN).create_decimal(idxV[0])
+        kArray = []
+        for i in range(0, idxlen):
+            kdata = [idxH[i],idxL[i],idxC[i],idxO[i]]
+            kArray.append(kdata)
+        idxK = map(lambda x:float(decimal.Decimal(x[2]-x[3]).quantize(decimal.Decimal('0.00'))),kArray)
+        idxBody = map(lambda x:float(decimal.Decimal(x[0]-x[1]).quantize(decimal.Decimal('0.00'))),kArray)
+        yymk = [yinmark if(x < 0) else yangmark for x in idxK]
+        idxmk = trigrams421[compk(kArray)]['mark']
+        idxel = trigrams421[compk(kArray)]['element']
+        for i in range(0,idxlen):
+            idxBody[i] = str(idxBody[i]) + yymk[i]
+            if i in [idxMaxIndex,idxMinIndex]:
+                if i == idxMaxIndex:
+                    idxK[idxMaxIndex] = '('+str(idxK[idxMaxIndex])+')'
+                if i == idxMinIndex:
+                    idxK[idxMinIndex] = '['+str(idxK[idxMinIndex])+']'
+            else:
+                idxK[i] = str(idxK[i])
+        idxformat = "%s#%s/%s%%%s:%s ~%s" %(str(period),str(','.join(idxK)),str(','.join(idxBody)),str(idx1volStr),str(idxmk),str(idxMax-idxMin))
+        return [idxformat, str(idxMax), str(idxMin)]
+    
+    '''
     ['code','name','industry','close','wave','inert','vol']
     '''
     def GET_BUNDLE(self, context, security, crypto=False):
@@ -787,6 +909,9 @@ class SecurityDataSrcBase(object):
         bundle['wave'] = wave
         bundle['inert'] = inert
         bundle['vol'] = self.GET_VOL_CRYPTO(context, security)
+        idx = self.GET_INDEXO_CRYPTO(context, security)
+        if idx :
+            bundle['bidx'] =  idx
         return bundle
     
     def CCI_DAY(self, security, data={}, ref=0):
@@ -926,12 +1051,23 @@ class SecurityDataSrcBase(object):
     #context, security, data={}, freq=5, dataCount=1
     def GET_CLOSE_DATA_INTRADAY(self):
         pass
+    
+    # 获取当前分时最高价
+    @abstractmethod
     #context, security, data={}, freq=5, dataCount=1
     def GET_HIGH_DATA_INTRADAY(self):
         pass
     
+    # 获取当前分时最低价
+    @abstractmethod
     #context, security, data={}, freq=5, dataCount=1
     def GET_LOW_DATA_INTRADAY(self):
+        pass
+    
+    # 获取当前分时成交量
+    @abstractmethod
+    #context, security, data={}, freq=5, dataCount=1
+    def GET_VOL_DATA_INTRADAY(self):
         pass
     
     @abstractmethod
@@ -944,6 +1080,11 @@ class SecurityDataSrcBase(object):
     def GET_LOW_DAY(self):
         pass
             
+    @abstractmethod
+    #context, security, ref=0
+    def GET_OPEN_DAY(self):
+        pass
+    
     # 获取日线历史数据最大值
     @abstractmethod
     #context,security,isLastest=True,data={},dataCount=1
