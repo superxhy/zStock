@@ -218,7 +218,7 @@ class JqDatasrc(SecurityDataSrcBase):
         run_minutes = self.GET_RUN_MINUTES(context)
         offset = run_minutes % freq
         get_count = dataCount * freq + offset
-        volMin = attribute_history(security, get_count, unit='1m', fields=('volume'), skip_paused=True, df=False)['volume']
+        volMin = 0.01*attribute_history(security, get_count, unit='1m', fields=('volume'), skip_paused=True, df=False)['volume']
         vol_intraday = self.SIMPLE_DATA_SUM(volMin, dataCount, freq, offset)
         volLast = 0
         if any (data):
