@@ -813,7 +813,7 @@ class SecurityDataSrcBase(object):
             bcd = []
             lenth = len(karr)
             if lenth < 3:
-                return bcd
+                return -1
             for i in range(0, lenth):
                 high = karr[i][0]
                 low = karr[i][1]
@@ -865,8 +865,13 @@ class SecurityDataSrcBase(object):
         idxK = map(lambda x:float(decimal.Decimal(x[2]-x[3]).quantize(decimal.Decimal('0.00'))),kArray)
         idxBody = map(lambda x:float(decimal.Decimal(x[0]-x[1]).quantize(decimal.Decimal('0.00'))),kArray)
         yymk = [yinmark if(x < 0) else yangmark for x in idxK]
-        idxmk = trigrams421[compk(kArray)]['mark']
-        idxel = trigrams421[compk(kArray)]['element']
+        idxid = compk(kArray)
+        if idxid < 0:
+            idxmk = '-'
+            #idxel = '-'
+        else:
+            idxmk = trigrams421[compk(kArray)]['mark']
+            #idxel = trigrams421[compk(kArray)]['element']
         for i in range(0,idxlen):
             idxBody[i] = str(idxBody[i]) + yymk[i]
             if i in [idxMaxIndex,idxMinIndex]:
