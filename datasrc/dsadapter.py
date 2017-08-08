@@ -8,7 +8,7 @@ Created on 2017-3-9
 
 from abcbase import DataSrcFactory, SecurityDataSrcBase
 import sys
-from until.tools import getPrettyTable,getMarkDownTable, sendTable
+from until.tools import sendTable
 #DS_CLASS_PATH = "jqds.JqDatasrc"
 #DS_CLASS_NAME = "joinquant"
 DS_CLASS_PATH = "datasrc.tsprovider.tushare69ds.TsDatasrc"
@@ -112,6 +112,11 @@ def GET_VOL_CRYPTO(context, security, period = 'D', data={}):
     ret = dsobj.invokeMethod(curname, context, security, period, data)
     return ret
 
+def GET_INDEXO_CRYPTO(context, security, period = 'D', data={}):
+    curname = sys._getframe().f_code.co_name
+    ret = dsobj.invokeMethod(curname, context, security, period, data)
+    return ret
+
 def GET_BUNDLE(context, security, crypto=False):
     curname = sys._getframe().f_code.co_name
     ret = dsobj.invokeMethod(curname, context, security, crypto)
@@ -189,6 +194,26 @@ def GET_CLOSE_DATA_INTRADAY(context, security, data={}, freq=5, dataCount=1):
     curname = sys._getframe().f_code.co_name
     ret = dsobj.invokeMethod(curname, context, security, data, freq, dataCount)
     return ret
+# 获取当前分时最高价
+#context, security, data={}, freq=5, dataCount=1
+def GET_HIGH_DATA_INTRADAY(context, security, data={}, freq=5, dataCount=1):
+    curname = sys._getframe().f_code.co_name
+    ret = dsobj.invokeMethod(curname, context, security, data, freq, dataCount)
+    return ret
+
+# 获取当前分时最低价
+#context, security, data={}, freq=5, dataCount=1
+def GET_LOW_DATA_INTRADAY(context, security, data={}, freq=5, dataCount=1):
+    curname = sys._getframe().f_code.co_name
+    ret = dsobj.invokeMethod(curname, context, security, data, freq, dataCount)
+    return ret
+
+# 获取当前分时成交量
+#context, security, data={}, freq=5, dataCount=1
+def GET_VOL_DATA_INTRADAY(context, security, data={}, freq=5, dataCount=1):
+    curname = sys._getframe().f_code.co_name
+    ret = dsobj.invokeMethod(curname, context, security, data, freq, dataCount)
+    return ret
 
 #context, security, ref=0
 def GET_HIGH_DAY(context, security, ref=0):
@@ -202,6 +227,12 @@ def GET_LOW_DAY(context, security, ref=0):
     ret = dsobj.invokeMethod(curname, context, security, ref)
     return ret
         
+#context, security, ref=0
+def GET_OPEN_DAY(context, security, ref=0):
+    curname = sys._getframe().f_code.co_name
+    ret = dsobj.invokeMethod(curname, context, security, ref)
+    return ret
+
 # 获取日线历史数据最大值
 #context,security,isLastest=True,data={},dataCount=1
 def GET_HIGH_DATA_DAY(context,security,isLastest=True,data={},dataCount=1):
@@ -264,9 +295,9 @@ class DSUtil(object):
     
     @staticmethod
     def sendSecurities(context, stocks, cryptal=False, sendMail=True, useAttach=True):
-        if len(stocks) == 0:
-            return
         bundleList= []
+        if len(stocks) == 0:
+            return bundleList
         for security in stocks:
             print "%s bundle..." % (security)
             bundle = GET_BUNDLE(context, security,cryptal)
@@ -276,4 +307,6 @@ class DSUtil(object):
         configloader = DSUtil.getConfigLoader()
         backtest = configloader != None and configloader.getRunConfig(context)['onbacktest']
         isSend = sendMail and (not backtest)
-        print sendTable(DS_CLASS_NAME, bundleList, schema, configloader.getEmailConfig() if (configloader != None) else None, isSend, useAttach)
+        title = DS_CLASS_NAME if useAttach else DS_CLASS_NAME + '_intraday'
+        print sendTable(title, bundleList, schema, configloader.getEmailConfig() if (configloader != None) else None, isSend, useAttach)
+        return bundleList
