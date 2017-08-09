@@ -1006,16 +1006,20 @@ class SecurityDataSrcBase(object):
         if volumLast==0:
             return 0
         run_minutes = self.GET_RUN_MINUTES(context)
-        if run_minutes==0:
-            return 0
         alltime = 240
+        jjtimes = 1
         if run_minutes==alltime:
             return volumLast
-        volumPre = volumLast * 1.0 * alltime / run_minutes
+        if run_minutes==0:
+            volumPre = volumLast * 1.0 * alltime / jjtimes
+        else:
+            volumPre = volumLast * 1.0 * alltime / run_minutes
         '''
         9:30 4.15 ,9:45 2.99 , 10:00 2.25 ,10:30 (1.5) , 2:00 (1.01) , 2:30 (1.005)  
         '''
         def fix_times(time, t60=1.5, t210=1.005):
+            if time == 0:
+                return math.exp(1.0)
             fparam1 = lambda t60, t210: math.log((t60 - 1.0) / (t210 - 1.0)) / math.log(10) / 150
             fparam2 = lambda t60, t210: math.pow(t60 - 1.0, 1.4) * math.pow(t210 - 1.0, -0.4)
             return fparam2(t60, t210) * math.pow(10, -fparam1(t60, t210)*time) + 1
