@@ -230,6 +230,7 @@ class JqDatasrc(SecurityDataSrcBase):
                 #TODO: no support 9:25 vol?
                 #volLast = get_current_data()[security].volume
                 volLast = data[security].volume
+                self.data[security]={'volume':volLast} 
                 vol_intraday = np.append(vol_intraday, volLast)
             elif(offset!=0):
                 volLast = volMin[-offset:].sum()
@@ -589,10 +590,16 @@ class JqDatasrc(SecurityDataSrcBase):
                 run_minutes = self.GET_RUN_MINUTES(context)
                 if run_minutes == 0:
                     #TODO, get 9:25 vol
-                    volumeLast = 0
+                    volumeLast = 0.01*data[security].volume
+                    self.data[security]={'volume':volumeLast} 
                 else:
                     volumeMin =  0.01*attribute_history(security, run_minutes, unit='1m', fields=('volume'), skip_paused=True, df=False)['volume']
                     volumeLast = np.sum(volumeMin)
+                    dataJj = self.data.get(security,None)
+                    if dataJj:
+                        #print volumeLast
+                        volumeLast += dataJj['volume']
+                        #print volumeLast
             return volumeLast
         else:
             #df True 倒序
@@ -612,10 +619,16 @@ class JqDatasrc(SecurityDataSrcBase):
                 run_minutes = self.GET_RUN_MINUTES(context)
                 if run_minutes == 0:
                     #TODO, get 9:25 vol
-                    volumeLast = 0
+                    volumeLast = 0.01*data[security].volume
+                    self.data[security]={'volume':volumeLast} 
                 else:
                     volumeMin =  0.01*attribute_history(security, run_minutes, unit='1m', fields=('volume'), skip_paused=True, df=False)['volume']
                     volumeLast = np.sum(volumeMin)
+                    dataJj = self.data.get(security,None)
+                    if dataJj:
+                        #print volumeLast
+                        volumeLast += dataJj['volume']
+                        #print volumeLast
             if not np.isnan(volumeLast) and volumeLast != 0:
                 volumeDay = np.append(volume,volumeLast)
             return volumeDay
