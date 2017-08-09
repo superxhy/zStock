@@ -339,19 +339,24 @@ class PresentObserver(object):
         print "start obserse:%s" %(str(start))
         self.__start__ = start
         
-    def observe(self, context):
+    def observe(self, context, data):
         if self.__start__ == False:
             return
         runTime = GET_RUN_MINUTES(context)
-        if runTime == 0 or runTime % self.__freq__ != 0:
+        if runTime % self.__freq__ != 0:
             return
         #freq to monitor
-        bundlelist = DSUtil.sendSecurities(context, self.__stocks__, True, True, False)
-        bundleidx = bundlelist[0]['bidx']
-        idxH = bundleidx[1]
-        idxL = bundleidx[2]
-        print idxH
-        print idxL
+        bundlelist = DSUtil.sendSecurities(context, data, self.__stocks__, True, True, False)
+        bundleidx = bundlelist[0].get('bidx',None)
+        if bundleidx:
+            idxH = bundleidx[1]
+            idxL = bundleidx[2]
+            #print idxH
+            #print idxL
+        
+    def monitorIndex(self, runTime):
+        #TODO
+        pass
         
     @staticmethod
     def getPresentObserver():
