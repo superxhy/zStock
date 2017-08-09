@@ -243,6 +243,8 @@ class JqDatasrc(SecurityDataSrcBase):
     def GET_HIGH_DAY(self, context, security, ref=0):
         if ref==0:
             run_minutes = self.GET_RUN_MINUTES(context)
+            if run_minutes == 0:
+                return get_current_data()[security].day_open
             highData = attribute_history(security, run_minutes, unit='1m', fields=('high'), skip_paused=True, df=False)['high']
             #highLast = MAX_CN(highData,run_minutes)
             highLast = highData.max()
@@ -254,6 +256,8 @@ class JqDatasrc(SecurityDataSrcBase):
     def GET_LOW_DAY(self, context, security, ref=0):
         if ref==0:
             run_minutes = self.GET_RUN_MINUTES(context)
+            if run_minutes == 0:
+                return get_current_data()[security].day_open
             lowData = attribute_history(security, run_minutes, unit='1m', fields=('low'), skip_paused=True, df=False)['low']
             #highLast = MIN_CN(lowData,run_minutes)
             lowLast = lowData.min()
@@ -278,7 +282,8 @@ class JqDatasrc(SecurityDataSrcBase):
         else:
             run_minutes = self.GET_RUN_MINUTES(context)
             if run_minutes == 0:
-                highLast = attribute_history(security, 1, unit='1m', fields=('high'), skip_paused=True, df=False)['high']
+                #highLast = attribute_history(security, 1, unit='1m', fields=('high'), skip_paused=True, df=False)['high']
+                highLast = get_current_data()[security].day_open
             else:
                 highData = attribute_history(security, run_minutes, unit='1m', fields=('high'), skip_paused=True, df=False)['high']
                 #highLast = MAX_CN(highData,run_minutes)
@@ -294,7 +299,8 @@ class JqDatasrc(SecurityDataSrcBase):
         else:
             run_minutes = self.GET_RUN_MINUTES(context)
             if run_minutes == 0:
-                lowLast = attribute_history(security, 1, unit='1m', fields=('low'), skip_paused=True, df=False)['low']
+                #lowLast = attribute_history(security, 1, unit='1m', fields=('low'), skip_paused=True, df=False)['low']
+                lowLast = get_current_data()[security].day_open
             else:
                 lowData = attribute_history(security, run_minutes, unit='1m', fields=('low'), skip_paused=True, df=False)['low']
                 #highLast = MIN_CN(lowData,run_minutes)
