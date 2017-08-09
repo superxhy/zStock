@@ -228,8 +228,8 @@ class JqDatasrc(SecurityDataSrcBase):
         if not np.isnan(volLast) and volLast != 0:
             if(run_minutes==0):
                 #TODO: no support 9:25 vol?
-                #volLast = get_current_data()[security].volume
-                volLast = data[security].volume
+                #volLast = 0.01*get_current_data()[security].volume
+                volLast = 0.01*data[security].volume
                 self.data[security]={'volume':volLast} 
                 vol_intraday = np.append(vol_intraday, volLast)
             elif(offset!=0):
