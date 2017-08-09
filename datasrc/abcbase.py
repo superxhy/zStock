@@ -776,7 +776,8 @@ class SecurityDataSrcBase(object):
             volyinyang = yy[-1]
         if len(kArray) >0:
             volbody = float(decimal.Decimal((kArray[-1][0] - kArray[-1][1])/kArray[-1][1] * 100).quantize(decimal.Decimal('0.00')))
-        volformat = "%s#%s/%s%%%s:%s %s~%s%%%s" %(str(period),str(volyinyang),str(volbody),str(volPreStr),str(volmk),str(volRate),str(volBB),str(volBand))
+        volformat = "P#%s/%s%%%s:%s %s~%s%%%s" %(str(volyinyang),str(volbody),str(volPreStr),str(volmk),str(volRate),str(volBB),str(volBand))
+        #print volformat
         return [volformat,'.'.join(cryptomk),'.'.join(cryptoel)]
     
     '''
@@ -786,28 +787,29 @@ class SecurityDataSrcBase(object):
    三红  三黑  红红黑 黑黑红 黑红黑 红黑红 红黑黑 黑红红
    三高  三低  震荡高 震荡低 反覆低 反覆高 瞬间高 瞬间低
    
-   三高:多方气势强盛，伴随量增一般收中长红，标准低点高点逐高，一盘低点破掉会转弱
-   三低:空方气势强盛，伴随量增一般收中长黑，标准低点高点逐低，一盘高点破掉会转强
-   震荡高:多方稳步推升，一般收小红，盘中有两波以上的波动（两个高点，两个低点），标准两波半， 上下上下上，一盘低点破掉会转弱
-   震荡低:空方稳步压制，一般收小黑，盘中有两波以上的波动（两个低点，两个高点），标准两波半， 下上下上下，一盘高点破掉会转强
-   反覆低:多空反复，空方略占，一般收小黑小红，一盘低点破掉会转弱
-   反覆高:多空反复，多方略占，一般收小黑小红，一盘高点破掉会转强
-   瞬间高:多方最后一击后被空方反击，反而会中长黑，一盘高点破掉会转强
-   瞬间低:空方最后一击后被多方反击，反而会中长红，一盘低点破掉会转弱
-    period#idxK/idxbody%idx1volStr:idxmk ~idxBand
-    idxMax
-    idxMin
+    三高:多方气势强盛，伴随量增一般收中长红，标准低点高点逐高，一盘低点破掉会转弱
+    三低:空方气势强盛，伴随量增一般收中长黑，标准低点高点逐低，一盘高点破掉会转强
+    震荡高:多方稳步推升，一般收小红，盘中有两波以上的波动（两个高点，两个低点），标准两波半， 上下上下上，一盘低点破掉会转弱
+    震荡低:空方稳步压制，一般收小黑，盘中有两波以上的波动（两个低点，两个高点），标准两波半， 下上下上下，一盘高点破掉会转强
+    反覆低:多空反复，空方略占，一般收小黑小红，一盘低点破掉会转弱
+    反覆高:多空反复，多方略占，一般收小黑小红，一盘高点破掉会转强
+    瞬间高:多方最后一击后被空方反击，反而会中长黑，一盘高点破掉会转强
+    瞬间低:空方最后一击后被多方反击，反而会中长红，一盘低点破掉会转弱
+    O#idxRate%idxBand/idx1volStr:idxmk idxel
+    idxK
+    idxbody
+    idxMax,idxMin
     '''
     def GET_INDEXO_CRYPTO(self, context, security, period = 'D', data={}):
         trigrams421 = [
-            {'mark':'±','element':'地','name':'坤'},#000
-            {'mark':'⌊','element':'雷','name':'震'},#001
-            {'mark':'§','element':'水','name':'坎'},#010
-            {'mark':'⌋','element':'澤','name':'兌'},#011
-            {'mark':'⌉','element':'山','name':'艮'},#100
-            {'mark':'ψ','element':'火','name':'離'},#101
-            {'mark':'⌈','element':'風','name':'巽'},#110
-            {'mark':'≡','element':'天','name':'乾'},#111
+            {'mark':'±','element':'三低','name':'坤'},#000
+            {'mark':'⌊','element':'震荡低','name':'震'},#001
+            {'mark':'§','element':'反覆低','name':'坎'},#010
+            {'mark':'⌋','element':'瞬间低','name':'兌'},#011
+            {'mark':'⌉','element':'瞬间高','name':'艮'},#100
+            {'mark':'ψ','element':'反覆高','name':'離'},#101
+            {'mark':'⌈','element':'震荡高','name':'巽'},#110
+            {'mark':'≡','element':'三高','name':'乾'},#111
                        ]
         yinmark = '’'
         yangmark = '‘'
@@ -836,8 +838,7 @@ class SecurityDataSrcBase(object):
         panCount = 0
         runTime = self.GET_RUN_MINUTES(context)
         if runTime == 0 :
-            #TODO 集合竞价
-            return None
+            panCount = 1
         else:
             panCount = runTime//freq 
             if runTime % freq != 0:
@@ -860,6 +861,12 @@ class SecurityDataSrcBase(object):
         idxMaxIndex = np.where(idxH==idxMax)[0][0]
         idxMin = idxL.min()
         idxMinIndex = np.where(idxL==idxMin)[0][0]
+        idxBand = idxMax - idxMin
+        if idxBand > 0:
+            idxRate = (close[-1]-idxMin)/idxBand * 100
+        else:
+            idxRate = 0
+        idxRateStr = decimal.Context(prec=3, rounding=decimal.ROUND_DOWN).create_decimal(idxRate)
         dataJj = self.data.get(security,None)
         if dataJj:
             idxV[0] += dataJj['volume']
@@ -874,10 +881,10 @@ class SecurityDataSrcBase(object):
         idxid = compk(kArray)
         if idxid < 0:
             idxmk = '-'
-            #idxel = '-'
+            idxel = '-'
         else:
             idxmk = trigrams421[compk(kArray)]['mark']
-            #idxel = trigrams421[compk(kArray)]['element']
+            idxel = trigrams421[compk(kArray)]['element']
         for i in range(0,idxlen):
             idxBody[i] = str(idxBody[i]) + yymk[i]
             if i in [idxMaxIndex,idxMinIndex]:
@@ -887,9 +894,9 @@ class SecurityDataSrcBase(object):
                     idxK[idxMinIndex] = '['+str(idxK[idxMinIndex])+']'
             else:
                 idxK[i] = str(idxK[i])
-        idxformat = "%s#%s/%s%%%s:%s ~%s" %(str(period),str(','.join(idxK)),str(','.join(idxBody)),str(idx1volStr),str(idxmk),str(idxMax-idxMin))
+        idxformat = "O#%s%%%s/%s:%s %s" %(str(idxRateStr),str(idxBand),str(idx1volStr),str(idxmk),str(idxel))
         #print idxformat
-        return [idxformat, str(idxMax), str(idxMin)]
+        return [idxformat,str(','.join(idxK)), str(','.join(idxBody)),[str(idxMax), str(idxMin)]]
     
     '''
     ['code','name','industry','close','wave','inert','vol']
