@@ -11,7 +11,7 @@ import datetime
 
 #protect html keyword convert
 def quote(s):
-    return s.replace('&','&amp;').replace('<', '&lt;').replace('>', '&gt;').replace(' ','&nbsp;').replace('\n', '<br/>').replace(
+    return str(s).replace('&','&amp;').replace('<', '&lt;').replace('>', '&gt;').replace(' ','&nbsp;').replace('\n', '<br/>').replace(
 '≡','&equiv;').replace('±', '&plusmn;').replace('⌈', '&lceil;').replace('⌊','&lfloor;').replace('§', '&sect;').replace('ψ', '&psi;').replace('⌉', '&rceil;').replace('⌋', '&rfloor;')
 
 
