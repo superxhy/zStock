@@ -20,7 +20,7 @@ class SecurityDataSrcBase(object):
 
     def __init__(self, name):
         self.name = name
-
+        self.data = {}
            
     SINVOKEMETHODS = None
     #lazy mode to save methodsname
@@ -694,7 +694,7 @@ class SecurityDataSrcBase(object):
         DATACAL = 4
         DATALEN = 5
         DATACOUNT = DATACAL + (DATALEN -1)
-        volData = self.GET_VOL_DATA_DAY(context, security,True,{},DATACOUNT)
+        volData = self.GET_VOL_DATA_DAY(context, security,True,data,DATACOUNT)
         #volLast = volData[-1]
         volRef = 0
         volRate = 0
@@ -722,7 +722,10 @@ class SecurityDataSrcBase(object):
         volMinIndex = np.where(volDataPre==volMin)[0][0]
         volMinOffset = len(volDataPre) -1 - volMinIndex
         #band
-        volBand = float(decimal.Decimal((volMax - volMin)/volMin * 100).quantize(decimal.Decimal('0.00')))
+        if volMin == 0 :
+            volBand = 0
+        else:
+            volBand = float(decimal.Decimal((volMax - volMin)/volMin * 100).quantize(decimal.Decimal('0.00')))
         volBB = float(decimal.Decimal((volPre -volMin)/(volMax - volMin) * 100).quantize(decimal.Decimal('0.00')))
         volArray = []
         for i in range(0, DATALEN):
@@ -857,6 +860,9 @@ class SecurityDataSrcBase(object):
         idxMaxIndex = np.where(idxH==idxMax)[0][0]
         idxMin = idxL.min()
         idxMinIndex = np.where(idxL==idxMin)[0][0]
+        dataJj = self.data.get(security,None)
+        if dataJj:
+            idxV[0] += dataJj['volume']
         idx1volStr = decimal.Context(prec=3, rounding=decimal.ROUND_DOWN).create_decimal(idxV[0])
         kArray = []
         for i in range(0, idxlen):
@@ -882,12 +888,13 @@ class SecurityDataSrcBase(object):
             else:
                 idxK[i] = str(idxK[i])
         idxformat = "%s#%s/%s%%%s:%s ~%s" %(str(period),str(','.join(idxK)),str(','.join(idxBody)),str(idx1volStr),str(idxmk),str(idxMax-idxMin))
+        #print idxformat
         return [idxformat, str(idxMax), str(idxMin)]
     
     '''
     ['code','name','industry','close','wave','inert','vol']
     '''
-    def GET_BUNDLE(self, context, security, crypto=False):
+    def GET_BUNDLE(self, context, security, crypto=False, data={}):
         code = security.split('.')[0]
         info = self.GET_SECURITY_INFO(security)
         name = info['name']
@@ -913,8 +920,8 @@ class SecurityDataSrcBase(object):
         self.GET_INERT_CRYPTO(context, security, 'W')]
         bundle['wave'] = wave
         bundle['inert'] = inert
-        bundle['vol'] = self.GET_VOL_CRYPTO(context, security)
-        idx = self.GET_INDEXO_CRYPTO(context, security)
+        bundle['vol'] = self.GET_VOL_CRYPTO(context, security,'D',data)
+        idx = self.GET_INDEXO_CRYPTO(context, security,'D',data)
         if idx :
             bundle['bidx'] =  idx
         return bundle
