@@ -33,29 +33,29 @@ def GET_RUN_MINUTES(context):
 def CROSS_LAST_COUNT(src, crossval, crossup=True):
     return SecurityDataSrcBase.CROSS_LAST_COUNT(src, crossval, crossup)
 
-def STD_DATA_DAY(security, data={}, dataCount=1):
+def STD_DATA_DAY(context, security, data={}, dataCount=1):
     curname = sys._getframe().f_code.co_name
-    ret = dsobj.invokeMethod(curname, security, data, dataCount)
+    ret = dsobj.invokeMethod(curname, context, security, data, dataCount)
     return ret
 
-def STD_DAY(security, ref=0, data={}):
+def STD_DAY(context, security, ref=0, data={}):
     curname = sys._getframe().f_code.co_name
-    ret = dsobj.invokeMethod(curname, security, ref, data)
+    ret = dsobj.invokeMethod(curname, context, security, ref, data)
     return ret
 
 
-def BOLL_DAY_STATE(security, data={}):
+def BOLL_DAY_STATE(context, security, data={}):
     curname = sys._getframe().f_code.co_name
-    return dsobj.invokeMethod(curname, security, data)
+    return dsobj.invokeMethod(curname, context, security, data)
 
-def BOLL_DATA_DAY(security, data={}, dataCount=1):
+def BOLL_DATA_DAY(context, security, data={}, dataCount=1):
     curname = sys._getframe().f_code.co_name
-    ret = dsobj.invokeMethod(curname, security, data, dataCount)
+    ret = dsobj.invokeMethod(curname, context, security, data, dataCount)
     return ret
     
-def BOLL_DAY(security, ref=0, data={}):
+def BOLL_DAY(context, security, ref=0, data={}):
     curname = sys._getframe().f_code.co_name
-    ret = dsobj.invokeMethod(curname, security, ref, data)
+    ret = dsobj.invokeMethod(curname, context, security, ref, data)
     return ret
 
 def BOLL_STATE(context, security, freq = 30, data={}):
@@ -72,24 +72,24 @@ def WR_DATA_DAY(context, security, timeperiod=9, dataCount=1):
     ret = dsobj.invokeMethod(curname, context, security, timeperiod, dataCount)
     return ret
 
-def RSI_DAY(security, timeperiod=6, data={}, ref=0):
+def RSI_DAY(context, security, timeperiod=6, data={}, ref=0):
     curname = sys._getframe().f_code.co_name
-    ret = dsobj.invokeMethod(curname, security, timeperiod, data, ref)
+    ret = dsobj.invokeMethod(curname, context, security, timeperiod, data, ref)
     return ret
 
-def RSI_DATA_DAY(security, timeperiod=6, data={}, dataCount=1):
+def RSI_DATA_DAY(context, security, timeperiod=6, data={}, dataCount=1):
     curname = sys._getframe().f_code.co_name
-    ret = dsobj.invokeMethod(curname, security, timeperiod, data, dataCount)
+    ret = dsobj.invokeMethod(curname, context, security, timeperiod, data, dataCount)
     return ret
 
-def KDJ_DAY(security, data={}, ref=0):
+def KDJ_DAY(context, security, data={}, ref=0):
     curname = sys._getframe().f_code.co_name
-    ret = dsobj.invokeMethod(curname, security, data, ref)
+    ret = dsobj.invokeMethod(curname, context, security, data, ref)
     return ret
 
-def KDJ_DATA_DAY(security, data={}, dataCount=1):
+def KDJ_DATA_DAY(context, security, data={}, dataCount=1):
     curname = sys._getframe().f_code.co_name
-    ret = dsobj.invokeMethod(curname, security, data, dataCount)
+    ret = dsobj.invokeMethod(curname, context, security, data, dataCount)
     return ret
 
 def KDJ_DATA(context, security, freq = 'D', data={}, dataCount=1):
@@ -248,17 +248,17 @@ def GET_LOW_DATA_DAY(context,security,isLastest=True,data={},dataCount=1):
     return ret
 
 # 获取当前日线或ref天前收盘价
-#security, ref=0 ,data={}
-def GET_CLOSE_DAY(security, ref=0 ,data={}):
+#context,security, ref=0 ,data={}
+def GET_CLOSE_DAY(context,security, ref=0 ,data={}):
     curname = sys._getframe().f_code.co_name
-    ret = dsobj.invokeMethod(curname, security, ref ,data)
+    ret = dsobj.invokeMethod(curname, context,security, ref ,data)
     return ret
 
-#security,isLastest=True,data={},dataCount=20
+#context,security,isLastest=True,data={},dataCount=20
 # 获取日线历史数据
-def GET_CLOSE_DATA_DAY(security,isLastest=True,data={},dataCount=20):
+def GET_CLOSE_DATA_DAY(context,security,isLastest=True,data={},dataCount=20):
     curname = sys._getframe().f_code.co_name
-    ret = dsobj.invokeMethod(curname, security,isLastest,data,dataCount)
+    ret = dsobj.invokeMethod(curname, context,security,isLastest,data,dataCount)
     return ret
    
 # 获取日线周线月线收盘价历史数据
