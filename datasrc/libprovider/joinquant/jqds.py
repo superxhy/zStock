@@ -395,7 +395,7 @@ class JqDatasrc(SecurityDataSrcBase):
             return attribute_history(security, ref, '1d', ('close'), True)['close'][0]
     
     # 获取日线历史数据
-    def GET_CLOSE_DATA_DAY(self, security, context, isLastest=True,data={},dataCount=20):
+    def GET_CLOSE_DATA_DAY(self, context, security, isLastest=True,data={},dataCount=20):
         close = attribute_history(security, dataCount, unit='1d', fields=('close'), skip_paused=True, df=False)['close']
         if not isLastest:
             return close
