@@ -278,19 +278,19 @@ class SecurityDataSrcBase(object):
     def MA_CN(close,timeperiod=5):
         return tl.MA(close, timeperiod, 0)
     
-    def STD_DATA_DAY(self, security, data={}, dataCount=1):
-        closeDay = self.GET_CLOSE_DATA_DAY(security, True, data, dataCount-1+20)
+    def STD_DATA_DAY(self, context, security, data={}, dataCount=1):
+        closeDay = self.GET_CLOSE_DATA_DAY(context, security, True, data, dataCount-1+20)
         if np.isnan(closeDay[-1]):
             return np.nan
         return self.STD_CN(closeDay)
     
-    def STD_DAY(self, security, ref=0, data={}):
-        stdDev = self.STD_DATA_DAY(security, data, ref+1)
+    def STD_DAY(self, context, security, ref=0, data={}):
+        stdDev = self.STD_DATA_DAY(context, security, data, ref+1)
         if np.isnan(stdDev[-1-ref]):
             return np.nan
         return stdDev[-1-ref]
         #dataCount = ref + 20
-        #closeDay = GET_CLOSE_DATA_DAY(security, True, data, dataCount)
+        #closeDay = GET_CLOSE_DATA_DAY(context, security, True, data, dataCount)
         #if ref==0:
         #    closeDayOffset = closeDay[1:]
         #else:
@@ -306,7 +306,7 @@ class SecurityDataSrcBase(object):
     DEX:IF(PERIOD>=3 AND MA20<=REF(MA20,1) AND UB>=REF(UB,1) AND LB<REF(LB,1),LB,DRAWNULL),DOTLINE,LINETHICK1,COLORGREEN;
     DSH:IF(PERIOD>=3 AND MA20<=REF(MA20,1) AND UB<REF(UB,1) AND LB>=REF(LB,1),LB,DRAWNULL),DOTLINE,LINETHICK1,COLORRED;
     '''
-    def BOLL_DAY_STATE(self, security, data={}):
+    def BOLL_DAY_STATE(self, context, security, data={}):
         RET_UP_START = 3
         RET_UP_KEEP = 2
         RET_UP_END = 1
@@ -315,7 +315,7 @@ class SecurityDataSrcBase(object):
         RET_DN_END = -1
         ret = 0
         keyprice = 0
-        bollUPPER, bollMIDDLE, bollLOWER = self.BOLL_DATA_DAY(security, data, 2)
+        bollUPPER, bollMIDDLE, bollLOWER = self.BOLL_DATA_DAY(context, security, data, 2)
         if len(bollMIDDLE) < 2 or np.isnan(bollMIDDLE[-1]) or np.isnan(bollMIDDLE[-2]):
             return ret, keyprice
         upper = bollUPPER[-1]
@@ -342,14 +342,14 @@ class SecurityDataSrcBase(object):
             keyprice = lower
         return ret, keyprice
     
-    def BOLL_DATA_DAY(self, security, data={}, dataCount=1):
-        closeDay = self.GET_CLOSE_DATA_DAY(security, True, data, dataCount-1+20)
+    def BOLL_DATA_DAY(self, context, security, data={}, dataCount=1):
+        closeDay = self.GET_CLOSE_DATA_DAY(context, security, True, data, dataCount-1+20)
         if np.isnan(closeDay[-1]):
             return np.array(closeDay[-1]),np.array(closeDay[-1]),np.array(closeDay[-1])
         return self.BOLL_CN(closeDay)
         
-    def BOLL_DAY(self, security, ref=0, data={}):
-        bollUPPER, bollMIDDLE, bollLOWER = self.BOLL_DATA_DAY(security, data, ref+1)
+    def BOLL_DAY(self, context, security, ref=0, data={}):
+        bollUPPER, bollMIDDLE, bollLOWER = self.BOLL_DATA_DAY(context, security, data, ref+1)
         upper = middle = lower = np.nan
         if not np.isnan(bollMIDDLE[-1]):
             upper = bollUPPER[-1-ref]
@@ -415,38 +415,38 @@ class SecurityDataSrcBase(object):
         return WR[-1-ref]
     
     def WR_DATA_DAY(self, context, security, timeperiod=9, dataCount=1):
-        closeDay = self.GET_CLOSE_DATA_DAY(security, True, {}, timeperiod + dataCount - 1)
+        closeDay = self.GET_CLOSE_DATA_DAY(context, security, True, {}, timeperiod + dataCount - 1)
         highDay = self.GET_HIGH_DATA_DAY(context, security, True, {}, timeperiod + dataCount - 1)
         lowDay = self.GET_LOW_DATA_DAY(context, security, True, {}, timeperiod + dataCount -1)
         if np.isnan(closeDay[-timeperiod]):
             return np.array([np.nan])
         return self.WR_CN(highDay, lowDay, closeDay, timeperiod)
     
-    def RSI_DAY(self, security, timeperiod=6, data={}, ref=0):
-        real = self.RSI_DATA_DAY(security, timeperiod, data, ref+1)
+    def RSI_DAY(self, context, security, timeperiod=6, data={}, ref=0):
+        real = self.RSI_DATA_DAY(context, security, timeperiod, data, ref+1)
         rsi = np.nan
         if not np.isnan(real[-1]):
             rsi = real[-1-ref]
         return rsi
     
-    def RSI_DATA_DAY(self, security, timeperiod=6, data={}, dataCount=1):
-        closeDay = self.GET_CLOSE_DATA_DAY(security, True, data, dataCount-1+timeperiod*10)
+    def RSI_DATA_DAY(self, context, security, timeperiod=6, data={}, dataCount=1):
+        closeDay = self.GET_CLOSE_DATA_DAY(context, security, True, data, dataCount-1+timeperiod*10)
         if np.isnan(closeDay[-1]):
             return np.array([np.nan])
         return self.RSI_CN(closeDay, timeperiod)
     
-    def KDJ_DAY(self, security, data={}, ref=0):
-        k,d,j = self.KDJ_DATA_DAY(security, data, ref+1)
+    def KDJ_DAY(self, context, security, data={}, ref=0):
+        k,d,j = self.KDJ_DATA_DAY(context, security, data, ref+1)
         if np.isnan(k[-1]):
             return 0,0,0,
         return k[-1-ref],d[-1-ref],j[-1-ref]
 
-    def KDJ_DATA_DAY(self, security, data={}, dataCount=1):
-        return self.KDJ_DATA(None, security, 'D',data, dataCount)
+    def KDJ_DATA_DAY(self, context, security, data={}, dataCount=1):
+        return self.KDJ_DATA(context, security, 'D',data, dataCount)
     
     def GET_PERIOD_DATA(self,context, security, freq = 'D', data={}, dataCount=1):
         if freq == 'D':
-            close = self.GET_CLOSE_DATA_DAY(security, True, data, dataCount)
+            close = self.GET_CLOSE_DATA_DAY(context, security, True, data, dataCount)
             high = self.GET_HIGH_DATA_DAY(context, security, True, {}, dataCount)
             low = self.GET_LOW_DATA_DAY(context, security, True, {}, dataCount)
         elif freq == 'W':
@@ -837,7 +837,7 @@ class SecurityDataSrcBase(object):
         if runTime == 0 :
             panCount = 1
             #计算集合竞价开盘数值
-            openday = self.GET_CLOSE_DAY(security, 1)
+            openday = self.GET_CLOSE_DAY(context,security, 1)
         else:
             if  not security in self.GET_ALL_INDEXES():
                 #开盘八法只适用于指数
@@ -909,7 +909,7 @@ class SecurityDataSrcBase(object):
         info = self.GET_SECURITY_INFO(security)
         name = info['name']
         industry = info['industry']
-        close = self.GET_CLOSE_DAY(security)
+        close = self.GET_CLOSE_DAY(context, security)
         bundle = {
         'code':code,
         'name':name,
@@ -936,14 +936,14 @@ class SecurityDataSrcBase(object):
             bundle['bidx'] =  idx
         return bundle
     
-    def CCI_DAY(self, security, data={}, ref=0):
-        CCI = self.KDJ_DATA_DAY(security, data, ref+1)
+    def CCI_DAY(self, context, security, data={}, ref=0):
+        CCI = self.CCI_DATA_DAY(context, security, data, ref+1)
         if np.isnan(CCI[-1]):
             return 0
         return CCI[-1-ref]
 
-    def CCI_DATA_DAY(self, security, data={}, dataCount=1):
-        return self.CCI_DATA(None, security, 'D',data, dataCount)
+    def CCI_DATA_DAY(self, context, security, data={}, dataCount=1):
+        return self.CCI_DATA(context, security, 'D',data, dataCount)
     
     def CCI_DATA(self, context, security, freq = 'D', data={}, dataCount=1):
         #sma target round2
@@ -961,14 +961,14 @@ class SecurityDataSrcBase(object):
         CCI = np.array([float(decimal.Decimal(s).quantize(decimal.Decimal('0.00'))) for s in CCI])
         return CCI
     
-    def MA_N_DAY(self, security, n=5, ref=0, data={}):
-        MA_N = self.MA_N_DATA_DAY(security, n, data, ref+1)
+    def MA_N_DAY(self, context, security, n=5, ref=0, data={}):
+        MA_N = self.MA_N_DATA_DAY(context, security, n, data, ref+1)
         if not np.isnan(MA_N[-1]):
             return MA_N[-1-ref]
         return 0
     
-    def MA_N_DATA_DAY(self, security, n=5, data={}, dataCount=1):
-        closeDay = self.GET_CLOSE_DATA_DAY(security, True, data, n + dataCount - 1)
+    def MA_N_DATA_DAY(self, context, security, n=5, data={}, dataCount=1):
+        closeDay = self.GET_CLOSE_DATA_DAY(context, security, True, data, n + dataCount - 1)
         if np.isnan(closeDay[-1]):
             return np.array(closeDay[-1])
         return self.MA_CN(closeDay,n)
@@ -1149,12 +1149,12 @@ class SecurityDataSrcBase(object):
     
     # 获取当前日线或ref天前收盘价
     @abstractmethod
-    #security, ref=0 ,data={}
+    #context,security, ref=0 ,data={}
     def GET_CLOSE_DAY(self):
         pass
     
     @abstractmethod
-    #security,isLastest=True,data={},dataCount=20
+    #context,security,isLastest=True,data={},dataCount=20
     # 获取日线历史数据
     def GET_CLOSE_DATA_DAY(self):
         pass
