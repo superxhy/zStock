@@ -126,9 +126,9 @@ class FlyDragon(object):
                     self.aimed_time.month==context.current_dt.month and 
                     self.aimed_time.day==context.current_dt.day)
 
-    def getProfit(self):
+    def getProfit(self,context):
         if self.__fired__:
-            close_last = GET_CLOSE_DAY(self.__security__)
+            close_last = GET_CLOSE_DAY(context, self.__security__)
             profit = (close_last -  self.__firepoint__)/self.__firepoint__ * 100
             self.logd(self.__security__ +" profit:" + str(profit))
         else:
@@ -139,8 +139,8 @@ class FlyDragon(object):
             self.__fired__ = False
             self.observer = None
             return self.RET_SELL
-        close_last = GET_CLOSE_DAY(self.__security__, 0, data)
-        ma20 = MA_N_DAY(self.__security__, 20, 0, data)
+        close_last = GET_CLOSE_DAY(context, self.__security__, 0, data)
+        ma20 = MA_N_DAY(context, self.__security__, 20, 0, data)
         if close_last < ma20:
             #self.logd(self.__security__ +" stopLoss!")
             self.__fired__ = False
@@ -188,8 +188,8 @@ class FlyDragon(object):
     def horver(self, context, dropDownCheck=False):
         dropDown = False;
         runTime = GET_RUN_MINUTES(context)
-        kma10 = GET_CLOSE_DAY(self.__security__, 10)
-        close_last = GET_CLOSE_DAY(self.__security__)
+        kma10 = GET_CLOSE_DAY(context, self.__security__, 10)
+        close_last = GET_CLOSE_DAY(context, self.__security__)
         #fail for ma10 revert after 2:45
         if runTime >= 225 and close_last < kma10:
             #self.logd("%s:ma10 revert dropDown %s" % (str(self.__security__), str(kma10)))
@@ -197,7 +197,7 @@ class FlyDragon(object):
         day_to_hover = 0
         height_to_hover = 0
         for i in range(1, 10):
-            kMa10_close = GET_CLOSE_DAY(self.__security__, 10-i)
+            kMa10_close = GET_CLOSE_DAY(context, self.__security__, 10-i)
             day_to_hover = i
             hei_to_hover = (close_last - kMa10_close)/close_last * 100
             if i==1:
@@ -224,7 +224,7 @@ class FlyDragon(object):
                 dropDown = True
             #state stop
             maxvalue = self.observer.maxvalue()
-            state, keyvalue = BOLL_DAY_STATE(self.__security__)
+            state, keyvalue = BOLL_DAY_STATE(context, self.__security__)
             #print state
             #print keyvalue
             #print close_last
@@ -241,8 +241,8 @@ class FlyDragon(object):
     def target(self, context):
         high_last = GET_HIGH_DAY(context, self.__security__)
         low_last = GET_LOW_DAY(context, self.__security__)
-        close = GET_CLOSE_DAY(self.__security__,0)
-        close_ref = GET_CLOSE_DAY(self.__security__,1)
+        close = GET_CLOSE_DAY(context, self.__security__,0)
+        close_ref = GET_CLOSE_DAY(context, self.__security__,1)
         co_2 =  (high_last + low_last)/2
         vibrate = (high_last - low_last)/close_ref *100
         if vibrate < 3 or close >co_2:
@@ -259,7 +259,7 @@ class FlyDragon(object):
             self.logd("%s:targetLock for volPv:%s !!!" % (str(self.__security__), str(volPv)))
             ret += 1
             ma60 = MA_N_DAY(self.__security__, 60, 0, data)
-            kMa60_close = GET_CLOSE_DAY(self.__security__, 54)
+            kMa60_close = GET_CLOSE_DAY(context, self.__security__, 54)
             if ma20 > ma60 and closeLast > kMa60_close:
                 self.logd("%s:targetLock for ma60:%s !!!" % (str(self.__security__), str(volPv)))
                 ret += 1
@@ -301,12 +301,12 @@ class FlyDragon(object):
                 self.logd("hold on fly:"+self.__security__+",maxprofit:"+str(self.observer.maxprofit()))
                 return self.dragon_fly
             self.logd("dropDown fly:"+self.__security__)
-            self.getProfit()
+            self.getProfit(context)
             self._reset_state()
             return False
         if dropDown :
             self.logd("dropDown hover:"+self.__security__)
-            self.getProfit()
+            self.getProfit(context)
             self._reset_state()
             return False
         #self.logd("refresh end:"+str(self.dragon_fly))
@@ -316,7 +316,7 @@ class FlyDragon(object):
     def aimed(cls, context, security):
         #print security
         #MA20
-        MA20 = MA_N_DATA_DAY(security,20)
+        MA20 = MA_N_DATA_DAY(context, security,20)
         #忽略次新股无日线数据
         if np.isnan(MA20[-1]) or np.isnan(MA20[-2]):
             #cls.logd("MODE_FLY_DRAGON null data Day!"+security)
@@ -326,12 +326,12 @@ class FlyDragon(object):
             #cls.logd("SPKEEP:"+str(SPKEEP))
             return False
         #MA10
-        MA10 = MA_N_DATA_DAY(security,10)
+        MA10 = MA_N_DATA_DAY(context, security,10)
         if MA10[-1]<MA10[-2]:
             #cls.logd("MA10:"+str(MA10))
             return False
         #BOLL
-        stdDev = STD_DATA_DAY(security)
+        stdDev = STD_DATA_DAY(context, security)
         std = stdDev[-1]
         std1 = stdDev[-2]
         WBB = std*4/MA20[-1] * 100
@@ -339,7 +339,7 @@ class FlyDragon(object):
         if WBB <= cls.WBBMIN or WBB >cls.WBBMAX:
             #cls.logd("WBB:"+str(WBB))
             return False
-        close = GET_CLOSE_DAY(security)
+        close = GET_CLOSE_DAY(context, security)
         BB = (close -  (MA20[-1]-std*2))/(std*4)*100
         if BB<50 or BB>70:
             #cls.logd("BB:"+str(BB))
@@ -353,7 +353,7 @@ class FlyDragon(object):
         #rsi10 = RSI_DAY(security, 10)
         #cls.logd("wrr9:"+str(wrr9))
         #cls.logd("rsi10:"+str(rsi10))
-        if wrr9 >=20 and RSI_DAY(security, 10) >=55:
+        if wrr9 >=20 and RSI_DAY(context, security, 10) >=55:
             return False
         return True;
         
