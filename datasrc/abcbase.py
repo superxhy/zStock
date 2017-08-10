@@ -839,15 +839,17 @@ class SecurityDataSrcBase(object):
         runTime = self.GET_RUN_MINUTES(context)
         if runTime == 0 :
             panCount = 1
+            #计算集合竞价开盘数值
+            openday = self.GET_CLOSE_DAY(security, 1)
         else:
             panCount = runTime//freq 
             if runTime % freq != 0:
                 panCount +=1
+            openday = self.GET_OPEN_DAY(context, security)
         DATACAL = 3
         DATALEN = panCount
         #yin yang
         high, low, close = self.GET_PERIOD_DATA(context, security, freq, data, DATALEN)
-        openday = self.GET_OPEN_DAY(context, security)
         vol = self.GET_VOL_DATA_INTRADAY(context, security, data, freq, DATALEN)
         idxV = vol[-panCount:-(panCount-DATACAL)] if panCount > DATACAL else vol[-panCount:]
         idxC = close[-panCount:-(panCount-DATACAL)] if panCount > DATACAL else close[-panCount:]
@@ -865,7 +867,8 @@ class SecurityDataSrcBase(object):
         if idxBand > 0:
             idxRate = (close[-1]-idxMin)/idxBand * 100
         else:
-            idxRate = 0
+            #开盘无波动范围，使用相对昨天值
+            idxRate = (close[-1]-openday)/openday * 100
         idxRateStr = decimal.Context(prec=3, rounding=decimal.ROUND_DOWN).create_decimal(idxRate)
         dataJj = self.data.get(security,None)
         if dataJj:
