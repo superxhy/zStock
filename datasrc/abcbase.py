@@ -831,9 +831,6 @@ class SecurityDataSrcBase(object):
             bcdstr = ''.join(bcd)
             return int(bcdstr, 2)
         
-        if  not security in self.GET_ALL_INDEXES():
-            #开盘八法只适用于指数
-            return None
         freq = 5 
         panCount = 0
         runTime = self.GET_RUN_MINUTES(context)
@@ -842,6 +839,9 @@ class SecurityDataSrcBase(object):
             #计算集合竞价开盘数值
             openday = self.GET_CLOSE_DAY(security, 1)
         else:
+            if  not security in self.GET_ALL_INDEXES():
+                #开盘八法只适用于指数
+                return None
             panCount = runTime//freq 
             if runTime % freq != 0:
                 panCount +=1
