@@ -379,7 +379,7 @@ class TsDatasrc(SecurityDataSrcBase):
             return lowMonth
         
     # 获取当前日线或ref天前收盘价
-    def GET_CLOSE_DAY(self, security, ref=0 ,data={}):
+    def GET_CLOSE_DAY(self, context, security, ref=0 ,data={}):
         dataCount =  ref + 1
         df_data = ts.get_k_data(security, index=False, ktype='D').tail(dataCount)
         if df_data.empty == True:
@@ -390,7 +390,7 @@ class TsDatasrc(SecurityDataSrcBase):
         return df_data['close'].values[-ref]
     
     # 获取日线历史数据
-    def GET_CLOSE_DATA_DAY(self, security,isLastest=True,data={},dataCount=20):
+    def GET_CLOSE_DATA_DAY(self, context, security,isLastest=True,data={},dataCount=20):
         df_data = ts.get_k_data(security, index=False, ktype='D').tail(dataCount)
         if df_data.empty == True:
             print "security:%s NO GET_CLOSE_DATA_DAY!" %(str(security))
