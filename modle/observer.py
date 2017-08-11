@@ -343,7 +343,7 @@ class PresentObserver(object):
         if self.__start__ == False:
             return
         runTime = GET_RUN_MINUTES(context)
-        if runTime % self.__freq__ != 0:
+        if runTime==120 or (runTime !=119 and runTime !=239 and runTime % self.__freq__ != 0):
             return
         #freq to monitor
         bundlelist = DSUtil.sendSecurities(context, data, self.__stocks__, True, True, False)
