@@ -122,14 +122,14 @@ def GET_BUNDLE(context, security, crypto=False, data={}):
     ret = dsobj.invokeMethod(curname, context, security, crypto, data)
     return ret
 
-def CCI_DAY(security, data={}, ref=0):
+def CCI_DAY(context, security, data={}, ref=0):
     curname = sys._getframe().f_code.co_name
-    ret = dsobj.invokeMethod(curname, security, data, ref)
+    ret = dsobj.invokeMethod(curname, context, security, data, ref)
     return ret
 
-def CCI_DATA_DAY(security, data={}, dataCount=1):
+def CCI_DATA_DAY(context, security, data={}, dataCount=1):
     curname = sys._getframe().f_code.co_name
-    ret = dsobj.invokeMethod(curname, security, data, dataCount)
+    ret = dsobj.invokeMethod(curname, context, security, data, dataCount)
     return ret
 
 def CCI_DATA(context, security, freq = 'D', data={}, dataCount=1):
@@ -137,14 +137,14 @@ def CCI_DATA(context, security, freq = 'D', data={}, dataCount=1):
     ret = dsobj.invokeMethod(curname, context, security, freq, data, dataCount)
     return ret
 
-def MA_N_DAY(security, n=5, ref=0, data={}):
+def MA_N_DAY(context, security, n=5, ref=0, data={}):
     curname = sys._getframe().f_code.co_name
-    ret = dsobj.invokeMethod(curname, security, n, ref, data)
+    ret = dsobj.invokeMethod(curname, context, security, n, ref, data)
     return ret
 
-def MA_N_DATA_DAY(security, n=5, data={}, dataCount=1):
+def MA_N_DATA_DAY(context, security, n=5, data={}, dataCount=1):
     curname = sys._getframe().f_code.co_name
-    ret = dsobj.invokeMethod(curname, security, n, data, dataCount)
+    ret = dsobj.invokeMethod(curname, context, security, n, data, dataCount)
     return ret
     
 def MAVOL_N_DAY(context, security, n=5, ref=0, data={}):
@@ -309,4 +309,4 @@ class DSUtil(object):
         isSend = sendMail and (not backtest)
         title = DS_CLASS_NAME if useAttach else DS_CLASS_NAME + '_intraday'
         print sendTable(title, bundleList, schema, configloader.getEmailConfig() if (configloader != None) else None, isSend, useAttach)
-        return bundleList  
+        return bundleList 
