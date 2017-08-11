@@ -258,7 +258,7 @@ class FlyDragon(object):
         if (volPv > 55 and runtime < 180) or (volPv > 52 and runtime >= 180):
             self.logd("%s:targetLock for volPv:%s !!!" % (str(self.__security__), str(volPv)))
             ret += 1
-            ma60 = MA_N_DAY(self.__security__, 60, 0, data)
+            ma60 = MA_N_DAY(context, self.__security__, 60, 0, data)
             kMa60_close = GET_CLOSE_DAY(context, self.__security__, 54)
             if ma20 > ma60 and closeLast > kMa60_close:
                 self.logd("%s:targetLock for ma60:%s !!!" % (str(self.__security__), str(volPv)))
