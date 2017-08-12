@@ -112,18 +112,18 @@ def GET_LOW_DATA_MONTH(self):
 
 # 获取当前日线或ref天前收盘价
 @abstractmethod
-#security, ref=0 ,data={}
+#context,security, ref=0 ,data={}
 def GET_CLOSE_DAY(self):
     pass
 
 @abstractmethod
-#security,isLastest=True,data={},dataCount=20
+#context,security,isLastest=True,data={},dataCount=20
 # 获取日线历史数据
 def GET_CLOSE_DATA_DAY(self):
     pass
 
 @abstractmethod
-#security,isLastest=True,data={},dataCount=20
+#context,security,isLastest=True,data={},dataCount=20
 # 获取周线历史数据
 def GET_CLOSE_DATA_WEEK(self):
     pass
