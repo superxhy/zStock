@@ -689,30 +689,35 @@ class SecurityDataSrcBase(object):
             res = 0
             if (route > 0):
                 res = (close-mid)/route
-            return float(float(decimal.Decimal(res * 100).quantize(decimal.Decimal('0.00'))))
-                         
+            return float(decimal.Decimal(res * 100).quantize(decimal.Decimal('0.00')))
+        
+        def calRate(a, b):
+            #avoid infinate
+            if np.isnan(b) or b == 0:
+                return 0
+            return float(decimal.Decimal(a/b * 100).quantize(decimal.Decimal('0.00')))
+        
         DATACAL = 4
         DATALEN = 5
-        DATACOUNT = DATACAL + (DATALEN -1)
-        volData = self.GET_VOL_DATA_DAY(context, security,True,data,DATACOUNT)
+        #DATACOUNT = DATACAL + (DATALEN -1)
+        volData = self.GET_VOL_DATA_DAY(context, security,True,data,10+1)
         #volLast = volData[-1]
         volRef = 0
-        volRate = 0
+        #volRate = 0
         volmk =''
         volyinyang = 0
         volbody = 0
         volPre = self.VOL_PRE(context, security, data, True)
         if len(volData) > 1 :
             volRef = volData[-2]
-        if np.isnan(volRef) or volRef == 0:
-            #print no ref data
-            pass
-        else:
-            volRate = float(decimal.Decimal(volPre/volRef * 100).quantize(decimal.Decimal('0.00')))
-            #print volRate
+        volRate = calRate(volPre, volRef)
         volPreStr = decimal.Context(prec=3, rounding=decimal.ROUND_DOWN).create_decimal(volPre)
         #print volPreStr
         volDataPre = np.append(volData[:-1],volPre)
+        volPre5 = volDataPre[-5-1:-5+DATACAL-1]
+        volPre10 = volDataPre[-10-1:-10+DATACAL-1]
+        volPre5Rate = map(lambda x: calRate(volPre-x, x), volPre5)
+        volPre10Rate = map(lambda x: calRate(volPre-x, x), volPre10)
         #max point
         volMax = volDataPre.max()
         volMaxIndex = np.where(volDataPre==volMax)[0][0]
@@ -722,11 +727,8 @@ class SecurityDataSrcBase(object):
         volMinIndex = np.where(volDataPre==volMin)[0][0]
         volMinOffset = len(volDataPre) -1 - volMinIndex
         #band
-        if volMin == 0 :
-            volBand = 0
-        else:
-            volBand = float(decimal.Decimal((volMax - volMin)/volMin * 100).quantize(decimal.Decimal('0.00')))
-        volBB = float(decimal.Decimal((volPre -volMin)/(volMax - volMin) * 100).quantize(decimal.Decimal('0.00')))
+        volBand = calRate(volMax - volMin, volMin)
+        volBB = calRate(volPre -volMin, volMax - volMin)
         volArray = []
         for i in range(0, DATALEN):
             lenth = len(volDataPre)
@@ -775,10 +777,10 @@ class SecurityDataSrcBase(object):
         if len(yy) > 0:
             volyinyang = yy[-1]
         if len(kArray) >0:
-            volbody = float(decimal.Decimal((kArray[-1][0] - kArray[-1][1])/kArray[-1][1] * 100).quantize(decimal.Decimal('0.00')))
+            volbody = calRate(kArray[-1][0] - kArray[-1][1],kArray[-1][1])
         volformat = "P#%s/%s%%%s:%s %s~%s%%%s" %(str(volyinyang),str(volbody),str(volPreStr),str(volmk),str(volRate),str(volBB),str(volBand))
         #print volformat
-        return [volformat,'.'.join(cryptomk),'.'.join(cryptoel)]
+        return [volformat,[volPre5Rate, volPre10Rate],'.'.join(cryptomk),'.'.join(cryptoel)]
     
     '''
     ≡     ±     ⌈     ⌊     §    ψ    ⌉     ⌋
