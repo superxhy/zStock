@@ -691,6 +691,24 @@ class SecurityDataSrcBase(object):
                 res = (close-mid)/route
             return float(decimal.Decimal(res * 100).quantize(decimal.Decimal('0.00')))
         
+        #量能转化均衡算法
+        def chipExchange(varr5,varr10):
+            qtbegin = 100
+            qtrate = 10
+            sumarr = 0
+            lenarr = min(np.array([len(varr5),len(varr10)]))
+            for i in range(0, lenarr):
+                sumarr += varr5[i] * 100.0/qtbegin + varr10[i] * 100.0/qtbegin
+                if qtbegin > qtrate:
+                    qtbegin -= qtrate
+            a = np.array(varr5 + varr10)
+            std = np.sqrt(( a.var() * a.size) / (a.size - 1))
+            avg = abs(a.mean())
+            acg = 0
+            if avg > std:
+                acg = avg-std
+            return calRate(sumarr, lenarr*200), calRate(acg, avg)
+        
         def calRate(a, b):
             #avoid infinate
             if np.isnan(b) or b == 0:
@@ -718,6 +736,7 @@ class SecurityDataSrcBase(object):
         volPre10 = volDataPre[-10-1:-10+DATACAL-1]
         volPre5Rate = map(lambda x: calRate(volPre-x, x), volPre5)
         volPre10Rate = map(lambda x: calRate(volPre-x, x), volPre10)
+        volPreEx, volPreStable = chipExchange(volPre5Rate, volPre10Rate)
         #max point
         volMax = volDataPre.max()
         volMaxIndex = np.where(volDataPre==volMax)[0][0]
@@ -780,7 +799,7 @@ class SecurityDataSrcBase(object):
             volbody = calRate(kArray[-1][0] - kArray[-1][1],kArray[-1][1])
         volformat = "P#%s/%s%%%s:%s %s~%s%%%s" %(str(volyinyang),str(volbody),str(volPreStr),str(volmk),str(volRate),str(volBB),str(volBand))
         #print volformat
-        return [volformat,[volPre5Rate, volPre10Rate],'.'.join(cryptomk),'.'.join(cryptoel)]
+        return [volformat,'.'.join(cryptomk),'.'.join(cryptoel),[volPre5Rate, volPre10Rate],[volPreEx, volPreStable]]
     
     '''
     ≡     ±     ⌈     ⌊     §    ψ    ⌉     ⌋
