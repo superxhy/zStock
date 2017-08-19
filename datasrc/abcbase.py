@@ -716,7 +716,7 @@ class SecurityDataSrcBase(object):
             return float(decimal.Decimal(a/b * 100).quantize(decimal.Decimal('0.00')))
         
         DATACAL = 4
-        DATALEN = 5
+        DATALEN = 8
         DATACOUNT = DATACAL + (DATALEN -1)
         volData = self.GET_VOL_DATA_DAY(context, security,True,data,DATACOUNT)
         #volLast = volData[-1]
