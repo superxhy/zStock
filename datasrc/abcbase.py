@@ -717,8 +717,8 @@ class SecurityDataSrcBase(object):
         
         DATACAL = 4
         DATALEN = 5
-        #DATACOUNT = DATACAL + (DATALEN -1)
-        volData = self.GET_VOL_DATA_DAY(context, security,True,data,10+1)
+        DATACOUNT = DATACAL + (DATALEN -1)
+        volData = self.GET_VOL_DATA_DAY(context, security,True,data,DATACOUNT)
         #volLast = volData[-1]
         volRef = 0
         #volRate = 0
@@ -799,7 +799,7 @@ class SecurityDataSrcBase(object):
             volbody = calRate(kArray[-1][0] - kArray[-1][1],kArray[-1][1])
         volformat = "P#%s/%s%%%s:%s %s~%s%%%s" %(str(volyinyang),str(volbody),str(volPreStr),str(volmk),str(volRate),str(volBB),str(volBand))
         #print volformat
-        return [volformat,'.'.join(cryptomk),'.'.join(cryptoel),[volPre5Rate, volPre10Rate],[volPreEx, volPreStable]]
+        return [volformat,'. '.join(cryptomk),'. '.join(cryptoel),[volPre10Rate, volPre5Rate],[volPreEx, volPreStable]]
     
     '''
     ≡     ±     ⌈     ⌊     §    ψ    ⌉     ⌋
