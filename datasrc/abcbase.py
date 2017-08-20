@@ -476,7 +476,7 @@ class SecurityDataSrcBase(object):
         len3 = len(low)
         if len1 != len2 or len1 != len3:
             print "GET_PERIOD_DATA len neq!!!:%s,%s,%s" %(str(len1),str(len2),str(len3))
-            lenmin = min(np.array[len1,len2,len3])
+            lenmin = np.array([len1,len2,len3]).min()
             close = close[:-(len1-lenmin)]
             high = high[:-(len2-lenmin)]
             low = low[:-(len3-lenmin)]
@@ -693,7 +693,9 @@ class SecurityDataSrcBase(object):
         
         #量能转化均衡算法
         def chipExchange(varr5,varr10):
+            #放量界点权值
             qtbegin = 100
+            #界点权值步长
             qtrate = 10
             sumarr = 0
             lenarr = min(np.array([len(varr5),len(varr10)]))
@@ -701,13 +703,14 @@ class SecurityDataSrcBase(object):
                 sumarr += varr5[i] * 100.0/qtbegin + varr10[i] * 100.0/qtbegin
                 if qtbegin > qtrate:
                     qtbegin -= qtrate
-            a = np.array(varr5 + varr10)
-            std = np.sqrt(( a.var() * a.size) / (a.size - 1))
-            avg = abs(a.mean())
-            acg = 0
-            if avg > std:
-                acg = avg-std
-            return calRate(sumarr, lenarr*200), calRate(acg, avg)
+            return calRate(sumarr, lenarr*200)
+        
+        def chipExchangeStab(varr5Rel,varr10Rel):
+            #稳定转化缩量天数
+            suffocate = 2
+            stab5 = calRate(varr5Rel[0] - np.array(varr5Rel[1:suffocate]).mean()*suffocate/2, varr5Rel[0])
+            stab10 = calRate(varr10Rel[0] - np.array(varr10Rel[1:suffocate]).mean()*suffocate/2, varr10Rel[0])
+            return float(decimal.Decimal(stab5 + stab10).quantize(decimal.Decimal('0.00')))
         
         def calRate(a, b):
             #avoid infinate
@@ -736,7 +739,8 @@ class SecurityDataSrcBase(object):
         volPre10 = volDataPre[-10-1:-10+DATACAL-1]
         volPre5Rate = map(lambda x: calRate(volPre-x, x), volPre5)
         volPre10Rate = map(lambda x: calRate(volPre-x, x), volPre10)
-        volPreEx, volPreStable = chipExchange(volPre5Rate, volPre10Rate)
+        volPreEx = chipExchange(volPre5Rate, volPre10Rate)
+        volPreStable = chipExchangeStab(volPre5, volPre10)
         #max point
         volMax = volDataPre.max()
         volMaxIndex = np.where(volDataPre==volMax)[0][0]
