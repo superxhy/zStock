@@ -343,20 +343,83 @@ class PresentObserver(object):
         if self.__start__ == False:
             return
         runTime = GET_RUN_MINUTES(context)
+        if runTime==5 or runTime==230 or runTime==240:
+            self.test_vol(context, data)
         if runTime==120 or (runTime !=119 and runTime !=239 and runTime % self.__freq__ != 0):
             return
         #freq to monitor
         bundlelist = DSUtil.sendSecurities(context, data, self.__stocks__, True, True, False)
         bundleidx = bundlelist[0].get('bidx',None)
         if bundleidx:
-            idxH = bundleidx[1]
-            idxL = bundleidx[2]
+            idxH = bundleidx[-1][0]
+            idxL = bundleidx[-1][1]
             #print idxH
             #print idxL
         
     def monitorIndex(self, runTime):
         #TODO
         pass
+
+    def test_speed(self,stocklist,context = None,data = {}):
+        d_count = len(stocklist)
+        print "MODE_CCI begin count:%s", d_count
+        d_i = 0
+        ccilist = []
+        for security in stocklist:
+            #g.debug =  security
+            d_i = d_i + 1;
+            if d_i % (d_count//100 + 1) == 0:
+                print "MODE_CCI doing:%s %%" %str(d_i/(d_count//100 + 1))
+            DATA_COUNT = 2
+            cci = CCI_DATA(context,security, 'M', data, DATA_COUNT)
+            #月线不对
+            if np.isnan(cci[-1]) or cci[-1] < 100:
+                continue
+            cci = CCI_DATA(context,security, 'W', data, DATA_COUNT)
+            #周线不对
+            if np.isnan(cci[-1]) or cci[-1] < 100:
+                continue
+            cci = CCI_DATA(context,security, 'D', data, DATA_COUNT)
+            #忽略次新股无日线数据
+            if np.isnan(cci[-1]):
+                #log.info("MODE_CCI security:%s null data Day!", security)
+                continue
+            ccilist.append(security)
+            #print security
+            #print cci
+        print "MODE_CCI end count:%s", len(ccilist)
+        print len(ccilist)
+        print ccilist
+        return ccilist
+
+    def test_vol(self, context=None, data={}):
+        stocklist = GET_ALL_SECURITIES()
+        ccilist = self.test_speed(stocklist, context, data)
+        cryptolist = []
+        for security in ccilist:
+            crypto = {'security':security, 'crypto':GET_VOL_CRYPTO(context, security, 'D',data)}
+            exc = crypto['crypto'][-1][-2]
+            if exc > -20 and exc < 200:
+                cryptolist.append(crypto)
+            else:
+                pass
+        #TODO
+        def cmpcrypto(a, b):
+            idxEx = -2
+            idxStab = -1
+            if (a[idxEx]>0 and a[idxEx]<200) and (b[idxEx]>0 and b[idxEx]<200):
+                return b[idxStab] - a[idxStab]
+            if (a[idxEx]>0 and a[idxEx]<200) and (b[idxEx]>0 and b[idxEx]<200):
+                return b[idxStab] - a[idxStab]
+            
+        cryptolist.sort(cmp=lambda a,b: cmp(b['crypto'][-1][-1],a['crypto'][-1][-1]))
+        sendlist = []
+        for i in range(0, len(cryptolist)):
+            print cryptolist[i]['security']
+            print cryptolist[i]['crypto'][-1]
+            sendlist.append(cryptolist[i]['security'])
+        bundlelist = DSUtil.sendSecurities(context, data, sendlist, True, True, False)
+        #print bundlelist
         
     @staticmethod
     def getPresentObserver():
