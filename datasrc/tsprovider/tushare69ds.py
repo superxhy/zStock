@@ -150,7 +150,12 @@ class TsDatasrc(SecurityDataSrcBase):
         periodtype = str(freq)
         df_data = ts.get_k_data(security, index=False, ktype=periodtype).tail(dataCount)
         if df_data.empty == True:
-            print "security:%s in context:%s NO GET_CLOSE_DATA_INTRADAY!" %(str(security),str(context))
+            print "security:%s in freq:%s NO GET_CLOSE_DATA_INTRADAY!" %(str(security),str(freq))
+            return np.array([np.nan])
+        return self.GET_CLOSE_DATA_INTRADAY_DF(context, df_data)
+    
+    def GET_CLOSE_DATA_INTRADAY_DF(self, context, df_data):
+        if len(df_data['close'].values) < 1:
             return np.array([np.nan])
         return df_data['close'].values
     
@@ -158,15 +163,25 @@ class TsDatasrc(SecurityDataSrcBase):
         periodtype = str(freq)
         df_data = ts.get_k_data(security, index=False, ktype=periodtype).tail(dataCount)
         if df_data.empty == True:
-            print "security:%s in context:%s NO GET_HIGH_DATA_INTRADAY!" %(str(security),str(context))
+            print "security:%s in freq:%s NO GET_HIGH_DATA_INTRADAY!" %(str(security),str(freq))
+            return np.array([np.nan])
+        return self.GET_HIGH_DATA_INTRADAY_DF(context, df_data)
+
+    def GET_HIGH_DATA_INTRADAY_DF(self, context, df_data):
+        if len(df_data['high'].values) < 1:
             return np.array([np.nan])
         return df_data['high'].values
-
+    
     def GET_LOW_DATA_INTRADAY(self, context, security, data={}, freq=5, dataCount=1):
         periodtype = str(freq)
         df_data = ts.get_k_data(security, index=False, ktype=periodtype).tail(dataCount)
         if df_data.empty == True:
-            print "security:%s in context:%s NO GET_LOW_DATA_INTRADAY!" %(str(security),str(context))
+            print "security:%s in freq:%s NO GET_LOW_DATA_INTRADAY!" %(str(security),str(freq))
+            return np.array([np.nan])
+        return self.GET_LOW_DATA_INTRADAY_DF(context, df_data)
+    
+    def GET_LOW_DATA_INTRADAY_DF(self, context, df_data):
+        if len(df_data['low'].values) < 1:
             return np.array([np.nan])
         return df_data['low'].values
     
@@ -220,6 +235,11 @@ class TsDatasrc(SecurityDataSrcBase):
         if df_data.empty == True:
             print "security:%s in context:%s NO GET_HIGH_DATA_DAY!" %(str(security),str(context))
             return np.array([np.nan])
+        return self.GET_HIGH_DATA_DAY_DF(context, df_data)
+    
+    def GET_HIGH_DATA_DAY_DF(self, context, df_data):
+        if len(df_data['high'].values) < 1:
+            return np.array([np.nan])
         return df_data['high'].values
     
     # 获取日线历史数据最小值
@@ -228,24 +248,28 @@ class TsDatasrc(SecurityDataSrcBase):
         if df_data.empty == True:
             print "security:%s in context:%s NO GET_LOW_DATA_DAY!" %(str(security),str(context))
             return np.array([np.nan])
+        return self.GET_LOW_DATA_DAY_DF(context, df_data)
+
+    def GET_LOW_DATA_DAY_DF(self, context, df_data):
+        if len(df_data['low'].values) < 1:
+            return np.array([np.nan])
         return df_data['low'].values
-  
+    
     # 获取周线历史数据最大值
     def GET_HIGH_DATA_WEEK(self,context,security,isLastest=True,data={},dataCount=1,isSample=False):
+        df_data = ts.get_k_data(security, index=False, ktype='W').tail(dataCount) if isSample else ts.get_k_data(security, index=False, ktype='D').tail(dataCount*5)
+        if df_data.empty == True:
+            print "security:%s in context:%s NO GET_HIGH_DATA_WEEK!" %(str(security),str(context))
+            return np.array([np.nan])
+        return self.GET_HIGH_DATA_WEEK_DF(context, df_data, isSample)
+    
+    def GET_HIGH_DATA_WEEK_DF(self,context, df_data, isSample=False):
         if isSample:
-            df_data = ts.get_k_data(security, index=False, ktype='W').tail(dataCount)
-            if df_data.empty == True:
-                print "security:%s in context:%s NO GET_HIGH_DATA_WEEK!" %(str(security),str(context))
-                return np.array([np.nan])
             if len(df_data['high'].values) < 1:
                 return np.array([np.nan])
             return df_data['high'].values
         else:
             freq = 5
-            df_data = ts.get_k_data(security, index=False, ktype='D').tail(dataCount*freq)
-            if df_data.empty == True:
-                print "security:%s in context:%s NO GET_HIGH_DATA_WEEK!" %(str(security),str(context))
-                return np.array([np.nan])
             highData = df_data['high'].values
             high = highData[:-1]
             highLast = np.nan
@@ -261,28 +285,27 @@ class TsDatasrc(SecurityDataSrcBase):
                 dateStr = df_data.tail(1)['date'].values[0]
                 current_dt =  self.__getdatetime__(dateStr)
                 weekday = current_dt.isoweekday()
-            highWeek = self.SIMPLE_DATA_HIGH(high,dataCount,freq,weekday-1)
+            highWeek = self.SIMPLE_DATA_HIGH(high,len(highData)/freq,freq,weekday-1)
             highLast = highData[-weekday:].max()
             if not np.isnan(highLast) and highLast != 0:
                 highWeek= np.append(highWeek,highLast)
             return highWeek
-    
+        
     # 获取周线历史数据最小值
     def GET_LOW_DATA_WEEK(self, context,security,isLastest=True,data={},dataCount=1,isSample=False):
+        df_data = ts.get_k_data(security, index=False, ktype='W').tail(dataCount) if isSample else ts.get_k_data(security, index=False, ktype='D').tail(dataCount*5)
+        if df_data.empty == True:
+            print "security:%s in context:%s NO GET_LOW_DATA_WEEK!" %(str(security),str(context))
+            return np.array([np.nan])
+        return self.GET_LOW_DATA_WEEK_DF(context, df_data, isSample)
+    
+    def GET_LOW_DATA_WEEK_DF(self, context, df_data, isSample=False):
         if isSample:
-            df_data = ts.get_k_data(security, index=False, ktype='W').tail(dataCount)
-            if df_data.empty == True:
-                print "security:%s in context:%s NO GET_LOW_DATA_WEEK!" %(str(security),str(context))
-                return np.array([np.nan])
             if len(df_data['low'].values) < 1:
                 return np.array([np.nan])
             return df_data['low'].values
         else:
             freq = 5
-            df_data = ts.get_k_data(security, index=False, ktype='D').tail(dataCount*freq)
-            if df_data.empty == True:
-                print "security:%s in context:%s NO GET_LOW_DATA_WEEK!" %(str(security),str(context))
-                return np.array([np.nan])
             lowData = df_data['low'].values
             low = lowData[:-1]
             lowLast = np.nan
@@ -298,28 +321,27 @@ class TsDatasrc(SecurityDataSrcBase):
                 dateStr = df_data.tail(1)['date'].values[0]
                 current_dt =  self.__getdatetime__(dateStr)
                 weekday = current_dt.isoweekday()
-            lowWeek = self.SIMPLE_DATA_LOW(low,dataCount,freq,weekday-1)
+            lowWeek = self.SIMPLE_DATA_LOW(low,len(lowData)/freq,freq,weekday-1)
             lowLast = lowData[-weekday:].min()
             if not np.isnan(lowLast) and lowLast != 0:
                 lowWeek= np.append(lowWeek,lowLast)
             return lowWeek
-    
+        
     # 获取月线历史数据最大值
     def GET_HIGH_DATA_MONTH(self, context,security,isLastest=True,data={},dataCount=1,isSample=True):
+        df_data = ts.get_k_data(security, index=False, ktype='M').tail(dataCount) if isSample else ts.get_k_data(security, index=False, ktype='D').tail(dataCount*20)
+        if df_data.empty == True:
+            print "security:%s in context:%s NO GET_HIGH_DATA_MONTH!" %(str(security),str(context))
+            return np.array([np.nan])
+        return self.GET_HIGH_DATA_MONTH_DF(context, df_data, isSample)
+    
+    def GET_HIGH_DATA_MONTH_DF(self, context, df_data, isSample=True):
         if isSample:
-            df_data = ts.get_k_data(security, index=False, ktype='M').tail(dataCount)
-            if df_data.empty == True:
-                print "security:%s in context:%s NO GET_HIGH_DATA_MONTH!" %(str(security),str(context))
-                return np.array([np.nan])
             if len(df_data['high'].values) < 1:
                 return np.array([np.nan])
             return df_data['high'].values
         else:
             freq = 20
-            df_data = ts.get_k_data(security, index=False, ktype='D').tail(dataCount*freq)
-            if df_data.empty == True:
-                print "security:%s in context:%s NO GET_HIGH_DATA_MONTH!" %(str(security),str(context))
-                return np.array([np.nan])
             highData = df_data['high'].values
             high = highData[:-1]
             highLast = np.nan
@@ -335,28 +357,27 @@ class TsDatasrc(SecurityDataSrcBase):
                 dateStr = df_data.tail(1)['date'].values[0]
                 current_dt =  self.__getdatetime__(dateStr)
                 day = current_dt.day
-            highMonth = self.SIMPLE_DATA_HIGH(high,dataCount,freq,day-1)
+            highMonth = self.SIMPLE_DATA_HIGH(high,len(highData)/freq,freq,day-1)
             highLast = highData[-day:].max()
             if not np.isnan(highLast) and highLast != 0:
                 highMonth= np.append(highMonth,highLast)
             return highMonth
-    
+        
     # 获取月线历史数据最小值
     def GET_LOW_DATA_MONTH(self, context,security,isLastest=True,data={},dataCount=1,isSample=True):
+        df_data = ts.get_k_data(security, index=False, ktype='M').tail(dataCount) if isSample else ts.get_k_data(security, index=False, ktype='D').tail(dataCount*20)
+        if df_data.empty == True:
+            print "security:%s in context:%s NO GET_LOW_DATA_MONTH!" %(str(security),str(context))
+            return np.array([np.nan])
+        return self.GET_LOW_DATA_MONTH_DF(context, df_data, isSample)
+        
+    def GET_LOW_DATA_MONTH_DF(self, context, df_data, isSample=True):
         if isSample:
-            df_data = ts.get_k_data(security, index=False, ktype='M').tail(dataCount)
-            if df_data.empty == True:
-                print "security:%s in context:%s NO GET_LOW_DATA_MONTH!" %(str(security),str(context))
-                return np.array([np.nan])
             if len(df_data['low'].values) < 1:
                 return np.array([np.nan])
             return df_data['low'].values
         else:
             freq = 20
-            df_data = ts.get_k_data(security, index=False, ktype='D').tail(dataCount*freq)
-            if df_data.empty == True:
-                print "security:%s in context:%s NO GET_LOW_DATA_MONTH!" %(str(security),str(context))
-                return np.array([np.nan])
             lowData = df_data['low'].values
             low = lowData[:-1]
             lowLast = np.nan
@@ -372,7 +393,7 @@ class TsDatasrc(SecurityDataSrcBase):
                 dateStr = df_data.tail(1)['date'].values[0]
                 current_dt =  self.__getdatetime__(dateStr)
                 day = current_dt.day
-            lowMonth = self.SIMPLE_DATA_LOW(low,dataCount,freq,day-1)
+            lowMonth = self.SIMPLE_DATA_LOW(low,len(lowData)/freq,freq,day-1)
             lowLast = lowData[-day:].min()
             if not np.isnan(lowLast) and lowLast != 0:
                 lowMonth= np.append(lowMonth,lowLast)
@@ -395,27 +416,28 @@ class TsDatasrc(SecurityDataSrcBase):
         if df_data.empty == True:
             print "security:%s NO GET_CLOSE_DATA_DAY!" %(str(security))
             return np.array([np.nan])
-        closeData = df_data['close'].values
-        if len(closeData) < 1:
+        return self.GET_CLOSE_DATA_DAY_DF(context, df_data)
+    
+    def GET_CLOSE_DATA_DAY_DF(self, context, df_data):
+        if len(df_data['close'].values) < 1:
             return np.array([np.nan])
-        return closeData
+        return df_data['close'].values
     
     # 获取周线历史数据
     def GET_CLOSE_DATA_WEEK(self, context, security,isLastest=True,data={},dataCount=20,isSample=False):
+        df_data = ts.get_k_data(security, index=False, ktype='W').tail(dataCount) if isSample else ts.get_k_data(security, index=False, ktype='D').tail(dataCount*5)
+        if df_data.empty == True:
+            print "security:%s in context:%s NO GET_CLOSE_DATA_WEEK!" %(str(security),str(context))
+            return np.array([np.nan])
+        return self.GET_CLOSE_DATA_WEEK_DF(context, df_data, isSample)
+    
+    def GET_CLOSE_DATA_WEEK_DF(self, context, df_data, isSample=False):
         if isSample:
-            df_data = ts.get_k_data(security, index=False, ktype='W').tail(dataCount)
-            if df_data.empty == True:
-                print "security:%s in context:%s NO GET_CLOSE_DATA_WEEK!" %(str(security),str(context))
-                return np.array([np.nan])
             if len(df_data['close'].values) < 1:
                 return np.array([np.nan])
             return df_data['close'].values
         else:
             freq = 5
-            df_data = ts.get_k_data(security, index=False, ktype='D').tail(dataCount*freq)
-            if df_data.empty == True:
-                print "security:%s in context:%s NO GET_CLOSE_DATA_WEEK!" %(str(security),str(context))
-                return np.array([np.nan])
             closeData = df_data['close'].values
             close = closeData[:-1]
             closeLast = np.nan
@@ -431,27 +453,26 @@ class TsDatasrc(SecurityDataSrcBase):
                 dateStr = df_data.tail(1)['date'].values[0]
                 current_dt =  self.__getdatetime__(dateStr)
                 weekday = current_dt.isoweekday()
-            closeWeek = self.SIMPLE_DATA(close,dataCount,freq,weekday-1)
+            closeWeek = self.SIMPLE_DATA(close,len(closeData)/freq,freq,weekday-1)
             if not np.isnan(closeLast) and closeLast != 0:
                 closeWeek= np.append(closeWeek,closeLast)
             return closeWeek
-    
+        
     # 获取月线历史数据
     def GET_CLOSE_DATA_MONTH(self, context,security,isLastest=True,data={},dataCount=20,isSample=True):
+        df_data = ts.get_k_data(security, index=False, ktype='M').tail(dataCount) if isSample else ts.get_k_data(security, index=False, ktype='D').tail(dataCount*20)
+        if df_data.empty == True:
+            print "security:%s in context:%s NO GET_CLOSE_DATA_MONTH!" %(str(security),str(context))
+            return np.array([np.nan])
+        return self.GET_CLOSE_DATA_MONTH_DF(context, df_data, isSample)
+        
+    def GET_CLOSE_DATA_MONTH_DF(self, context, df_data, isSample=True):
         if isSample:
-            df_data = ts.get_k_data(security, index=False, ktype='M').tail(dataCount)
-            if df_data.empty == True:
-                print "security:%s in context:%s NO GET_CLOSE_DATA_MONTH!" %(str(security),str(context))
-                return np.array([np.nan])
             if len(df_data['close'].values) < 1:
                 return np.array([np.nan])
             return df_data['close'].values
         else:
             freq = 20
-            df_data = ts.get_k_data(security, index=False, ktype='D').tail(dataCount*freq)
-            if df_data.empty == True:
-                print "security:%s in context:%s NO GET_CLOSE_DATA_MONTH!" %(str(security),str(context))
-                return np.array([np.nan])
             closeData = df_data['close'].values
             close = closeData[:-1]
             closeLast = np.nan
@@ -467,7 +488,7 @@ class TsDatasrc(SecurityDataSrcBase):
                 dateStr = df_data.tail(1)['date'].values[0]
                 current_dt =  self.__getdatetime__(dateStr)
                 day = current_dt.day
-            closeMonth = self.SIMPLE_DATA(close,dataCount,freq,day-1)
+            closeMonth = self.SIMPLE_DATA(close,len(closeData)/freq,freq,day-1)
             if not np.isnan(closeLast) and closeLast != 0:
                 closeMonth = np.append(closeMonth,closeLast)
             return  closeMonth
@@ -479,6 +500,10 @@ class TsDatasrc(SecurityDataSrcBase):
         if df_data.empty == True:
             print "security:%s in context:%s NO GET_CLOSE_DATA_SEASON!" %(str(security),str(context))
             return np.array([np.nan])
+        return self.GET_CLOSE_DATA_SEASON_DF(context, df_data)
+    
+    def GET_CLOSE_DATA_SEASON_DF(self,context, df_data):
+        freq = 3
         closeData = df_data['close'].values
         close = closeData[:-1]
         closeLast = np.nan
@@ -495,7 +520,7 @@ class TsDatasrc(SecurityDataSrcBase):
             current_dt =  self.__getdatetime__(dateStr)
             month = current_dt.month
         season = (freq if month % freq == 0 else month % freq)
-        closeSeason = self.SIMPLE_DATA(close,dataCount,freq,season-1)
+        closeSeason = self.SIMPLE_DATA(close,len(closeData)/freq,freq,season-1)
         if not np.isnan(closeLast) and closeLast != 0:
             closeSeason = np.append(closeSeason,closeLast)
         return  closeSeason
@@ -508,6 +533,10 @@ class TsDatasrc(SecurityDataSrcBase):
         if df_data.empty == True:
             print "security:%s in context:%s NO GET_CLOSE_DATA_YEAR!" %(str(security),str(context))
             return np.array([np.nan])
+        return self.GET_CLOSE_DATA_YEAR_DF(context, df_data)
+    
+    def GET_CLOSE_DATA_YEAR_DF(self,context, df_data):
+        freq = 12
         closeData = df_data['close'].values
         close = closeData[:-1]
         closeLast = np.nan
@@ -523,7 +552,7 @@ class TsDatasrc(SecurityDataSrcBase):
             dateStr = df_data.tail(1)['date'].values[0]
             current_dt =  self.__getdatetime__(dateStr)
             month = current_dt.month
-        closeYear = self.SIMPLE_DATA(close,dataCount,freq,month-1)
+        closeYear = self.SIMPLE_DATA(close,len(closeData)/freq,freq,month-1)
         if not np.isnan(closeLast) and closeLast != 0:
             closeYear = np.append(closeYear,closeLast)
         return  closeYear
@@ -536,6 +565,10 @@ class TsDatasrc(SecurityDataSrcBase):
         if df_data.empty == True:
             print "security:%s in context:%s NO GET_HIGH_DATA_SEASON!" %(str(security),str(context))
             return np.array([np.nan])
+        return self.GET_HIGH_DATA_SEASON_DF(context, df_data)
+    
+    def GET_HIGH_DATA_SEASON_DF(self,context, df_data):
+        freq = 3
         highData = df_data['high'].values
         high = highData[:-1]
         highLast = np.nan
@@ -552,7 +585,7 @@ class TsDatasrc(SecurityDataSrcBase):
             current_dt =  self.__getdatetime__(dateStr)
             month = current_dt.month
         season = (freq if month % freq == 0 else month % freq)
-        highSeason = self.SIMPLE_DATA_HIGH(high,dataCount,freq,season-1)
+        highSeason = self.SIMPLE_DATA_HIGH(high,len(highData)/freq,freq,season-1)
         highLast = highData[-season:].max()
         if not np.isnan(highLast) and highLast != 0:
             highSeason= np.append(highSeason,highLast)
@@ -566,6 +599,10 @@ class TsDatasrc(SecurityDataSrcBase):
         if df_data.empty == True:
             print "security:%s in context:%s NO GET_LOW_DATA_SEASON!" %(str(security),str(context))
             return np.array([np.nan])
+        return self.GET_LOW_DATA_SEASON_DF(context, df_data)
+    
+    def GET_LOW_DATA_SEASON_DF(self,context, df_data):
+        freq = 3
         lowData = df_data['low'].values
         low = lowData[:-1]
         lowLast = np.nan
@@ -582,7 +619,7 @@ class TsDatasrc(SecurityDataSrcBase):
             current_dt =  self.__getdatetime__(dateStr)
             month = current_dt.month
         season = (freq if month % freq == 0 else month % freq)
-        lowSeason = self.SIMPLE_DATA_LOW(low,dataCount,freq,season-1)
+        lowSeason = self.SIMPLE_DATA_LOW(low,len(lowData)/freq,freq,season-1)
         lowLast = lowData[-season:].min()
         if not np.isnan(lowLast) and lowLast != 0:
             lowSeason= np.append(lowSeason,lowLast)
@@ -596,6 +633,10 @@ class TsDatasrc(SecurityDataSrcBase):
         if df_data.empty == True:
             print "security:%s in context:%s NO GET_HIGH_DATA_YEAR!" %(str(security),str(context))
             return np.array([np.nan])
+        return self.GET_HIGH_DATA_YEAR_DF(context, df_data)
+    
+    def GET_HIGH_DATA_YEAR_DF(self,context, df_data):
+        freq = 12
         highData = df_data['high'].values
         high = highData[:-1]
         highLast = np.nan
@@ -611,7 +652,7 @@ class TsDatasrc(SecurityDataSrcBase):
             dateStr = df_data.tail(1)['date'].values[0]
             current_dt =  self.__getdatetime__(dateStr)
             month = current_dt.month
-        highYear = self.SIMPLE_DATA_HIGH(high,dataCount,freq,month-1)
+        highYear = self.SIMPLE_DATA_HIGH(high,len(highData)/freq,freq,month-1)
         highLast = highData[-month:].max()
         if not np.isnan(highLast) and highLast != 0:
             highYear= np.append(highYear,highLast)
@@ -625,6 +666,10 @@ class TsDatasrc(SecurityDataSrcBase):
         if df_data.empty == True:
             print "security:%s in context:%s NO GET_LOW_DATA_YEAR!" %(str(security),str(context))
             return np.array([np.nan])
+        return self.GET_LOW_DATA_YEAR_DF(context, df_data)
+    
+    def GET_LOW_DATA_YEAR_DF(self,context, df_data):
+        freq = 12
         lowData = df_data['low'].values
         low = lowData[:-1]
         lowLast = np.nan
@@ -640,7 +685,7 @@ class TsDatasrc(SecurityDataSrcBase):
             dateStr = df_data.tail(1)['date'].values[0]
             current_dt =  self.__getdatetime__(dateStr)
             month = current_dt.month
-        lowYear = self.SIMPLE_DATA_LOW(low,dataCount,freq,month-1)
+        lowYear = self.SIMPLE_DATA_LOW(low,len(lowData)/freq,freq,month-1)
         lowLast = lowData[-month:].min()
         if not np.isnan(lowLast) and lowLast != 0:
             lowYear= np.append(lowYear,lowLast)
@@ -723,6 +768,75 @@ class TsDatasrc(SecurityDataSrcBase):
         dateStr = df_data.tail(1)['date'].values[0]
         current_dt =  self.__getdatetime__(dateStr)
         return super(TsDatasrc, self).VOL_PRE(TsContext(current_dt),security)
+    
+    #overide
+    def GET_PERIOD_DATA(self,context, security, freq = 'D', data={}, dataCount=1):
+        close = np.array([np.nan])
+        high = np.array([np.nan])
+        low = np.array([np.nan])
+        if freq == 'D':
+            df_data = ts.get_k_data(security, index=False, ktype='D').tail(dataCount)
+            if df_data.empty == True:
+                print "security:%s in freq:%s NO GET_PERIOD_DATA!" %(str(freq),str(context))
+                return high, low ,close
+            close = self.GET_CLOSE_DATA_DAY_DF(context, df_data)
+            high = self.GET_HIGH_DATA_DAY_DF(context, df_data)
+            low = self.GET_LOW_DATA_DAY_DF(context, df_data)
+        elif freq == 'W':
+            isSample = False
+            df_data = ts.get_k_data(security, index=False, ktype='W').tail(dataCount) if isSample else ts.get_k_data(security, index=False, ktype='D').tail(dataCount*5)
+            if df_data.empty == True:
+                print "security:%s in freq:%s NO GET_PERIOD_DATA!" %(str(security),str(freq))
+                return high, low ,close
+            close = self.GET_CLOSE_DATA_WEEK_DF(context, df_data, isSample)
+            high = self.GET_HIGH_DATA_WEEK_DF(context, df_data, isSample)
+            low = self.GET_LOW_DATA_WEEK_DF(context, df_data, isSample)
+        elif freq == 'M':
+            isSample = True
+            df_data = ts.get_k_data(security, index=False, ktype='M').tail(dataCount) if isSample else ts.get_k_data(security, index=False, ktype='D').tail(dataCount*20)
+            if df_data.empty == True:
+                print "security:%s in freq:%s NO GET_PERIOD_DATA!" %(str(security),str(freq))
+                return high, low ,close
+            close = self.GET_CLOSE_DATA_MONTH_DF(context, df_data, isSample)
+            high = self.GET_HIGH_DATA_MONTH_DF(context, df_data, isSample)
+            low = self.GET_LOW_DATA_MONTH_DF(context, df_data, isSample)
+        elif freq == 'S':
+            df_data = ts.get_k_data(security, index=False, ktype='M').tail(dataCount*3)
+            if df_data.empty == True:
+                print "security:%s in freq:%s NO GET_PERIOD_DATA!" %(str(security),str(freq))
+                return high, low ,close
+            close = self.GET_CLOSE_DATA_SEASON_DF(context, df_data)
+            high = self.GET_HIGH_DATA_SEASON_DF(context, df_data)
+            low = self.GET_LOW_DATA_SEASON_DF(context, df_data)
+        elif freq == 'Y':
+            df_data = ts.get_k_data(security, index=False, ktype='M').tail(dataCount*12)
+            if df_data.empty == True:
+                print "security:%s in freq:%s NO GET_PERIOD_DATA!" %(str(security),str(freq))
+                return high, low ,close
+            close = self.GET_CLOSE_DATA_YEAR_DF(context, df_data)
+            high = self.GET_HIGH_DATA_YEAR_DF(context, df_data)
+            low = self.GET_LOW_DATA_YEAR_DF(context, df_data)
+        else :
+            periodtype = str(freq)
+            df_data = ts.get_k_data(security, index=False, ktype=periodtype).tail(dataCount)
+            if df_data.empty == True:
+                print "security:%s in freq:%s NO GET_CLOSE_DATA_INTRADAY!" %(str(security),str(freq))
+                return high, low ,close
+            close = self.GET_CLOSE_DATA_INTRADAY_DF(context, df_data)
+            high = self.GET_HIGH_DATA_INTRADAY_DF(context, df_data)
+            low = self.GET_LOW_DATA_INTRADAY_DF(context, df_data)
+        if len(close) == 0 or np.isnan(close[-1]):
+            return np.array([np.nan]),np.array([np.nan]),np.array([np.nan])
+        len1 = len(close)
+        len2 = len(high)
+        len3 = len(low)
+        if len1 != len2 or len1 != len3:
+            print "GET_PERIOD_DATA len neq!!!:%s,%s,%s" %(str(len1),str(len2),str(len3))
+            lenmin = np.array([len1,len2,len3]).min()
+            close = close[:-(len1-lenmin)]
+            high = high[:-(len2-lenmin)]
+            low = low[:-(len3-lenmin)]
+        return high, low ,close
     
 class TsContext(object):
     
