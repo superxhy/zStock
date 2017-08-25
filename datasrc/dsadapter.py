@@ -294,14 +294,18 @@ class DSUtil(object):
         return None
     
     @staticmethod
-    def sendSecurities(context, data, stocks, cryptal=False, sendMail=True, useAttach=True):
+    def sendSecurities(context, data, stocks, cryptal=False, sendMail=True, useAttach=True, redStarCb=None):
         bundleList= []
         if len(stocks) == 0:
             return bundleList
+        idx = 0
         for security in stocks:
             print "%s bundle..." % (security)
             bundle = GET_BUNDLE(context,security,cryptal,data)
+            if redStarCb :
+                bundle['name'] += redStarCb(security, idx)
             bundleList.append(bundle)
+            idx += 1
         #schema = ['code','name','industry','close','wave','inert']
         schema = ['code','name','industry','close']
         configloader = DSUtil.getConfigLoader()
@@ -309,4 +313,4 @@ class DSUtil(object):
         isSend = sendMail and (not backtest)
         title = DS_CLASS_NAME if useAttach else DS_CLASS_NAME + '_intraday'
         print sendTable(title, bundleList, schema, configloader.getEmailConfig() if (configloader != None) else None, isSend, useAttach)
-        return bundleList 
+        return bundleList
