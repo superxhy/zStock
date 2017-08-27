@@ -8,9 +8,9 @@ Created on 2017-8-24
 import numpy as np
 import decimal
 
-#from datasrc import * 
+from datasrc import * 
 #TODO jq not suport root path
-from dsadapter import *
+#from dsadapter import *
 from observer import DrawDownObserver
 
 class Surmount(object):
@@ -29,10 +29,16 @@ class Surmount(object):
     MIN_VOLM5_RATE = 150
     MIN_VOLM10_RATE = 100
     #break wide
-    CCI_RANGE = 10
+    CCI_RANGE = 15
     #routerate
     MAX_ROUTE_RATE = 75
     MIN_ROUTE_RATE = 15
+    
+    #send every handle
+    HANDLE_SEND = True
+    #sending high level item count
+    MAX_SEND_COUNT = 10
+    
     #target flag
     RET_BUY = 1
     RET_SELL = -1
@@ -123,6 +129,7 @@ class Surmount(object):
         self.aimed = False
         self.ref_cci = 0
         self.locked_sell = False
+        self.locked_cci = 0
         self.locked_price = False
         self.locked_vol = False
         self.chipex_meet = False
@@ -239,7 +246,13 @@ class Surmount(object):
         else:
             return 0
         
-    def sellOut(self, context, data):
+    def sellOut(self, context, data, limit=False):
+        # fill limit ignore chipex
+        if limit:
+            #data_last = data.get(self.__security__, None)
+            data_last = data[self.__security__]
+            if data_last and data_last.close == data_last.high_limit:
+                return self.RET_KEEP
         self.getProfit(context, data)
         if self.locked_sell:
             self.logd("security:%s failing to sellout now!!!pay for a fake breaking" % (str(self.__security__)))
@@ -264,10 +277,10 @@ class Surmount(object):
             if runTime >= self.MIN_TIME_PRE:
                 if not self.chipex_meet:
                     self.logd("security:%s chiex:%s not meet!" %(str(self.__security__), str(Surmount.strdec(self.chipex_rate))))
-                    return self.sellOut(context, data)
+                    return self.sellOut(context, data, True)
                 if self.volPre < self.volM10:
                     self.logd("security:%s volM10:%s not meet!" %(str(self.__security__), str(Surmount.strdec(self.volM10))))
-                    return self.sellOut(context, data)
+                    return self.sellOut(context, data, True)
             # success for stoplimit 
             if not self.observer == None and self.observer.observe(close_last) < 0:
                 #target dd stop
@@ -312,7 +325,7 @@ class Surmount(object):
         varr10Rel = volData[-10:-10+DATACAL]
         self.chipex_stab = Surmount.chipExchangeStab(varr5Rel, varr10Rel)
         volHa = Surmount.chipHarmonic(varr5Rel, varr10Rel, Surmount.MIN_CHIPEX_RATE)
-        volM = self.MIN_VOLM_RATE/100 * MAVOL_N_DAY(context, self.__security__, 20, 0, data)
+        volM = 1.0*self.MIN_VOLM_RATE/100 * MAVOL_N_DAY(context, self.__security__, 20, 0, data)
         self.volM5 = MAVOL_N_DAY(context, self.__security__, 5, 0, data)
         self.volM10 = MAVOL_N_DAY(context, self.__security__, 10, 0, data)
         self.volK5 = varr5Rel[0]
@@ -332,16 +345,21 @@ class Surmount(object):
         if cci_last < 50:
             return False
         if cci_last > self.ref_cci:
+            # strong break
+            if self.locked_cci > 100 and cci_last > self.locked_cci:
+                return routeRate < self.MAX_ROUTE_RATE
             return routeRate < self.MIN_ROUTE_RATE
         else:
             return routeRate < -self.MAX_ROUTE_RATE
         
     def breakPoint(self, context, data):
         cci = CCI_DATA(context,self.__security__, 'D', data, 2)
+        #self.logd("%s: breakPoint :%s" % (str(self.__security__), str(cci)))
         if np.isnan(cci[-1]) or abs(cci[-1] - 100) > Surmount.CCI_RANGE:
             return False
-        #self.logd("%s: D break point :%s" % (str(self.__security__), str(cci[-1])))
+        self.logd("%s: price breakPoint :%s" % (str(self.__security__), str(cci)))
         self.ref_cci = cci[-2]
+        self.locked_cci = cci[-1]
         self.locked_price = True
         return True
     
@@ -349,6 +367,7 @@ class Surmount(object):
         volPre = VOL_PRE(context, self.__security__, data, True)
         self.volPre = volPre
         ret = False
+        # meet deadline
         if volPre > self.chipex_amount:
             DATACAL = 4
             DATALEN = 8
@@ -357,12 +376,17 @@ class Surmount(object):
             varr5 = volData[-5-1:-5+DATACAL-1]
             varr10 = volData[-10-1:-10+DATACAL-1]
             self.chipex_rate = Surmount.chipExchange(varr5, varr10, volPre)
-            self.volRateM5 = Surmount.calRate(volPre-self.volM5, self.volM5)
-            self.volRateM10 = Surmount.calRate(volPre-self.volM10, self.volM10)
+            self.volRateM5 = Surmount.calRate(volPre, self.volM5)
+            self.volRateM10 = Surmount.calRate(volPre, self.volM10)
             if self.chipex_rate > self.MIN_CHIPEX_RATE and self.chipex_rate < self.MAX_CHIPEX_RATE:
                 #self.logd("%s:chipexMeet for volPre:%s chipRate:%s" % (str(self.__security__), str(Surmount.strdec(volPre)),str(Surmount.strdec(self.chipex_rate))))
-                ret =  True
-        self.chipex_meet = ret
+                self.chipex_meet =  True
+        # useless other rate
+        else:
+            self.chipex_meet =  False
+            self.chipex_rate = 0
+            self.volRateM5 = 0
+            self.volRateM10 = 0
         return self.chipex_meet
     
     def chipexStab(self):
@@ -371,7 +395,7 @@ class Surmount(object):
         # not stable enough
         if self.chipex_stab <= 0 and self.chipex_stab > -self.MAX_CHIPEX_RATE:
             bargin = self.chipex_rate + self.chipex_stab
-            if bargin > self.MIN_CHIPEX_RATE:
+            if bargin > 2*self.MIN_CHIPEX_RATE:
                 #self.logd("%s:chipexStab bargin:%s for stab:%s" % (str(self.__security__), str(Surmount.strdec(bargin)),str(Surmount.strdec(self.chipex_stab))))
                 return True
         return False
@@ -379,18 +403,30 @@ class Surmount(object):
     def targetLock(self, context, data, runTime):
         if not self.locked_price:
             self.breakPoint(context, data)
-        locked_vol = False
+        locked_vol_last = self.locked_vol
+        # default lock state
+        locked_vol_now = False
+        locked_vol_change = False
         if self.chipexMeet(context, data) and self.chipexStab():
             if runTime >= self.MIN_TIME_PRE and self.volPre>self.volK5 and self.volPre>self.volK10:
                 #self.logd("%s:chipexMeet for volRateM5:%s volRateM10:%s" % (str(self.__security__), str(Surmount.strdec(self.volRateM5)),str(Surmount.strdec(self.volRateM10))))
                 if self.volRateM5 > self.MIN_VOLM5_RATE:
-                    self.logd("%s:locked_vol,volRateM5:%s, chipRate:%s, chipStab:%s" % (str(self.__security__), str(Surmount.strdec(self.volRateM5)),str(Surmount.strdec(self.chipex_rate)),str(Surmount.strdec(self.chipex_stab))))
-                    locked_vol =  True
-                    self.locked_vol = locked_vol
+                    locked_vol_now =  True
+        # update last lock state            
+        self.locked_vol = locked_vol_now
+        if not locked_vol_last and locked_vol_now:
+            self.logd("%s:locked_vol revert True at runTime:%s" %(str(self.__security__), str(runTime)))
+            locked_vol_change = True
+        if locked_vol_last and (not locked_vol_now):
+            self.logd("%s:locked_vol revert False at runTime:%s" %(str(self.__security__), str(runTime)))
+            locked_vol_change = True
+        if locked_vol_change:
+            self.logd("%s:locked_vol change, volRateM5:%s, volRateM10:%s, chipRate:%s, chipStab:%s" % (str(self.__security__), str(Surmount.strdec(self.volRateM5)),str(Surmount.strdec(self.volRateM10)),str(Surmount.strdec(self.chipex_rate)),str(Surmount.strdec(self.chipex_stab))))
         return self.locked()
         
     def releaeLock(self):
         #self.locked_sell = False
+        self.locked_cci = 0
         self.locked_price = False
         self.locked_vol =  False
         self.chipex_rate = 0
@@ -480,11 +516,12 @@ class Surmount(object):
             if s not in poollist:
                 newadd.append(s.security())
                 poollist.append(s)
-        print todel
-        print newadd
+        Surmount.logd("len:%s,refresh to todel:\n%s" %(str(len(todel)), str(todel)))
+        Surmount.logd("len:%s,refresh to newadd:\n%s" %(str(len(newadd)), str(newadd)))
         poollist.sort()
         #print poollist
-        Surmount.sendSurmountPool(context, data, poollist, True)
+        #send after trade data for next day
+        Surmount.sendSurmountPool(context, data, poollist, True, True)
         return poollist
         
     @staticmethod
@@ -494,27 +531,40 @@ class Surmount(object):
             return
         for s in poollist:
             s.targetLock(context, data, runTime)
+        #resort list ready to handle high level item
+        poollist.sort()
         for s in poollist:
             res = s.handleTarget(context, data, runTime)
             if res < 0:
                 sellcb(context, s.security())
             if res > 0:
                 buycb(context, s.security())
+        #resort list ready to send high level item
         poollist.sort()
         #print poollist
-        Surmount.sendSurmountPool(context, data, poollist[0:10], False)
+        if Surmount.HANDLE_SEND:
+            Surmount.sendSurmountPool(context, data, poollist[0:Surmount.MAX_SEND_COUNT], False, True)
     
     @staticmethod
-    def sendSurmountPool(context, data, poollist, pretrading=False):
+    def sendSurmountPool(context, data, poollist, pretrading=False, sendMail=False):
         REDSTAR_NEW = '+'
         REDSTAR_DEL = '-'
         REDSTAR_FIRE = '$'
         REDSTAR_LOCK = '*'
+        REDSTAR_LOCKPRICE = '!'
+        REDSTAR_LOCKVOL = '@'
         def redStar(security, idx):
             s = poollist[idx]
             rs = ''
             if s.locked():
                 rs += REDSTAR_LOCK
+            elif s.locked_price:
+                rs += REDSTAR_LOCKPRICE
+            elif s.locked_vol:
+                rs += REDSTAR_LOCKVOL
+            else:
+                #no other locked factor
+                pass
             if s.fired(): 
                 if s.locked_sell:
                     rs += ('('+REDSTAR_FIRE+')')
@@ -525,4 +575,4 @@ class Surmount(object):
             if s.day_has_aimed == 0:
                 rs += REDSTAR_NEW
             return rs
-        DSUtil.sendSecurities(context, data, [s.security() for s in poollist], pretrading, True, pretrading, redStar)
+        DSUtil.sendSecurities(context, data, [s.security() for s in poollist], pretrading, sendMail, pretrading, redStar)
