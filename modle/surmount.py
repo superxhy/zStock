@@ -249,9 +249,11 @@ class Surmount(object):
     def sellOut(self, context, data, limit=False):
         # fill limit ignore chipex
         if limit:
-            #data_last = data.get(self.__security__, None)
-            data_last = data[self.__security__]
-            if data_last and data_last.close == data_last.high_limit:
+            try:
+                zflimit = (data[self.__security__].close == data[self.__security__].high_limit)
+            except Exception,e:
+                zflimit = False
+            if zflimit:
                 return self.RET_KEEP
         self.getProfit(context, data)
         if self.locked_sell:
@@ -261,11 +263,18 @@ class Surmount(object):
         self.observer = None
         return self.RET_SELL
     
+    def buyIn(self, close_last):
+        self.logd("%s:fire in the hold!:%s,chipex_rate:%s" %(str(self.__security__),str(close_last),str(Surmount.strdec(self.chipex_rate))))
+        self.__fired__ = True
+        self.__firepoint__ = close_last
+        self.observer = DrawDownObserver(self.__security__, close_last)
+        self.locked_sell = True
+        return self.RET_BUY
+    
     def handleTarget(self, context, data, runTime):
-        data_last = data.get(self.__security__, None)
-        if data_last:
-            close_last = data_last.close
-        else:
+        try:
+            close_last = data[self.__security__].close
+        except Exception,e:
             close_last = GET_CLOSE_DAY(context, self.__security__)
         # no aimed
         if not self.aimed:
@@ -296,21 +305,12 @@ class Surmount(object):
         # decide to buy
         if self.locked():
             if self.breakRoute(context, data):
-                # retrieve lock
-                #self.releaeLock()
-                #if not self.targetLock(context, data, runTime):
-                #    return self.RET_KEEP
                 if self.__fired__:
                     if self.__firepoint__ == 0:
                         print "firepoint error"
                         return self.RET_BUY
                     return self.RET_KEEP
-                self.logd("%s:fire in the hold!:%s,chipex_rate:%s" %(str(self.__security__),str(close_last),str(Surmount.strdec(self.chipex_rate))))
-                self.__fired__ = True
-                self.__firepoint__ = close_last
-                self.observer = DrawDownObserver(self.__security__, close_last)
-                self.locked_sell = True
-                return self.RET_BUY
+                self.buyIn(close_last)
             else:
                 #wait for route range
                 return self.RET_KEEP
@@ -366,7 +366,6 @@ class Surmount(object):
     def chipexMeet(self, context, data): 
         volPre = VOL_PRE(context, self.__security__, data, True)
         self.volPre = volPre
-        ret = False
         # meet deadline
         if volPre > self.chipex_amount:
             DATACAL = 4
@@ -425,7 +424,7 @@ class Surmount(object):
         return self.locked()
         
     def releaeLock(self):
-        #self.locked_sell = False
+        self.locked_sell = False
         self.locked_cci = 0
         self.locked_price = False
         self.locked_vol =  False
@@ -434,19 +433,17 @@ class Surmount(object):
         
     def refresh(self, context, data={}):
         #self.logd("refresh begin")
+        self.releaeLock()
         reAimed = Surmount.aimed(context, data, self.__security__)
         #has aimed before
         if self.aimed:
             if reAimed:
                 if not self.sameDay(context):
                     self.day_has_aimed += 1;
-                    self.releaeLock()
-                    self.locked_sell = False
             else:
                 #set day_has_aimed -1 to del flag
                 self.day_has_aimed = -1
                 self.aimed_time = None
-                self.releaeLock()
         #has not aimed before
         else :
             #revive now! 
@@ -501,7 +498,16 @@ class Surmount(object):
         return ret_list
     
     @staticmethod
-    def refreshSurmountPool(context, data, poollist, stocklist):
+    def refreshSurmountPool(context, data, poollist, stocklist, pretrade=False):
+        if pretrade:
+            if len(stocklist) == 0:
+                Surmount.logd("empty stocklist, stop pool")
+                poollist = []
+                return poollist
+            if len(poollist) == 0:
+                Surmount.logd("empty poollist!, begin to init pool")
+            else:
+                return poollist
         newlist = Surmount.getSurmountPool(context, stocklist)
         newadd = []
         todel= []
