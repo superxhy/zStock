@@ -310,7 +310,7 @@ class Surmount(object):
                         print "firepoint error"
                         return self.RET_BUY
                     return self.RET_KEEP
-                self.buyIn(close_last)
+                return self.buyIn(close_last)
             else:
                 #wait for route range
                 return self.RET_KEEP
