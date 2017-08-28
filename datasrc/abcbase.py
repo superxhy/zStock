@@ -67,6 +67,9 @@ class SecurityDataSrcBase(object):
         minute = context.current_dt.minute
         #run_hours = 0
         run_minutes = 0
+        #before trade return lastest data
+        if hour < 9 or (hour == 9 and minute < 25):
+            return 240
         if hour < 13:
             run_minutes = (hour-9)*60 + minute - 30
         else:
