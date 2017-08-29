@@ -21,6 +21,7 @@ class Surmount(object):
     #pretime
     MIN_TIME_PRE = 15
     #avoid fake pre
+    FAKE_LOCKSTAB = False
     MIN_TIME_PRE_FAKE = 150
     FAKE_LOCK = False
     #chipex rate
@@ -206,7 +207,7 @@ class Surmount(object):
         #界点权值步长
         qtrate = 10
         sumarr = 0
-        lenarr = min(np.array([len(varr5),len(varr10)]))
+        lenarr = min(len(varr5),len(varr10))
         for i in range(0, lenarr):
             sumarr += varr5[i] * 100.0/qtbegin + varr10[i] * 100.0/qtbegin
             if qtbegin > qtrate:
@@ -221,7 +222,7 @@ class Surmount(object):
         #界点权值步长
         qtrate = 10
         sumarr = 0
-        lenarr = min(np.array([len(varr5Rel),len(varr10Rel)]))
+        lenarr = min(len(varr5Rel),len(varr10Rel))
         for i in range(0, lenarr):
             sumarr += 1.0/varr5Rel[i] * 100.0/qtbegin + 1.0/varr10Rel[i] * 100.0/qtbegin
             if qtbegin > qtrate:
@@ -269,7 +270,7 @@ class Surmount(object):
     
     def buyIn(self, close_last, runTime):
         # avoid pre fake, fire only ONCE
-        if Surmount.FAKE_LOCK and runTime < Surmount.MIN_TIME_PRE_FAKE:
+        if (Surmount.FAKE_LOCKSTAB or Surmount.FAKE_LOCK) and runTime < Surmount.MIN_TIME_PRE_FAKE:
             return self.RET_KEEP
         self.logd("%s:fire in the hold!:%s,chipex_rate:%s" %(str(self.__security__),str(close_last),str(Surmount.strdec(self.chipex_rate))))
         Surmount.FAKE_LOCK = True
@@ -284,14 +285,13 @@ class Surmount(object):
             close_last = data[self.__security__].close
         except Exception,e:
             close_last = GET_CLOSE_DAY(context, self.__security__)
-        # no aimed
-        if not self.aimed:
-            return self.sellOut(context, data)
-        #locked = self.targetLock(context, data, runTime)
         # decide to sell
-        if self.__fired__ :  
+        if self.__fired__ :
+            # no aimed
+            if not self.aimed:
+                return self.sellOut(context, data)
             # fail to meet chipex
-            if runTime >= self.MIN_TIME_PRE:
+            if runTime >= 2*self.MIN_TIME_PRE:
                 if not self.chipex_meet:
                     self.logd("security:%s chiex:%s not meet!" %(str(self.__security__), str(Surmount.strdec(self.chipex_rate))))
                     return self.sellOut(context, data, True)
@@ -311,7 +311,7 @@ class Surmount(object):
                 self.logd("security:%s cci:%s not meet!" %(str(self.__security__), str(cci_last)))
                 return self.sellOut(context, data)
         # decide to buy
-        if self.locked():
+        if self.aimed and self.locked():
             if self.breakRoute(context, data, runTime):
                 if self.__fired__:
                     if self.__firepoint__ == 0:
@@ -338,9 +338,9 @@ class Surmount(object):
         volM = 1.0*self.MIN_VOLM_RATE/100 * MAVOL_N_DAY(context, self.__security__, 20, 0, data)
         self.volM5 = MAVOL_N_DAY(context, self.__security__, 5, 0, data)
         self.volM10 = MAVOL_N_DAY(context, self.__security__, 10, 0, data)
-        self.volK5 = varr5Rel[0]
-        self.volK10 = varr10Rel[0]
-        self.chipex_amount = max(np.array([volHa, volM]))
+        self.volK5 = 1.0*varr5Rel[0]
+        self.volK10 = 1.5*varr10Rel[0]
+        self.chipex_amount = max(volHa, volM)
     
     def breakRoute(self, context, data, runTime):
         high_last = GET_HIGH_DAY(context, self.__security__)
@@ -351,10 +351,13 @@ class Surmount(object):
         route = (high_last - low_last)/2
         routeRate = Surmount.calRate(close - mid, route)
         #self.logd("%s:routeRate:%s" % (str(self.__security__), str(Surmount.strdec(routeRate))))
-        cci_last = CCI_DATA(context,self.__security__, 'D', data, 1)[-1]
+        cci = CCI_DATA(context,self.__security__, 'D', data, 4)
+        cci_last = cci[-1]
         if cci_last < 50:
             return False
         if cci_last > self.ref_cci:
+            if cci_last < cci.max():
+                return False
             if runTime >= Surmount.MIN_TIME_PRE_FAKE:
                 return routeRate < self.MID_ROUTE_RATE
             # strong break
@@ -431,6 +434,7 @@ class Surmount(object):
         if locked_vol_last and (not locked_vol_now):
             self.logd("%s:locked_vol revert False at runTime:%s" %(str(self.__security__), str(runTime)))
             locked_vol_change = True
+            self.locked_price = False
         if locked_vol_change:
             self.logd("%s:locked_vol change, volRateM5:%s, volRateM10:%s, chipRate:%s, chipStab:%s" % (str(self.__security__), str(Surmount.strdec(self.volRateM5)),str(Surmount.strdec(self.volRateM10)),str(Surmount.strdec(self.chipex_rate)),str(Surmount.strdec(self.chipex_stab))))
         return self.locked()
@@ -453,6 +457,8 @@ class Surmount(object):
                 if not self.sameDay(context):
                     self.day_has_aimed += 1;
             else:
+                self.logd("%s:failed aimed ,day_has_aimed:%s" % (str(self.__security__), str(self.day_has_aimed)))
+                self._reset_state()
                 #set day_has_aimed -1 to del flag
                 self.day_has_aimed = -1
                 self.aimed_time = None
@@ -477,7 +483,7 @@ class Surmount(object):
     def aimed(cls, context, data, security):
         ma240 = MA_N_DAY(context, security, 240)
         biasYear = Surmount.calRate(GET_CLOSE_DAY(context, security) - ma240, ma240)
-        if biasYear > 50:
+        if biasYear > 50 or biasYear < 0:
             return False
         #print security
         DATA_COUNT = 1
@@ -593,7 +599,7 @@ class Surmount(object):
                     rs += ('('+REDSTAR_FIRE+')')
                 else:
                     rs += REDSTAR_FIRE
-            if s.day_has_aimed < -1:
+            if s.day_has_aimed < 0:
                 rs += REDSTAR_DEL
             if s.day_has_aimed == 0:
                 rs += REDSTAR_NEW
