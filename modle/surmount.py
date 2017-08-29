@@ -458,7 +458,7 @@ class Surmount(object):
                     self.day_has_aimed += 1;
             else:
                 self.logd("%s:failed aimed ,day_has_aimed:%s" % (str(self.__security__), str(self.day_has_aimed)))
-                self._reset_state()
+                self.aimed = False
                 #set day_has_aimed -1 to del flag
                 self.day_has_aimed = -1
                 self.aimed_time = None
