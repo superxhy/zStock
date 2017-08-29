@@ -73,6 +73,7 @@ class JqDatasrc(SecurityDataSrcBase):
         'G56':'交通运输',#'航空运输业',
         'G58':'仓储物流',#'装卸搬运和运输代理业',
         'G59':'仓储物流',#'仓储业',
+        'G60':'邮政',#'邮政业',
         'H61':'酒店餐饮',#'住宿业',
         'H62':'酒店餐饮',#'餐饮业',
         'I63':'传媒娱乐',#'电信、广播电视和卫星传输服务',
@@ -141,7 +142,7 @@ class JqDatasrc(SecurityDataSrcBase):
         'name': info.display_name,
         'sname': info.name,
         'timeToMarket':info.start_date,
-        'industry':self.industry_dict[cur.industry_code],
+        'industry':self.industry_dict.get(cur.industry_code,'行业'+cur.industry_code),
         'sindustry':cur.industry_code}
         return securityInfo
     
