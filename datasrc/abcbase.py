@@ -997,8 +997,8 @@ class SecurityDataSrcBase(object):
     
     def MA_N_DATA_DAY(self, context, security, n=5, data={}, dataCount=1):
         closeDay = self.GET_CLOSE_DATA_DAY(context, security, True, data, n + dataCount - 1)
-        if np.isnan(closeDay[-1]):
-            return np.array(closeDay[-1])
+        if np.isnan(closeDay[-1]) or len(closeDay) == 0:
+            return np.array([np.nan])
         return self.MA_CN(closeDay,n)
    
     def MAVOL_N_DAY(self, context, security, n=5, ref=0, data={}):
