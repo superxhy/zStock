@@ -20,6 +20,9 @@ class Surmount(object):
     MDEBUG = True
     #pretime
     MIN_TIME_PRE = 15
+    #avoid fake pre
+    MIN_TIME_PRE_FAKE = 150
+    FAKE_LOCK = False
     #chipex rate
     MAX_CHIPEX_RATE = 500
     MIN_CHIPEX_RATE = 20
@@ -31,6 +34,7 @@ class Surmount(object):
     #break wide
     CCI_RANGE = 15
     #routerate
+    MID_ROUTE_RATE = 50
     MAX_ROUTE_RATE = 75
     MIN_ROUTE_RATE = 15
     
@@ -263,8 +267,12 @@ class Surmount(object):
         self.observer = None
         return self.RET_SELL
     
-    def buyIn(self, close_last):
+    def buyIn(self, close_last, runTime):
+        # avoid pre fake, fire only ONCE
+        if Surmount.FAKE_LOCK and runTime < Surmount.MIN_TIME_PRE_FAKE:
+            return self.RET_KEEP
         self.logd("%s:fire in the hold!:%s,chipex_rate:%s" %(str(self.__security__),str(close_last),str(Surmount.strdec(self.chipex_rate))))
+        Surmount.FAKE_LOCK = True
         self.__fired__ = True
         self.__firepoint__ = close_last
         self.observer = DrawDownObserver(self.__security__, close_last)
@@ -304,13 +312,15 @@ class Surmount(object):
                 return self.sellOut(context, data)
         # decide to buy
         if self.locked():
-            if self.breakRoute(context, data):
+            if self.breakRoute(context, data, runTime):
                 if self.__fired__:
                     if self.__firepoint__ == 0:
                         print "firepoint error"
                         return self.RET_BUY
                     return self.RET_KEEP
-                return self.buyIn(close_last)
+                if self.locked_sell:
+                    return self.RET_KEEP
+                return self.buyIn(close_last, runTime)
             else:
                 #wait for route range
                 return self.RET_KEEP
@@ -332,7 +342,7 @@ class Surmount(object):
         self.volK10 = varr10Rel[0]
         self.chipex_amount = max(np.array([volHa, volM]))
     
-    def breakRoute(self, context, data):
+    def breakRoute(self, context, data, runTime):
         high_last = GET_HIGH_DAY(context, self.__security__)
         low_last = GET_LOW_DAY(context, self.__security__)
         close = GET_CLOSE_DAY(context, self.__security__,0)
@@ -345,6 +355,8 @@ class Surmount(object):
         if cci_last < 50:
             return False
         if cci_last > self.ref_cci:
+            if runTime >= Surmount.MIN_TIME_PRE_FAKE:
+                return routeRate < self.MID_ROUTE_RATE
             # strong break
             if self.locked_cci > 100 and cci_last > self.locked_cci:
                 return routeRate < self.MAX_ROUTE_RATE
@@ -463,6 +475,10 @@ class Surmount(object):
         
     @classmethod  
     def aimed(cls, context, data, security):
+        ma240 = MA_N_DAY(context, security, 240)
+        biasYear = Surmount.calRate(GET_CLOSE_DAY(context, security) - ma240, ma240)
+        if biasYear > 50:
+            return False
         #print security
         DATA_COUNT = 1
         cci = CCI_DATA(context,security, 'M', data, DATA_COUNT)
@@ -499,6 +515,7 @@ class Surmount(object):
     
     @staticmethod
     def refreshSurmountPool(context, data, poollist, stocklist, pretrade=False):
+        Surmount.FAKE_LOCK = False
         if pretrade:
             if len(stocklist) == 0:
                 Surmount.logd("empty stocklist, stop pool")
