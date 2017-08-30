@@ -28,6 +28,10 @@ def CONFIG_POOL_STOCK(context):
     #g.security='603330.XSHG'
     #g.security='000065.XSHE'
 
+def after_code_changed(context):
+    log.info("==> after_code_changed @ %s", str(context.current_dt))
+    CONFIG_POOL_STOCK(context)
+    Surmount.refreshSurmountPool(context, {}, g.l_pool_fd, g.stocks, True)
     
 def initialize(context):
     log.info("==> initialize @ %s", str(context.current_dt))
