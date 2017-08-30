@@ -287,9 +287,6 @@ class Surmount(object):
             close_last = GET_CLOSE_DAY(context, self.__security__)
         # decide to sell
         if self.__fired__ :
-            # no aimed
-            if not self.aimed:
-                return self.sellOut(context, data)
             # fail to meet chipex
             if runTime >= self.MIN_TIME_PRE:
                 if not self.chipex_meet:
@@ -313,7 +310,12 @@ class Surmount(object):
                 self.logd("security:%s day_has_aimed:%s not meet!" %(str(self.__security__), str(self.day_has_aimed)))
                 return self.sellOut(context, data)
         # decide to buy
-        if self.aimed and self.locked():
+        if self.locked():
+            if not self.aimed:
+                cci_last = CCI_DATA(context,self.__security__, 'D', data, 1)[-1]
+                if cci_last < 50:
+                    self.logd("security:%s cci:%s for not aimed!" %(str(self.__security__), str(cci_last)))
+                    return self.RET_KEEP
             if self.breakRoute(context, data, runTime):
                 if self.__fired__:
                     if self.__firepoint__ == 0:
