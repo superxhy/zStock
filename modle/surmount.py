@@ -260,9 +260,16 @@ class Surmount(object):
                 zflimit = False
             if zflimit:
                 return self.RET_KEEP
-        self.getProfit(context, data)
+        try:
+            dflimit = (data[self.__security__].close == data[self.__security__].low_limit)
+        except Exception,e:
+            dflimit = False
+        self.getProfit(context, data) 
         if self.locked_sell:
             self.logd("security:%s failing to sellout now!!!pay for a fake breaking" % (str(self.__security__)))
+            return self.RET_KEEP
+        if dflimit:
+            self.logd("security:%s failing to sellout now for low_limit!!!" % (str(self.__security__)))
             return self.RET_KEEP
         self.__fired__ = False
         self.observer = None
@@ -474,7 +481,7 @@ class Surmount(object):
         else :
             #revive now! 
             if reAimed:
-                self._reset_state()
+                self.day_has_aimed = 0
             else:
                 # another day not aimed has to be del
                 if not self.sameDay(context):
