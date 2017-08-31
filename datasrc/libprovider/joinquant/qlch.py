@@ -49,6 +49,7 @@ def after_trading_end(context):
     day = context.current_dt.day
     log.info("==> after_trading_end @ %s weekday %s", str(context.current_dt),weekday)
     #record(upper=upper,lower=lower,mean=middle,price=GET_CLOSE_DAY(stock))
+    g.stocks = GET_ALL_SECURITIES()
     Surmount.refreshSurmountPool(context, {}, g.l_pool_fd, g.stocks)
     
 # 每个单位时间(如果按天回测,则每天调用一次,如果按分钟,则每分钟调用一次)调用一次
