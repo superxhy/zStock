@@ -24,6 +24,8 @@ class Surmount(object):
     FAKE_LOCKSTAB = False
     MIN_TIME_PRE_FAKE = 150
     FAKE_LOCK = False
+    #after trade flag
+    AFTER_TRADE = False
     #chipex rate
     MAX_CHIPEX_RATE = 500
     MIN_CHIPEX_RATE = 20
@@ -82,16 +84,23 @@ class Surmount(object):
         #    return -1
         #elif  (not self.aimed) and other.aimed:
         #    return 1
+        # after trade:
+        if Surmount.AFTER_TRADE:
+            # return high day_has_aimed
+            if self.day_has_aimed > other.day_has_aimed:
+                return -1
+            elif self.day_has_aimed < other.day_has_aimed:
+                return 1
+            # return high refcc
+            if self.ref_cci > other.ref_cci:
+                return -1
+            else:
+                return 1
         # return locked item first:
         if self.locked() and  (not other.locked()):
             return -1
         elif  (not self.locked()) and other.locked():
             return 1
-        # return locked_prive item first:
-        #if self.locked_price and  (not other.locked_price):
-        #    return -1
-        #elif  (not self.locked_price) and other.locked_price:
-        #    return 1
         # return locked_vol item first:
         if self.locked_vol and  (not other.locked_vol):
             return -1
@@ -103,6 +112,11 @@ class Surmount(object):
                 return -1
             else:
                 return 1
+        # return locked_prive item first:
+        if self.locked_price and  (not other.locked_price):
+            return -1
+        elif  (not self.locked_price) and other.locked_price:
+            return 1
         # return chipexmeet item first:
         if self.chipex_meet and  (not other.chipex_meet):
             return -1
@@ -367,8 +381,8 @@ class Surmount(object):
         if cci_last < 50:
             return False
         if cci_last > self.ref_cci:
-            #if cci_last < cci.max():
-            #    return False
+            if cci_last < cci.max():
+                return False
             if runTime >= Surmount.MIN_TIME_PRE_FAKE:
                 return routeRate < self.MID_ROUTE_RATE
             # strong break
@@ -380,6 +394,7 @@ class Surmount(object):
         
     def breakPoint(self, context, data):
         cci = CCI_DATA(context,self.__security__, 'D', data, 4)
+        self.ref_cci = cci[-2]
         #self.logd("%s: breakPoint :%s" % (str(self.__security__), str(cci)))
         # keep no impulsive 
         if cci.min() > 50:
@@ -388,7 +403,6 @@ class Surmount(object):
         if np.isnan(cci[-1]) or abs(cci[-1] - 100) > Surmount.CCI_RANGE:
             return False
         self.logd("%s: price breakPoint :%s" % (str(self.__security__), str(cci)))
-        self.ref_cci = cci[-2]
         self.locked_cci = cci[-1]
         self.locked_price = True
         return True
@@ -470,6 +484,7 @@ class Surmount(object):
         if self.aimed:
             if reAimed:
                 if not self.sameDay(context):
+                    self.logd("%s: reaimed ,day_has_aimed:%s" % (str(self.__security__), str(self.day_has_aimed)))
                     self.day_has_aimed += 1;
             else:
                 self.logd("%s:failed aimed ,day_has_aimed:%s" % (str(self.__security__), str(self.day_has_aimed)))
@@ -539,6 +554,7 @@ class Surmount(object):
     @staticmethod
     def refreshSurmountPool(context, data, poollist, stocklist, pretrade=False):
         Surmount.FAKE_LOCK = False
+        Surmount.AFTER_TRADE = True
         if pretrade:
             if len(stocklist) == 0:
                 Surmount.logd("empty stocklist, stop pool")
@@ -572,6 +588,7 @@ class Surmount(object):
         
     @staticmethod
     def handleSurmountPool(context, data, poollist, sellcb, buycb):
+        Surmount.AFTER_TRADE = False
         runTime = GET_RUN_MINUTES(context)
         if runTime % 5 != 0:
             return
