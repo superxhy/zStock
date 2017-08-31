@@ -54,6 +54,10 @@ def after_trading_end(context):
 # 每个单位时间(如果按天回测,则每天调用一次,如果按分钟,则每分钟调用一次)调用一次
 def handle_data(context, data):
     #log.info("==> handle_data @ %s", str(context.current_dt))
+    runTime = GET_RUN_MINUTES(context)
+    if runTime == 0 and len(g.stocks) == 0:
+        CONFIG_POOL_STOCK(context)
+        Surmount.refreshSurmountPool(context, {}, g.l_pool_fd, g.stocks, True)
     def sell(context, security):
         print "sell#################:"+security
         ORDER_SELL(context, security)
