@@ -230,7 +230,10 @@ class JqDatasrc(SecurityDataSrcBase):
             if(run_minutes==0):
                 #TODO: no support 9:25 vol?
                 #volLast = 0.01*get_current_data()[security].volume
-                volLast = 0.01*data[security].volume
+                try:
+                    volLast = 0.01*data[security].volume
+                except Exception,e:
+                    volLast = 0
                 self.data[security]={'volume':volLast} 
                 vol_intraday = np.append(vol_intraday, volLast)
             elif(offset!=0):
@@ -606,7 +609,10 @@ class JqDatasrc(SecurityDataSrcBase):
                 run_minutes = self.GET_RUN_MINUTES(context)
                 if run_minutes == 0:
                     #TODO, get 9:25 vol
-                    volumeLast = 0.01*data[security].volume
+                    try:
+                        volumeLast = 0.01*data[security].volume
+                    except Exception,e:
+                        volumeLast = 0
                     self.data[security]={'volume':volumeLast} 
                 else:
                     volumeMin =  0.01*attribute_history(security, run_minutes, unit='1m', fields=('volume'), skip_paused=True, df=False)['volume']
@@ -635,7 +641,10 @@ class JqDatasrc(SecurityDataSrcBase):
                 run_minutes = self.GET_RUN_MINUTES(context)
                 if run_minutes == 0:
                     #TODO, get 9:25 vol
-                    volumeLast = 0.01*data[security].volume
+                    try:
+                        volumeLast = 0.01*data[security].volume
+                    except Exception,e:
+                        volumeLast = 0
                     self.data[security]={'volume':volumeLast} 
                 else:
                     volumeMin =  0.01*attribute_history(security, run_minutes, unit='1m', fields=('volume'), skip_paused=True, df=False)['volume']
