@@ -24,8 +24,6 @@ class Surmount(object):
     FAKE_LOCKSTAB = False
     MIN_TIME_PRE_FAKE = 150
     FAKE_LOCK = False
-    #after trade flag
-    AFTER_TRADE = False
     #chipex rate
     MAX_CHIPEX_RATE = 500
     MIN_CHIPEX_RATE = 20
@@ -68,16 +66,20 @@ class Surmount(object):
         return self.__security__ == other.__security__
     
     def __cmp__(self, other):
+        return Surmount.cmpitem(self, other)
+    
+    @classmethod
+    def cmpitem(cls, my, other, aftertrade=False):
         if not isinstance(other, Surmount):
             return 1
         #in portfolio first:
-        if self.locked_sell and  (not other.locked_sell):
+        if my.locked_sell and  (not other.locked_sell):
             return -1
-        elif  (not self.locked_sell) and other.locked_sell:
+        elif  (not my.locked_sell) and other.locked_sell:
             return 1
-        if self.__fired__ and  (not other.__fired__):
+        if my.__fired__ and  (not other.__fired__):
             return -1
-        elif  (not self.__fired__) and other.__fired__:
+        elif  (not my.__fired__) and other.__fired__:
             return 1
         # return aimed 
         #if self.aimed and  (not other.aimed):
@@ -85,61 +87,61 @@ class Surmount(object):
         #elif  (not self.aimed) and other.aimed:
         #    return 1
         # after trade:
-        if Surmount.AFTER_TRADE:
+        if aftertrade:
             # return high day_has_aimed
-            if self.day_has_aimed > other.day_has_aimed:
+            if my.day_has_aimed > other.day_has_aimed:
                 return -1
-            elif self.day_has_aimed < other.day_has_aimed:
+            elif my.day_has_aimed < other.day_has_aimed:
                 return 1
             # return high refcc
-            if self.ref_cci > other.ref_cci:
+            if my.ref_cci > other.ref_cci:
                 return -1
             else:
                 return 1
         # return locked item first:
-        if self.locked() and  (not other.locked()):
+        if my.locked() and  (not other.locked()):
             return -1
-        elif  (not self.locked()) and other.locked():
+        elif  (not my.locked()) and other.locked():
             return 1
         # return locked_vol item first:
-        if self.locked_vol and  (not other.locked_vol):
+        if my.locked_vol and  (not other.locked_vol):
             return -1
-        elif  (not self.locked_vol) and other.locked_vol:
+        elif  (not my.locked_vol) and other.locked_vol:
             return 1
-        elif self.locked_vol and other.locked_vol:
+        elif my.locked_vol and other.locked_vol:
             # return high volRateM5
-            if self.volRateM5 > other.volRateM5:
+            if my.volRateM5 > other.volRateM5:
                 return -1
             else:
                 return 1
         # return locked_prive item first:
-        if self.locked_price and  (not other.locked_price):
+        if my.locked_price and  (not other.locked_price):
             return -1
-        elif  (not self.locked_price) and other.locked_price:
+        elif  (not my.locked_price) and other.locked_price:
             return 1
         # return chipexmeet item first:
-        if self.chipex_meet and  (not other.chipex_meet):
+        if my.chipex_meet and  (not other.chipex_meet):
             return -1
-        elif  (not self.chipex_meet) and other.chipex_meet:
+        elif  (not my.chipex_meet) and other.chipex_meet:
             return 1
-        if self.chipex_meet and  other.chipex_meet:
+        if my.chipex_meet and  other.chipex_meet:
             # return high chipexrate item
             #if self.chipex_rate > other.chipex_rate:
             #    return -1
             #elif self.chipex_rate < other.chipex_rate:
             #    return 1
             # return high volRateM5
-            if self.volRateM5 > other.volRateM5:
+            if my.volRateM5 > other.volRateM5:
                 return -1
             else:
                 return 1
-        elif  (not self.chipex_meet) and (not other.chipex_meet):
+        elif  (not my.chipex_meet) and (not other.chipex_meet):
             # return high chipexstab item
-            if self.chipex_stab > other.chipex_stab:
+            if my.chipex_stab > other.chipex_stab:
                 return -1
-            elif self.chipex_stab < other.chipex_stab:
+            elif my.chipex_stab < other.chipex_stab:
                 return 1
-        if self.day_has_aimed > self.day_has_aimed:
+        if my.day_has_aimed > my.day_has_aimed:
             return -1
         else:
             return 1
@@ -554,7 +556,6 @@ class Surmount(object):
     @staticmethod
     def refreshSurmountPool(context, data, poollist, stocklist, pretrade=False):
         Surmount.FAKE_LOCK = False
-        Surmount.AFTER_TRADE = True
         if pretrade:
             if len(stocklist) == 0:
                 Surmount.logd("empty stocklist, stop pool")
@@ -580,7 +581,7 @@ class Surmount(object):
                 poollist.append(s)
         Surmount.logd("len:%s,refresh to todel:\n%s" %(str(len(todel)), str(todel)))
         Surmount.logd("len:%s,refresh to newadd:\n%s" %(str(len(newadd)), str(newadd)))
-        poollist.sort()
+        poollist.sort(cmp=lambda a,b: Surmount.cmpitem(a, b, True))
         #print poollist
         #send after trade data for next day
         Surmount.sendSurmountPool(context, data, poollist, True, True)
@@ -588,7 +589,6 @@ class Surmount(object):
         
     @staticmethod
     def handleSurmountPool(context, data, poollist, sellcb, buycb):
-        Surmount.AFTER_TRADE = False
         runTime = GET_RUN_MINUTES(context)
         if runTime % 5 != 0:
             return
