@@ -1,5 +1,5 @@
 '''
-Created on 2017-8-25
+Created on 2017-9-04
 
 @author: yuql
 '''
@@ -43,7 +43,12 @@ def before_trading_start(context):
     g.fire_fd_value_day = context.portfolio.total_value
     g.fire_fd_value = g.fire_fd_value_day
     Surmount.refreshSurmountPool(context, {}, g.l_pool_fd, g.stocks, True)
-    
+    list_fd = [s.security() for s in g.l_pool_fd]
+    for security in context.portfolio.positions:
+        if security not in list_fd:
+            log.info("target clean:%s", security)
+            order_target(security, 0)
+            
 def after_trading_end(context):
     weekday = context.current_dt.isoweekday()
     day = context.current_dt.day
@@ -64,6 +69,9 @@ def handle_data(context, data):
         ORDER_SELL(context, security)
     def buy(context, security):
         print "buy##################:"+security
+        if not getindexstate(context):
+            log.info("#####no stable indexstate! ignore to buy: @ %s", str(security))
+            return
         buy_value = g.fire_fd_value_day/g.fire_fd_max
         #no more value today except high weight 
         if buy_value > g.fire_fd_value:
@@ -77,6 +85,11 @@ def handle_data(context, data):
     Surmount.handleSurmountPool(context, data, g.l_pool_fd, sell, buy)
     
 # until func
+def getindexstate(context):
+    index= GET_ALL_INDEXES()[0]
+    state, wbb, bb, bbH, bbL, sex, kex, iex = BOLL_STATE(context, index, 'D')
+    return state > -2
+    
 ## 个股止损
 def ORDER_STOPLOSS(context,loss=0.07):
     if len(context.portfolio.positions)>0:
