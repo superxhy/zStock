@@ -392,6 +392,8 @@ class Surmount(object):
                 return routeRate < self.MAX_ROUTE_RATE
             return routeRate < self.MIN_ROUTE_RATE
         else:
+            if runTime < Surmount.MIN_TIME_PRE_FAKE:
+                return False
             return routeRate < -self.MAX_ROUTE_RATE
         
     def breakPoint(self, context, data):
