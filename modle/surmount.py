@@ -319,14 +319,14 @@ class Surmount(object):
                     self.logd("security:%s volM10:%s not meet!" %(str(self.__security__), str(Surmount.strdec(self.volM10))))
                     return self.sellOut(context, data, True)
             # success for stoplimit 
-            if not self.observer == None and self.observer.observe(close_last) < 0:
+            if (not self.observer == None) and self.observer.observe(close_last) < 0:
                 #target dd stop
                 #state stop
                 maxvalue = self.observer.maxvalue()
                 self.logd("%s:observe draw down, maxvalue:%s" %(str(self.__security__), str(maxvalue)))
                 return self.sellOut(context, data)
             # fail to meet price
-            if not self.aimed and not self.locked_sell:
+            if (not self.aimed) and (not self.locked_sell):
                 cci_last = CCI_DATA(context,self.__security__, 'D', data, 1)[-1]
                 if cci_last > 0:
                     return self.RET_KEEP
@@ -392,9 +392,10 @@ class Surmount(object):
                 return routeRate < self.MAX_ROUTE_RATE
             return routeRate < self.MIN_ROUTE_RATE
         else:
-            if runTime < Surmount.MIN_TIME_PRE_FAKE:
-                return False
-            return routeRate < -self.MAX_ROUTE_RATE
+            return False
+            #if runTime < Surmount.MIN_TIME_PRE_FAKE:
+            #    return False
+            #return routeRate < -self.MAX_ROUTE_RATE
         
     def breakPoint(self, context, data):
         cci = CCI_DATA(context,self.__security__, 'D', data, 4)
@@ -428,6 +429,8 @@ class Surmount(object):
             if self.chipex_rate > self.MIN_CHIPEX_RATE and self.chipex_rate < self.MAX_CHIPEX_RATE:
                 #self.logd("%s:chipexMeet for volPre:%s chipRate:%s" % (str(self.__security__), str(Surmount.strdec(volPre)),str(Surmount.strdec(self.chipex_rate))))
                 self.chipex_meet =  True
+            else:
+                self.chipex_meet = False
         # useless other rate
         else:
             self.chipex_meet =  False
@@ -441,8 +444,8 @@ class Surmount(object):
             return True
         # not stable enough
         if self.chipex_stab <= 0 and self.chipex_stab > -self.MAX_CHIPEX_RATE:
-            bargin = self.chipex_rate + self.chipex_stab
-            if bargin > 2*self.MIN_CHIPEX_RATE:
+            bargin = 0.5*self.chipex_rate + self.chipex_stab
+            if bargin > self.MIN_CHIPEX_RATE:
                 #self.logd("%s:chipexStab bargin:%s for stab:%s" % (str(self.__security__), str(Surmount.strdec(bargin)),str(Surmount.strdec(self.chipex_stab))))
                 return True
         return False
@@ -461,7 +464,7 @@ class Surmount(object):
                     locked_vol_now =  True
         # update last lock state            
         self.locked_vol = locked_vol_now
-        if not locked_vol_last and locked_vol_now:
+        if (not locked_vol_last) and locked_vol_now:
             self.logd("%s:locked_vol revert True at runTime:%s" %(str(self.__security__), str(runTime)))
             locked_vol_change = True
         if locked_vol_last and (not locked_vol_now):
