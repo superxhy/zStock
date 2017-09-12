@@ -745,6 +745,31 @@ class TsDatasrc(SecurityDataSrcBase):
             return np.nan
         return df_data['volume'].values
     
+    # 获取日线历史成交额
+    def GET_AMOUNT_DATA_DAY(self, context, security,isLastest=True,data={},dataCount=20):
+        #TODO get_k_data has no amount data, get_h_data no support index
+        df_data = ts.get_h_data(security, index=False)
+        if df_data is None or df_data.empty == True:
+            print "security:%s in context:%s NO GET_AMOUNT_DATA_DAY!" %(str(security),str(context))
+            return np.array([np.nan])
+        df_data = df_data.iloc[::-1].tail(dataCount)
+        amountData = df_data['amount'].values
+        try:
+            dfreal = ts.get_realtime_quotes(security)
+        except Exception,e:
+            print Exception,":",e
+            dfreal = None
+        if not dfreal is None:
+            data = dfreal.date[0]
+            time = dfreal.time[0]
+            dateStr = data + ' ' + time
+            current_dt = self.__getdatetime__(dateStr)
+            runtime = SecurityDataSrcBase.GET_RUN_MINUTES(TsContext(current_dt))
+            if runtime < 240:
+                amountLast = float(dfreal.amount[0])
+                amountData = np.append(amountData, amountLast)
+        return amountData
+    
     # overide
     def GET_INDEXO_CRYPTO(self, context, security, period = 'D', data={}):
         df_data = ts.get_k_data(security, index=False, ktype='5')
