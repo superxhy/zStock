@@ -167,6 +167,11 @@ def VOL_PV(context, security, n=20, data={}, isFix=True):
     ret = dsobj.invokeMethod(curname, context, security, n, data, isFix)
     return ret
 
+def GET_AVG_DATA_DAY(context, security, n=20, data={}):
+    curname = sys._getframe().f_code.co_name
+    ret = dsobj.invokeMethod(curname, context, security, n, data)
+    return ret
+
 # 获取所有指数代码
 #return list
 def GET_ALL_INDEXES():
@@ -283,6 +288,12 @@ def GET_VOL_DATA_DAY(context, security,isLastest=True,data={},dataCount=20):
     ret = dsobj.invokeMethod(curname, context, security,isLastest,data,dataCount)
     return ret
 
+# 获取日线历史成交额
+#context, security,isLastest=True,data={},dataCount=20
+def GET_VOL_AMOUNT_DAY(context, security,isLastest=True,data={},dataCount=20):
+    curname = sys._getframe().f_code.co_name
+    ret = dsobj.invokeMethod(curname, context, security,isLastest,data,dataCount)
+    return ret
 
 #静态方法公用工具类
 class DSUtil(object):
@@ -313,4 +324,4 @@ class DSUtil(object):
         isSend = sendMail and (not backtest)
         title = DS_CLASS_NAME if useAttach else DS_CLASS_NAME + '_intraday'
         print sendTable(title, bundleList, schema, configloader.getEmailConfig() if (configloader != None) else None, isSend, useAttach)
-        return bundleList
+        return bundleList 
