@@ -232,9 +232,10 @@ class JqDatasrc(SecurityDataSrcBase):
                 #volLast = 0.01*get_current_data()[security].volume
                 try:
                     volLast = 0.01*data[security].volume
+                    amountLast = data[security].money
                 except Exception,e:
                     volLast = 0
-                self.data[security]={'volume':volLast} 
+                self.data[security]={'volume':volLast,'amount':amountLast} 
                 vol_intraday = np.append(vol_intraday, volLast)
             elif(offset!=0):
                 volLast = volMin[-offset:].sum()
@@ -611,9 +612,10 @@ class JqDatasrc(SecurityDataSrcBase):
                     #TODO, get 9:25 vol
                     try:
                         volumeLast = 0.01*data[security].volume
+                        amountLast = data[security].money
                     except Exception,e:
                         volumeLast = 0
-                    self.data[security]={'volume':volumeLast} 
+                    self.data[security]={'volume':volumeLast,'amount':amountLast} 
                 else:
                     volumeMin =  0.01*attribute_history(security, run_minutes, unit='1m', fields=('volume'), skip_paused=True, df=False)['volume']
                     volumeLast = np.sum(volumeMin)
@@ -643,9 +645,10 @@ class JqDatasrc(SecurityDataSrcBase):
                     #TODO, get 9:25 vol
                     try:
                         volumeLast = 0.01*data[security].volume
+                        amountLast = data[security].money
                     except Exception,e:
                         volumeLast = 0
-                    self.data[security]={'volume':volumeLast} 
+                    self.data[security]={'volume':volumeLast,'amount':amountLast} 
                 else:
                     volumeMin =  0.01*attribute_history(security, run_minutes, unit='1m', fields=('volume'), skip_paused=True, df=False)['volume']
                     volumeLast = np.sum(volumeMin)
@@ -658,6 +661,38 @@ class JqDatasrc(SecurityDataSrcBase):
                 volumeDay = np.append(volume,volumeLast)
             return volumeDay
 
+    # 获取日线历史成交额
+    def GET_AMOUNT_DATA_DAY(self, context, security,isLastest=True,data={},dataCount=20):
+        amount = attribute_history(security, dataCount, unit='1d', fields=('money'), skip_paused=True, df=False)['money']
+        if not isLastest:
+            return amount
+        else:
+            amountLast = 0
+            amountDay = amount
+            if any (data) and False:
+                amountLast = data[security].money
+            else:
+                run_minutes = self.GET_RUN_MINUTES(context)
+                if run_minutes == 0:
+                    #TODO, get 9:25 vol
+                    try:
+                        volumeLast = 0.01*data[security].volume
+                        amountLast = data[security].money
+                    except Exception,e:
+                        amountLast = 0
+                    self.data[security]={'volume':volumeLast,'amount':amountLast} 
+                else:
+                    amountMin = attribute_history(security, run_minutes, unit='1m', fields=('money'), skip_paused=True, df=False)['money']
+                    amountLast = np.sum(amountMin)
+                    dataJj = self.data.get(security,None)
+                    if dataJj:
+                        #print amountLast
+                        amountLast += dataJj['amount']
+                        #print amountLast
+            if not np.isnan(amountLast) and amountLast != 0:
+                amountDay = np.append(amount,amountLast)
+            return amountDay
+    
     # other for config-----------------------
     def getConfigLoader(self):
         return JqConfigLoader()
