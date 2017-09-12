@@ -778,7 +778,11 @@ class SecurityDataSrcBase(object):
         avgData = self.GET_AVG_DATA_DAY(context, security, 1, data)
         avg = avgData[-1] if len(avgData) >0 else 0
         closeLast = close[-1] if len(close) >0 else 0
-        avgRate = calRate(closeLast-avg, avg)
+        if  not security in self.GET_ALL_INDEXES():
+            avgRate = calRate(closeLast-avg, avg)
+        else:
+            avgRate = calRate(avg, closeLast)
+        #print avgRate
         kArray = []
         for i in range(0, len(close)):
             kdata = [high[i],low[i],close[i]]
