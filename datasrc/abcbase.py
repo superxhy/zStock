@@ -638,15 +638,15 @@ class SecurityDataSrcBase(object):
     雷阴 或者 雷+水阳 可转泽位 火阳位 易长红
     风阳 或者 风+火阴 可转山位 水阴位 易长黑
     
-    period#volyinyang/volbody%volPreStr:volmk volRate~volBB%volBand
+    period#volyinyang/volbody|avgRate%volPreStr:volmk volRate~volBB%volBand
     cryptomk 
     cryptoel
     exp:
-    D#-94.05/0.79%2.75E+8:(ψ’^) 118.27~100.0%51.41
+    P#-94.05/0.79|3.5%2.75E+8:(ψ’^) 118.27~100.0%51.41
     ψ‘.§‘v.ψ’^.§’.(ψ’^) 
     火陽.水陽v.火陰^.水陰.(火陰^)
     卦象:
-    当天#近光脚/0.79百分点幅程2.75亿空方:火阴量(5天内最大) 比昨天1.18倍放量~8天内量能宽度顶部%8天内量能宽度为51个点
+    当天#近光脚/0.79百分点幅程|3.5百分点偏离均价2.75亿空方:火阴量(5天内最大) 比昨天1.18倍放量~8天内量能宽度顶部%8天内量能宽度为51个点
     5天内乾坤量为
     火阳.水阳'背离低吸'.火阴'背离高抛'.水阴.火阴'背离高抛'
     '''
@@ -775,6 +775,10 @@ class SecurityDataSrcBase(object):
         #cryptoelMax = cryptoel[0] if volMaxOffset > len(cryptoel) else cryptoel[-1-volMaxOffset]
         #yin yang
         high, low, close = self.GET_PERIOD_DATA(context, security, 'D', data, DATALEN)
+        avgData = self.GET_AVG_DATA_DAY(context, security, 1, data)
+        avg = avgData[-1] if len(avgData) >0 else 0
+        closeLast = close[-1] if len(close) >0 else 0
+        avgRate = calRate(closeLast-avg, avg)
         kArray = []
         for i in range(0, len(close)):
             kdata = [high[i],low[i],close[i]]
@@ -804,7 +808,7 @@ class SecurityDataSrcBase(object):
             volyinyang = yy[-1]
         if len(kArray) >0:
             volbody = calRate(kArray[-1][0] - kArray[-1][1],kArray[-1][1])
-        volformat = "P#%s/%s%%%s:%s %s~%s%%%s" %(str(volyinyang),str(volbody),str(volPreStr),str(volmk),str(volRate),str(volBB),str(volBand))
+        volformat = "P#%s/%s|%s%%%s:%s %s~%s%%%s" %(str(volyinyang),str(volbody),str(avgRate),str(volPreStr),str(volmk),str(volRate),str(volBB),str(volBand))
         #print volformat
         return [volformat,'. '.join(cryptomk),'. '.join(cryptoel),[volPre10Rate, volPre5Rate],[volPreEx, volPreStable]]
     
@@ -1068,6 +1072,20 @@ class SecurityDataSrcBase(object):
             return 0
         return  (1 + math.log(volumePre / volumeMa)/math.log(10))*50
     
+    # 获取日线成交均价
+    def GET_AVG_DATA_DAY(self, context, security, n=20, data={}):
+        volData = self.GET_VOL_DATA_DAY(context, security, True, data, n)
+        amountData = self.GET_AMOUNT_DATA_DAY(context, security, True, data, n)
+        avgData = np.array([])
+        for i in range(0, len(volData)):
+            vol = volData[-1-i]
+            amount = amountData[-1-i]
+            if np.isnan(vol) or vol == 0 or np.isnan(amount) or amount==0:
+                np.append(np.nan, avgData)
+            else:
+                avgData = np.append(0.01*amount/vol, avgData)
+        return avgData
+    
     '''
     index function end   ------------------------------------
     '''
@@ -1252,6 +1270,12 @@ class SecurityDataSrcBase(object):
     # 获取日线历史成交量
     #context, security,isLastest=True,data={},dataCount=20
     def GET_VOL_DATA_DAY(self):
+        pass
+    
+    @abstractmethod
+    # 获取日线历史成交额
+    #context, security,isLastest=True,data={},dataCount=20
+    def GET_AMOUNT_DATA_DAY(self):
         pass
     
     '''
