@@ -748,7 +748,11 @@ class TsDatasrc(SecurityDataSrcBase):
     # 获取日线历史成交额
     def GET_AMOUNT_DATA_DAY(self, context, security,isLastest=True,data={},dataCount=20):
         #TODO get_k_data has no amount data, get_h_data no support index
-        df_data = ts.get_h_data(security, index=False)
+        try:
+            df_data = ts.get_h_data(security, index=False)
+        except Exception,e:
+            print e
+            df_data = None
         if df_data is None or df_data.empty == True:
             print "security:%s in context:%s NO GET_AMOUNT_DATA_DAY!" %(str(security),str(context))
             return np.array([np.nan])
