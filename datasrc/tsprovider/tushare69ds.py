@@ -62,10 +62,10 @@ class TsDatasrc(SecurityDataSrcBase):
     
     # 获取所有股票代码
     #return list
-    def GET_ALL_SECURITIES(self,filtPaused=True, filtSt=True):
+    def GET_ALL_SECURITIES(self,filtPaused=True, filtSt=True, filtMarketcap=0):
         l_stocks = self.__df_allsecurities__.index.get_values().tolist()
         print "l_stocks %s in all", len(l_stocks)
-        if filtPaused or filtSt:
+        if filtPaused or filtSt or filtMarketcap > 0:
             filtresult = []
             for s in l_stocks:
                 isfilted = False
@@ -80,13 +80,20 @@ class TsDatasrc(SecurityDataSrcBase):
                 if not dfreal is None and filtSt:
                     if str(dfreal['name'][0]).find('ST') > -1:
                         isfilted = True
+                if filtMarketcap > 0:
+                    outstanding = self.GET_SECURITY_INFO(s)['outstanding']
+                    price = self.GET_CLOSE_DAY(None, s)
+                    markCap = outstanding * price
+                    if markCap > filtMarketcap:
+                        print "security %s isfilted,markCap:%s" % (str(s),str(markCap))
+                        isfilted = True
                 if isfilted:
                     print "security %s isfilted" % str(s)
                     pass
                 else:
                     filtresult.append(s)
             l_stocks = filtresult
-            print "l_stocks %s after filtSt", len(l_stocks)
+            print "l_stocks %s after filter", len(l_stocks)
         return l_stocks
     
     # 获取股票信息
