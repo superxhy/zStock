@@ -1112,7 +1112,7 @@ class SecurityDataSrcBase(object):
     # 获取所有股票代码
     @abstractmethod
     #return list
-    #filtPaused=True, filtSt=True
+    #filtPaused=True, filtSt=True, filtMarketcap=0
     def GET_ALL_SECURITIES(self):
         pass
     
