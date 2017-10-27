@@ -115,7 +115,7 @@ class JqDatasrc(SecurityDataSrcBase):
     
     # 获取所有股票代码
     #return list
-    def GET_ALL_SECURITIES(self, filtPaused=True, filtSt=True):
+    def GET_ALL_SECURITIES(self, filtPaused=True, filtSt=True, filtMarketcap=0):
         l_stocks03 = get_index_stocks(self.index_list[0])
         l_stocks04 = get_index_stocks(self.index_list[1])
         l_stocks = l_stocks03 + l_stocks04
@@ -126,8 +126,27 @@ class JqDatasrc(SecurityDataSrcBase):
                 l_stocks = [s for s in l_stocks if not current_data[s].paused]
                 print "l_stocks %s after filtPaused", len(l_stocks)
             if filtSt:
-                l_stocks = [s for s in l_stocks if not current_data[s].is_st]
+                l_stocks = [s for s in l_stocks if not current_data[s].is_st 
+                            and 'ST' not in current_data[s].name
+                            and '*' not in current_data[s].name
+                            and '退' not in current_data[s].name]
                 print "l_stocks %s after filtSt", len(l_stocks)
+            if filtMarketcap>0:
+                #date=context.current_dt.strftime("%Y-%m-%d")
+                df = get_fundamentals(query(
+                        valuation.code,valuation.circulating_market_cap
+                    ).filter(
+                        valuation.code.in_(l_stocks),
+                        valuation.circulating_market_cap > filtMarketcap
+                    ).order_by(
+                        #valuation.circulating_market_cap.asc()
+                        # 按市值降序排列
+                        valuation.circulating_market_cap.desc()
+                    ), date=None
+                    ).dropna()
+                filtMarketPool = list(df['code'])
+                l_stocks = [s for s in l_stocks if not s in filtMarketPool]
+                print "l_stocks %s after filtMarketcap", len(l_stocks)
         return l_stocks
     
     # 获取股票信息
