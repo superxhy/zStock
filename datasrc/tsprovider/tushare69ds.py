@@ -129,9 +129,9 @@ class TsDatasrc(SecurityDataSrcBase):
         
         df_security = self.__df_allsecurities__[security : security]
         securityInfo = {
-        'name': df_security['name'].get_values()[0].decode("utf-8"),
-        'industry':df_security['industry'].get_values()[0].decode("utf-8"),
-        'area':df_security['area'].get_values()[0].decode("utf-8"),
+        'name': str(df_security['name'].get_values()[0]).decode("utf-8"),
+        'industry':str(df_security['industry'].get_values()[0]).decode("utf-8"),
+        'area':str(df_security['area'].get_values()[0]).decode("utf-8"),
         'pe':df_security['pe'].get_values()[0],
         'outstanding':df_security['outstanding'].get_values()[0],
         'totals':df_security['totals'].get_values()[0],
