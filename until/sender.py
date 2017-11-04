@@ -56,15 +56,16 @@ class MailSender(object):
     
     def __parsefile__(self, fname):
         configobj = None
-        f = open(fname)
+        f = None
         try:
+            f = open(fname)
             import json
             configobj = json.load(f)
             self.__parseconfig__(configobj)
         except Exception,e:
             print Exception,":",e
         finally:
-            f.close()
+            if f:f.close()
         
     def __parseconfig__(self, config):
         server = config['server']
@@ -174,15 +175,21 @@ class MailSender(object):
         
     @staticmethod
     def sendPlainMail(config, subject , contentText, attachments=[]):
-        sender = MailSender(config)
-        sender.writePlain(subject, contentText)
-        sender.addAttach(attachments)
-        sender.send()
-
+        try:
+            sender = MailSender(config)
+            sender.writePlain(subject, contentText)
+            sender.addAttach(attachments)
+            sender.send()
+        except Exception,e:
+            print Exception,":",e
+            
     @staticmethod
     def sendHtmlMail(config, subject , contentHtml, attachments=[]):
-        sender = MailSender(config)
-        sender.writeHtml(subject, contentHtml)
-        sender.addAttach(attachments)
-        sender.send()
+        try:
+            sender = MailSender(config)
+            sender.writeHtml(subject, contentHtml)
+            sender.addAttach(attachments)
+            sender.send()
+        except Exception,e:
+            print Exception,":",e
         
