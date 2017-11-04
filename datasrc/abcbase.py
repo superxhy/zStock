@@ -782,7 +782,6 @@ class SecurityDataSrcBase(object):
             avgRate = calRate(closeLast-avg, avg)
         else:
             avgRate = calRate(avg, closeLast)
-        #print avgRate
         kArray = []
         for i in range(0, len(close)):
             kdata = [high[i],low[i],close[i]]
@@ -986,7 +985,7 @@ class SecurityDataSrcBase(object):
         precision = 14
         high, low, close = self.GET_PERIOD_DATA(context, security, freq, data, dataCount+precision)
         if np.isnan(close[-1]):
-            return np.array([0])
+            return np.array([np.nan])
         CCI = self.CCI_CN(high, low, close)
         if len(CCI) > precision:
             CCI = CCI[-dataCount:]
