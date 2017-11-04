@@ -1,0 +1,517 @@
+#!/usr/bin/env python
+# -*- coding:utf-8 -*- 
+'''
+Created on 2017-10-31
+
+@author: yuql
+'''
+import numpy as np
+import decimal
+
+from datasrc import * 
+#TODO jq not suport root path
+#from dsadapter import *
+
+class Waver(object):
+    """wave model"""
+    MODULE = 'Waver'
+    VERSION = '1.0.1'
+    MDEBUG = True
+    #max calculate wave item count
+    MAX_WAVE_COUNT = 40
+    #wave begin char
+    WAVE_CHAR_GOLD = '@'
+    #wave up char
+    WAVE_CHAR_UP = ['B','D','F']
+    #wave down char
+    WAVE_CHAR_DN = ['A','C','E']
+    #flag for strong range
+    #no enough data
+    FLAG_WAVE_NOENOUGH = 0
+    #range k80 upper cci 100upper
+    FLAG_WAVE_STRONG = 2
+    #range k50~80 cci 0~100
+    FLAG_WAVE_MIDSTR = 1
+    #range 20~50 cci -100~0
+    FLAG_WAVE_MIDWEAK = -1
+    #range 20 lower cci -100lower
+    FLAG_WAVE_WEAK = -2
+    #max scorerange deque length
+    MAX_SCORERANGE_DEQUE = 2
+    #send every handle
+    HANDLE_SEND = True
+    #sending high level item count
+    MAX_SEND_COUNT = 10
+    
+    #target flag
+    RET_BUY = 1
+    RET_SELL = -1
+    RET_KEEP = 0
+    def __init__(self, context, security, data={}):
+        self.__security__ = security
+        self._do_init(context, data)
+    def __repr__(self):
+        return "%s>%s&%s%s#%s:%s%s%%%s/%s:%s%s%%%s|%s%s\n" %(str(self.__security__),str(self.waveboundflag),str(self.strdec(self.kma)),str(self.period),str(self.waveindex),str(self.wavechr),
+            str(self.kd),str(self.k),str(self.kmaxindex),str(self.kmaxchr),str(self.kmaxkd),str(self.kmax),str(self.waveseqstr),self.getScoreStr())
+
+    def _do_init(self, context, data):
+        self._reset_state()
+        self.refresh(context, data)
+        
+    def __eq__(self, other):
+        if not isinstance(other, Waver):
+            return False
+        return self.__security__ == other.__security__
+    
+    def __cmp__(self, other):
+        return Waver.cmpitem(self, other)
+    
+    @classmethod
+    def cmpitem(cls, my, other, aftertrade=False):
+        if not isinstance(other, Waver):
+            return 1
+        #ignore no same period item 
+        if not my.period == other.period:
+            return 0
+        #data not enough calc last
+        if my.waveboundflag == cls.FLAG_WAVE_NOENOUGH and other.waveboundflag != cls.FLAG_WAVE_NOENOUGH:
+            return 1
+        elif my.waveboundflag != cls.FLAG_WAVE_NOENOUGH and other.waveboundflag == cls.FLAG_WAVE_NOENOUGH:
+            return -1
+        else:
+            #waveboundflag strong first
+            if my.waveboundflag > other.waveboundflag:
+                return -1
+            if my.waveboundflag < other.waveboundflag:
+                return 1
+        #data not enough calc last
+        if my.waverangeflag == cls.FLAG_WAVE_NOENOUGH and other.waverangeflag != cls.FLAG_WAVE_NOENOUGH:
+            return 1
+        elif my.waverangeflag != cls.FLAG_WAVE_NOENOUGH and other.waverangeflag == cls.FLAG_WAVE_NOENOUGH:
+            return -1
+        #strong inactive first 
+        elif my.waverangeflag == cls.FLAG_WAVE_STRONG and other.waverangeflag != cls.FLAG_WAVE_STRONG:
+            return -1
+        elif my.waverangeflag != cls.FLAG_WAVE_STRONG and other.waverangeflag == cls.FLAG_WAVE_STRONG:
+            return 1
+        #weak inactive last
+        elif my.waverangeflag == cls.FLAG_WAVE_WEAK and other.waverangeflag != cls.FLAG_WAVE_WEAK:
+            return 1
+        elif my.waverangeflag != cls.FLAG_WAVE_WEAK and other.waverangeflag == cls.FLAG_WAVE_WEAK:
+            return -1
+        #middle wave state use kma
+        else:
+            #kma strong first
+            if my.kma >= 50 and other.kma < 50:
+                return -1
+            if my.kma < 50 and other.kma >= 50:
+                return 1
+        #gold cross no deviation first
+        if my.kd > 0 and other.kd > 0:
+            if my.waveindex == my.kmaxindex and other.waveindex != other.kmaxindex:
+                return -1
+            if my.waveindex != my.kmaxindex and other.waveindex == other.kmaxindex:
+                return 1
+        #wave direction strong first:
+        if my.wavedirectflag > other.wavedirectflag:
+            return -1
+        elif my.wavedirectflag < other.wavedirectflag:
+            return 1
+        #speedup quick first:
+        if my.kd > other.kd:
+            return -1
+        else:
+            return 1
+        
+    '''
+      @     B     D     F     
+      ^  |  ^  |  ^  |  ^  |  
+      |  v  |  v  |  v  |  v  
+         A     C     E     A  
+    period#waveindex:wavechr kd%k/kmaxindex:kmaxchr kmaxkd%kmax|waveseqstr
+    exp:
+    D#19:C0.46%77.15/17:B7.18%81.96|@ABCD4E3F2A2B2C2
+    '''
+    def _reset_state(self):
+        '''
+        wave index cryptal
+        '''
+        #cci for period weekly
+        self.cciw = 0
+        #current wave period level, common in 'D' for daily , 'W' for weakly
+        self.period = ''
+        #current wave index from gold cross wave index begin with 1 
+        self.waveindex = 0
+        #curerent wave direct char range from 'A'~'F' begin with '@',common in 3upwave and 3 downwave
+        self.wavechr = ''
+        #average k index in one month
+        self.kma = 0
+        #current k index for strong/weak range from 0~100
+        self.k = 0
+        #current k-d index for strong/weak speed range from -20~20 in common
+        self.kd = 0
+        #max strong wave index from gold cross wave index begin with 1 
+        self.kmaxindex = 0
+        #max strong wave direct char
+        self.kmaxchr = ''
+        #max k index for strong/weak range from 0~100
+        self.kmax = 0
+        #max k index point strong/weak speed
+        self.kmaxkd = 0
+        #from gold cross to current all the wavechr squence 
+        self.waveseq = np.array([])
+        self.waveseqstr = ''
+        
+        '''
+        strong range flag to compare with myself
+        '''
+        self.waveboundflag = 0
+        self.waverangeflag = 0
+        self.wavedirectflag = 0
+        '''
+        order score flag to compare with others in waver sequences
+        '''
+        #current score range in waverpool list range from 0~100, ordered by strongtrade
+        #last score range in waverpool list range from 0~100, init for -1 and use the current data to overwrite it after trade
+        self.scorerangedeque = []
+    
+    def security(self):
+        return self.__security__
+    
+    def fired(self):
+        return self.__fired__
+    
+    def locked(self):
+        return self.locked_price and self.locked_vol
+    
+    @classmethod
+    def version(cls):
+        return cls.VERSION
+    
+    @classmethod
+    def setDebug(cls,setDebug):
+        cls.MDEBUG = setDebug
+        
+    @classmethod
+    def logd(cls, text):
+        if(cls.MDEBUG):
+            print(cls.MODULE +"<debug>:"+text)
+
+    @staticmethod
+    def strdec(n):
+        return float(decimal.Decimal(n).quantize(decimal.Decimal('0.00')))
+    
+    @staticmethod
+    def calRate(a, b):
+        #avoid infinate
+        if np.isnan(b) or b == 0:
+            return 0
+        return a/b * 100
+    
+    
+    def sameDay(self, context):
+        return (self.aimed_time != None and 
+                    self.aimed_time.year==context.current_dt.year and 
+                    self.aimed_time.month==context.current_dt.month and 
+                    self.aimed_time.day==context.current_dt.day)
+
+    
+    def handleTarget(self, context, data, runTime):
+        try:
+            close_last = data[self.__security__].close
+        except Exception,e:
+            close_last = GET_CLOSE_DAY(context, self.__security__)
+        # decide to sell
+        return self.RET_KEEP
+    
+    def refresh(self, context, data={}, period='D'):
+        K,D,J= KDJ_DATA(context,self.__security__, period, data, self.MAX_WAVE_COUNT)
+        KD = K- D
+        #print np.array([str(s) for s in KD])
+        lenth = len(KD)
+        cross = -lenth
+        #find cross position
+        for i in range(0, lenth):
+            index = lenth - 1 - i
+            index_ref = index - 1
+            if index_ref >= 0 :
+                if KD[index_ref] <= 0 and KD[index]>0:
+                    cross = -1 - i
+                    break
+        #calculate waveseq
+        waveordStart = ord('A')
+        waveord = waveordStart - 1
+        waveflag = 1
+        waveindex = 1
+        kd = KD[cross]
+        k = K[cross]
+        kmaxindex = waveindex
+        kmax = k
+        kmaxkd = kd
+        kmaxord = waveord
+        waveseq = np.array([chr(int(waveord))])
+        if cross > -lenth:
+            for i in range(cross+1, 0):
+                if waveflag > 0 and KD[i] < KD[i-1]:
+                    waveflag = -1
+                    waveord += 1
+                if waveflag < 0 and KD[i] >= KD[i-1]:
+                    waveflag = 1
+                    waveord += 1
+                if waveord > ord('F'):
+                    waveord = waveordStart - 1 + waveord - ord('F')
+                waveseq = np.append(waveseq, chr(int(waveord)))
+                waveindex += 1
+                k = K[i]
+                kd = KD[i]
+                if K[i] > kmax:
+                    kmaxindex = waveindex
+                    kmax = K[i]
+                    kmaxkd = KD[i]
+                    kmaxord = waveord
+        wavechr = chr(int(waveord))
+        kmaxchr = chr(int(kmaxord))
+        #format waveseq to str
+        waveseqstr = ''
+        indexseq = 0
+        while (indexseq < len(waveseq)):
+            seqdata = waveseq[indexseq]
+            waveseqstr = waveseqstr + seqdata
+            waveseqnum = 1
+            while (indexseq + waveseqnum < len(waveseq) and seqdata == waveseq[indexseq + waveseqnum]):
+                waveseqnum += 1
+            if waveseqnum > 1:
+                waveseqstr = waveseqstr + str(waveseqnum)
+            indexseq += waveseqnum
+        #period#waveindex:wavechr kd%k/kmaxindex:kmaxchr kmaxkd%kmax|waveseqstr
+        #waveformat = "%s#%s:%s%s%%%s/%s:%s%s%%%s|%s" %(str(period),str(waveindex),str(wavechr),str(kd),str(k),str(kmaxindex),str(kmaxchr),str(kmaxkd),str(kmax),str(waveseqstr))
+        #print waveformat
+        self.kma = np.mean(K[-self.MAX_WAVE_COUNT/2:])
+        self.period = period
+        self.waveindex = waveindex
+        self.wavechr = wavechr
+        self.k = k
+        self.kd = kd
+        self.kmaxindex = kmaxindex
+        self.kmaxchr = kmaxchr
+        self.kmax = kmax
+        self.kmaxkd = kmaxkd
+        self.waveseq = waveseq
+        self.waveseqstr =waveseqstr
+        
+        #calculate week bound
+        self.cciw = CCI_DATA(context,self.__security__, 'W', data, 1)[-1]
+        self.calcStrongRange()
+        
+    def calcStrongRange(self):
+        #calculate wavedirect in last 3 wave
+        wavelen = len(self.waveseq)
+        bcdlen = 3
+        if wavelen > 0:
+            bcd = []
+            for i in range(0, bcdlen):
+                index = wavelen-1-i
+                if index >= 0 and index < wavelen:
+                    wavechar = self.waveseq[index]
+                    if wavechar == self.WAVE_CHAR_GOLD:
+                        bcd.append('1')
+                    if wavechar in self.WAVE_CHAR_UP:
+                        bcd.append('1')
+                    if wavechar in self.WAVE_CHAR_DN:
+                        bcd.append('0')
+                else:
+                    bcd.append('0')
+            bcdstr = ''.join(bcd)
+            if bcdstr == '':
+                self.wavedirectflag = 0
+            else:
+                self.wavedirectflag = int(bcdstr, 2)
+        #calculate strong range
+        if np.isnan(self.k) or self.k == 0:
+            #no daily data enough
+            self.waverangeflag = self.FLAG_WAVE_NOENOUGH
+        elif self.k >= 80:
+            self.waverangeflag = self.FLAG_WAVE_STRONG
+        elif self.k >= 50:
+            self.waverangeflag = self.FLAG_WAVE_MIDSTR
+        elif self.k >= 20:
+            self.waverangeflag = self.FLAG_WAVE_MIDWEAK
+        else:
+            self.waverangeflag = self.FLAG_WAVE_WEAK
+            
+        if np.isnan(self.cciw) :
+            #no weekly data enough
+            self.waveboundflag = self.FLAG_WAVE_NOENOUGH
+        elif self.cciw >= 100:
+            self.waveboundflag = self.FLAG_WAVE_STRONG
+        elif self.cciw >= 0:
+            self.waveboundflag = self.FLAG_WAVE_MIDSTR
+        elif self.cciw >= -100:
+            self.waveboundflag = self.FLAG_WAVE_MIDWEAK
+        else:
+            self.waveboundflag = self.FLAG_WAVE_WEAK
+            
+    def getScoreRaise(self):
+        #TODO more long days raise
+        if len(self.scorerangedeque) < 2:
+            # no more than raise data
+            return 0
+        return self.scorerangedeque[-1] - self.scorerangedeque[-2]
+        
+    def getScoreStr(self):
+        scorestr = '?'
+        if len(self.scorerangedeque) > 0:
+            scorestr += str(self.strdec(self.scorerangedeque[-1]))
+            
+        scoreraise = self.getScoreRaise()
+        if scoreraise > 0:
+            scorestr = '^' + self.strdec(scoreraise)
+        if scoreraise < 0:
+            scorestr = 'v' + self.strdec(scoreraise)
+        return scorestr
+        
+    @classmethod
+    def getWaverPool(cls, context, stocklist):
+        d_count = len(stocklist)
+        cls.logd("begin count:%s" % (d_count))
+        d_i = 0
+        ret_list = []
+        for security in stocklist:
+            #g.debug =  security
+            d_i = d_i + 1;
+            if d_i % (d_count//100 + 1) == 0:
+                cls.logd("doing:%s %%" % str(d_i/(d_count//100 + 1)))
+            s = Waver(context, security)
+            ret_list.append(s)
+        #ret_list.sort(cmp=lambda a,b: Waver.cmpitem(a, b, True))
+        cls.logd("end count:%s" % len(ret_list))
+        print ret_list
+        return ret_list
+    
+    @classmethod
+    def getSecurityIndex(cls, poollist, security):
+        ret = -1
+        for i in range(0, len(poollist)):
+            if poollist[i].security() == security:
+                ret = i
+                break
+        return ret
+    
+    @classmethod  
+    def updateWaverPoolOrder(cls, poollist, aftertrade=False):
+        poollist.sort(cmp=lambda a,b: Waver.cmpitem(a, b, True))
+        poollen = len(poollist)
+        cls.logd("updateWaverPoolOrder poollen:%s" %(str(poollen)))
+        for i in range(0, poollen):
+            lendequeue = len(poollist[i].scorerangedeque)
+            scorepercent = 100 - 100*1.0/(poollen-1)*i
+            #dequeue scorerange
+            if aftertrade:
+                poollist[i].scorerangedeque.append(scorepercent)
+                if lendequeue >= cls.MAX_SCORERANGE_DEQUE:
+                    del poollist[i].scorerangedeque[0]
+            #update the lastest data
+            else:
+                if lendequeue == 0:
+                    poollist[i].scorerangedeque.append(scorepercent)
+                else:
+                    poollist[i].scorerangedeque[-1] = scorepercent
+        
+    @staticmethod
+    def refreshWaverPool(context, data, poollist, stocklist, pretrade=False):
+        if pretrade:
+            if len(stocklist) == 0:
+                Waver.logd("empty stocklist, stop pool")
+                return poollist
+            if len(poollist) == 0:
+                Waver.logd("empty poollist!, begin to init pool")
+            else:
+                return poollist
+        #newlist = Waver.getWaverPool(context, stocklist)
+        newadd = []
+        todel= []
+        
+        d_count = len(stocklist)
+        Waver.logd("begin count:%s" % (d_count))
+        d_i = 0
+        #remove no trade security
+        for wave in poollist:
+            if wave.security() not in stocklist:
+                todel.append(wave.security())
+                poollist.remove(wave)
+        #add or refresh on trade security
+        for s in stocklist:
+            #g.debug =  security
+            d_i = d_i + 1;
+            if d_i % (d_count//100 + 1) == 0:
+                Waver.logd("doing:%s %%" % str(d_i/(d_count//100 + 1)))
+            waverIndex = Waver.getSecurityIndex(poollist, s)
+            if waverIndex >= 0:
+                poollist[waverIndex].refresh(context, data)
+            else:
+                wave = Waver(context, s)
+                newadd.append(wave.security())
+                poollist.append(wave)
+        Waver.logd("end count:%s" % len(poollist))
+        Waver.updateWaverPoolOrder(poollist, True)
+        Waver.logd("len:%s,refresh to newadd:%s\n" %(str(len(newadd)), str(newadd)))
+        Waver.logd("len:%s,refresh to todel:%s\n" %(str(len(todel)), str(todel)))
+        
+        #print poollist
+        #send after trade data for next day
+        #Waver.sendWaverPool(context, data, poollist, True, True)
+        Waver.sendWaverPool(context, data, poollist, False, True)
+        return poollist
+        
+    @staticmethod
+    def handleWaverPool(context, data, poollist, sellcb, buycb):
+        runTime = GET_RUN_MINUTES(context)
+        if runTime % 5 != 0:
+            return
+        for s in poollist:
+            s.targetLock(context, data, runTime)
+        #resort list ready to handle high level item
+        poollist.sort()
+        for s in poollist:
+            res = s.handleTarget(context, data, runTime)
+            if res < 0:
+                sellcb(context, s.security())
+            if res > 0:
+                buycb(context, s.security())
+        #resort list ready to send high level item
+        poollist.sort()
+        #print poollist
+        if Waver.HANDLE_SEND:
+            Waver.sendWaverPool(context, data, poollist[0:Waver.MAX_SEND_COUNT], False, True)
+    
+    @staticmethod
+    def sendWaverPool(context, data, poollist, pretrading=False, sendMail=False):
+        REDSTAR_NEW = '+'
+        REDSTAR_DEL = '-'
+        REDSTAR_FIRE = '$'
+        REDSTAR_LOCK = '*'
+        REDSTAR_LOCKPRICE = '!'
+        REDSTAR_LOCKVOL = '@'
+        def redStar(security, idx):
+            s = poollist[idx]
+            rs = ''
+            if s.locked():
+                rs += REDSTAR_LOCK
+            elif s.locked_price:
+                rs += REDSTAR_LOCKPRICE
+            elif s.locked_vol:
+                rs += REDSTAR_LOCKVOL
+            else:
+                #no other locked factor
+                pass
+            if s.fired(): 
+                if s.locked_sell:
+                    rs += ('('+REDSTAR_FIRE+')')
+                else:
+                    rs += REDSTAR_FIRE
+            if s.day_has_aimed < 0:
+                rs += REDSTAR_DEL
+            if s.day_has_aimed == 0:
+                rs += REDSTAR_NEW
+            return rs
+        DSUtil.sendSecurities(context, data, [s.security() for s in poollist], pretrading, sendMail, pretrading, None)
