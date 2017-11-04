@@ -47,6 +47,10 @@ class Waver(object):
     RET_BUY = 1
     RET_SELL = -1
     RET_KEEP = 0
+    
+    #static index instance for average compare
+    index = None
+    
     def __init__(self, context, security, data={}):
         self.__security__ = security
         self._do_init(context, data)
@@ -351,6 +355,11 @@ class Waver(object):
         else:
             self.waveboundflag = self.FLAG_WAVE_WEAK
             
+    def getScore(self, ref=0):
+        if len(self.scorerangedeque) < ref+1:
+            return -1
+        return self.scorerangedeque[-1-ref]
+    
     def getScoreRaise(self):
         #TODO more long days raise
         if len(self.scorerangedeque) < 2:
@@ -360,9 +369,9 @@ class Waver(object):
         
     def getScoreStr(self):
         scorestr = '?'
-        if len(self.scorerangedeque) > 0:
-            scorestr += str(self.strdec(self.scorerangedeque[-1]))
-            
+        scorecurrent = self.getScore()
+        if scorecurrent > 0:
+            scorestr += str(self.strdec(scorecurrent))
         scoreraise = self.getScoreRaise()
         if scoreraise > 0:
             scorestr = '^' + self.strdec(scoreraise)
@@ -370,23 +379,19 @@ class Waver(object):
             scorestr = 'v' + self.strdec(scoreraise)
         return scorestr
         
-    @classmethod
-    def getWaverPool(cls, context, stocklist):
-        d_count = len(stocklist)
-        cls.logd("begin count:%s" % (d_count))
-        d_i = 0
-        ret_list = []
-        for security in stocklist:
-            #g.debug =  security
-            d_i = d_i + 1;
-            if d_i % (d_count//100 + 1) == 0:
-                cls.logd("doing:%s %%" % str(d_i/(d_count//100 + 1)))
-            s = Waver(context, security)
-            ret_list.append(s)
-        #ret_list.sort(cmp=lambda a,b: Waver.cmpitem(a, b, True))
-        cls.logd("end count:%s" % len(ret_list))
-        print ret_list
-        return ret_list
+    def updateDequeScore(self, score, overwrited=False):
+        lendequeue = len(self.scorerangedeque)
+        #dequeue scorerange
+        if overwrited:
+            self.scorerangedeque.append(score)
+            if lendequeue >= self.MAX_SCORERANGE_DEQUE:
+                del self.scorerangedeque[0]
+        #update the lastest data
+        else:
+            if lendequeue == 0:
+                self.scorerangedeque.append(score)
+            else:
+                self.scorerangedeque[-1] = score
     
     @classmethod
     def getSecurityIndex(cls, poollist, security):
@@ -397,28 +402,35 @@ class Waver(object):
                 break
         return ret
     
-    @classmethod  
+    @classmethod
     def updateWaverPoolOrder(cls, poollist, aftertrade=False):
         poollist.sort(cmp=lambda a,b: Waver.cmpitem(a, b, True))
         poollen = len(poollist)
         cls.logd("updateWaverPoolOrder poollen:%s" %(str(poollen)))
+        if poollen <= 1:
+            return
         for i in range(0, poollen):
-            lendequeue = len(poollist[i].scorerangedeque)
             scorepercent = 100 - 100*1.0/(poollen-1)*i
-            #dequeue scorerange
-            if aftertrade:
-                poollist[i].scorerangedeque.append(scorepercent)
-                if lendequeue >= cls.MAX_SCORERANGE_DEQUE:
-                    del poollist[i].scorerangedeque[0]
-            #update the lastest data
-            else:
-                if lendequeue == 0:
-                    poollist[i].scorerangedeque.append(scorepercent)
-                else:
-                    poollist[i].scorerangedeque[-1] = scorepercent
+            poollist[i].updateDequeScore(scorepercent, aftertrade)
+        
+    @classmethod  
+    def updateWaverOtherOrder(cls, poollist, other, aftertrade=False):
+        poollen = len(poollist)
+        cls.logd("updateWaverIndexOrder poollen:%s" %(str(poollen)))
+        if poollen == 0:
+            return
+        scorepercent = 0
+        for i in range(0, poollen):
+            scorecurrent = poollist[i].getScore()
+            if scorecurrent < 0:
+                continue
+            elif poollist[i] >= other:
+                scorepercent = scorecurrent
+                break
+        other.updateDequeScore(scorepercent, aftertrade)
         
     @staticmethod
-    def refreshWaverPool(context, data, poollist, stocklist, pretrade=False):
+    def refreshWaverPool(context, data, poollist, stocklist, pretrade=False, aftertrade=False, notmain=True):
         if pretrade:
             if len(stocklist) == 0:
                 Waver.logd("empty stocklist, stop pool")
@@ -430,15 +442,22 @@ class Waver(object):
         #newlist = Waver.getWaverPool(context, stocklist)
         newadd = []
         todel= []
-        
         d_count = len(stocklist)
         Waver.logd("begin count:%s" % (d_count))
         d_i = 0
+        #init index for avg compare
+        if Waver.index == None:
+            #NO KEEP score dequeue for temp use
+            szzs = GET_ALL_INDEXES()[0]
+            Waver.index = Waver(context, szzs)
+        else:
+            Waver.index.refresh(context, data)
         #remove no trade security
         for wave in poollist:
             if wave.security() not in stocklist:
                 todel.append(wave.security())
                 poollist.remove(wave)
+        Waver.logd("len:%s,refresh to todel:%s\n" %(str(len(todel)), str(todel)))
         #add or refresh on trade security
         for s in stocklist:
             #g.debug =  security
@@ -452,15 +471,15 @@ class Waver(object):
                 wave = Waver(context, s)
                 newadd.append(wave.security())
                 poollist.append(wave)
-        Waver.logd("end count:%s" % len(poollist))
-        Waver.updateWaverPoolOrder(poollist, True)
         Waver.logd("len:%s,refresh to newadd:%s\n" %(str(len(newadd)), str(newadd)))
-        Waver.logd("len:%s,refresh to todel:%s\n" %(str(len(todel)), str(todel)))
+        Waver.logd("end count:%s" % len(poollist))
+        Waver.updateWaverPoolOrder(poollist, aftertrade)
+        Waver.updateWaverOtherOrder(poollist, Waver.index, aftertrade)
         
         #print poollist
         #send after trade data for next day
         #Waver.sendWaverPool(context, data, poollist, True, True)
-        Waver.sendWaverPool(context, data, poollist, False, True)
+        Waver.sendWaverPool(context, data, [Waver.index]+poollist, aftertrade, notmain)
         return poollist
         
     @staticmethod
@@ -515,3 +534,11 @@ class Waver(object):
                 rs += REDSTAR_NEW
             return rs
         DSUtil.sendSecurities(context, data, [s.security() for s in poollist], pretrading, sendMail, pretrading, None)
+
+if __name__ == '__main__':
+    Waver.logd("run in main");
+    #stocklist = GET_ALL_SECURITIES(True, True, 100)
+    stocklist = ['600000']
+    poollist = []
+    context = data = None
+    Waver.refreshWaverPool(context, data, poollist, stocklist, False, False, False)
