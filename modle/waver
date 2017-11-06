@@ -27,6 +27,17 @@ class Waver(object):
     WAVE_CHAR_DN = ['A','C','E']
     #fib reverter array
     FIB_ARRAY = [3, 5, 8]
+    #421encode
+    TRIGRAMS421R = [
+        {'mark':'±','element':'地','name':'坤'},#000黑黑黑
+        {'mark':'⌉','element':'山','name':'艮'},#001红黑黑
+        {'mark':'§','element':'水','name':'坎'},#010黑红黑
+        {'mark':'⌈','element':'風','name':'巽'},#011红红黑
+        {'mark':'⌊','element':'雷','name':'震'},#100黑黑红
+        {'mark':'ψ','element':'火','name':'離'},#101红黑红
+        {'mark':'⌋','element':'澤','name':'兌'},#110黑红红
+        {'mark':'≡','element':'天','name':'乾'},#111红红红
+                   ]
     #flag for strong range
     #no enough data
     FLAG_WAVE_NOENOUGH = 0
@@ -59,7 +70,7 @@ class Waver(object):
         self.__security__ = security
         self._do_init(context, data)
     def __repr__(self):
-        return "%s>%s&%s%s#%s:%s%s%%%s/%s:%s%s%%%s|%s%s\n" %(str(self.__security__),str(self.waveboundflag),str(self.strdec(self.kma)),str(self.period),str(self.waveindex),str(self.wavechr),
+        return "%s %s%s#%s:%s%s%%%s/%s:%s%s%%%s|%s%s\n" %(str(self.__security__),str(self.getScoreMark()),str(self.period),str(self.waveindex),str(self.wavechr),
             str(self.kd),str(self.k),str(self.kmaxindex),str(self.kmaxchr),str(self.kmaxkd),str(self.kmax),str(self.waveseqstr),self.getScoreStr())
 
     def _do_init(self, context, data):
@@ -401,6 +412,26 @@ class Waver(object):
         #print fiblist
         return fiblist
         
+    def getScoreMark(self):
+        scoremk = ''
+        #wavebound first
+        if self.waveboundflag == self.FLAG_WAVE_STRONG:
+            scoremk += '^'
+        elif self.waveboundflag == self.FLAG_WAVE_WEAK:
+            scoremk += 'v'
+        else:
+            scoremk += '='
+        #waverange second
+        if self.waverangeflag == self.FLAG_WAVE_STRONG:
+            scoremk += '^'
+        elif self.waverangeflag == self.FLAG_WAVE_WEAK:
+            scoremk += 'v'
+        else:
+            scoremk += '='
+        #wavedirection last
+        scoremk += self.TRIGRAMS421R[self.wavedirectflag]['mark']
+        return scoremk
+     
     def getScoreStr(self):
         scorestr = '?'
         scorecurrent = self.getScore()
