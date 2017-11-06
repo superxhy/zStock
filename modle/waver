@@ -25,6 +25,8 @@ class Waver(object):
     WAVE_CHAR_UP = ['B','D','F']
     #wave down char
     WAVE_CHAR_DN = ['A','C','E']
+    #fib reverter array
+    FIB_ARRAY = [3, 5, 8]
     #flag for strong range
     #no enough data
     FLAG_WAVE_NOENOUGH = 0
@@ -105,11 +107,12 @@ class Waver(object):
             return -1
         #middle wave state use kma
         else:
-            #kma strong first
-            if my.kma >= 50 and other.kma < 50:
-                return -1
-            if my.kma < 50 and other.kma >= 50:
-                return 1
+            pass
+        #gold cross first
+        if my.kd >= 0 and other.kd < 0:
+            return -1
+        if my.kd < 0 and other.kd >= 0:
+            return 1
         #gold cross no deviation first
         if my.kd > 0 and other.kd > 0:
             if my.waveindex == my.kmaxindex and other.waveindex != other.kmaxindex:
@@ -178,7 +181,9 @@ class Waver(object):
         #current score range in waverpool list range from 0~100, ordered by strongtrade
         #last score range in waverpool list range from 0~100, init for -1 and use the current data to overwrite it after trade
         self.scorerangedeque = []
-    
+        #overwrite time stamp 
+        self.aimed_time = None
+        
     def security(self):
         return self.__security__
     
@@ -213,11 +218,11 @@ class Waver(object):
         return a/b * 100
     
     
-    def sameDay(self, context):
+    def sameDay(self, current_dt):
         return (self.aimed_time != None and 
-                    self.aimed_time.year==context.current_dt.year and 
-                    self.aimed_time.month==context.current_dt.month and 
-                    self.aimed_time.day==context.current_dt.day)
+                    self.aimed_time.year==current_dt.year and 
+                    self.aimed_time.month==current_dt.month and 
+                    self.aimed_time.day==current_dt.day)
 
     
     def handleTarget(self, context, data, runTime):
@@ -360,39 +365,70 @@ class Waver(object):
             return -1
         return self.scorerangedeque[-1-ref]
     
+    def getScoreMa(self, period=3, ref=0):
+        if period+ref <= 1 or period+ref > len(self.scorerangedeque):
+            return -1
+        return np.mean(np.array(self.scorerangedeque[-period-ref:-1-ref]))
+    
     def getScoreRaise(self):
-        #TODO more long days raise
-        if len(self.scorerangedeque) < 2:
+        scoreref = self.getScore(1)
+        if scoreref < 0:
             # no more than raise data
             return 0
-        return self.scorerangedeque[-1] - self.scorerangedeque[-2]
+        scorecurrent = self.getScore()
+        return scorecurrent - scoreref
+        
+    def getScoreMaRaise(self, period=3):
+        scoremaref = self.getScoreMa(period, 1)
+        if scoremaref < 0:
+            return 0
+        scoremacurrent = self.getScoreMa(period)
+        return scoremacurrent - scoremaref
+    
+    def getScoreFibReverter(self):
+        fiblist = []
+        for i in range(0, len(self.FIB_ARRAY)):
+            scorefib = self.getScoreMaRaise(self.FIB_ARRAY[i])
+            if scorefib == 0:
+                continue
+            fiblist.push(scorefib)
+        print fiblist
+        return fiblist
         
     def getScoreStr(self):
         scorestr = '?'
         scorecurrent = self.getScore()
-        if scorecurrent > 0:
+        if scorecurrent >= 0:
             scorestr += str(self.strdec(scorecurrent))
         scoreraise = self.getScoreRaise()
         if scoreraise > 0:
-            scorestr = '^' + self.strdec(scoreraise)
+            scorestr += '^+' + self.strdec(scoreraise)
         if scoreraise < 0:
-            scorestr = 'v' + self.strdec(scoreraise)
+            scorestr += 'v-' + self.strdec(-scoreraise)
+        fiblist = self.getScoreFibReverter()
+        for i in range(0, len(fiblist)):
+            scorefib = fiblist[i]
+            if scorefib > 0:
+                scorestr += self.FIB_ARRAY[i]+'^+' + self.strdec(scorefib)
+            if scorefib < 0:
+                scorestr += self.FIB_ARRAY[i]+'v-' + self.strdec(-scorefib)
         return scorestr
         
-    def updateDequeScore(self, score, overwrited=False):
+    def updateDequeScore(self, score, dt, overwrited=False):
         lendequeue = len(self.scorerangedeque)
         #dequeue scorerange
-        if overwrited:
+        if overwrited and (not self.sameDay(dt)):
             self.scorerangedeque.append(score)
             if lendequeue >= self.MAX_SCORERANGE_DEQUE:
                 del self.scorerangedeque[0]
+            self.aimed_time = dt
         #update the lastest data
         else:
             if lendequeue == 0:
                 self.scorerangedeque.append(score)
             else:
                 self.scorerangedeque[-1] = score
-    
+        
     @classmethod
     def getSecurityIndex(cls, poollist, security):
         ret = -1
@@ -403,7 +439,7 @@ class Waver(object):
         return ret
     
     @classmethod
-    def updateWaverPoolOrder(cls, poollist, aftertrade=False):
+    def updateWaverPoolOrder(cls, poollist, dt, aftertrade=False):
         poollist.sort(cmp=lambda a,b: Waver.cmpitem(a, b, True))
         poollen = len(poollist)
         cls.logd("updateWaverPoolOrder poollen:%s" %(str(poollen)))
@@ -411,10 +447,10 @@ class Waver(object):
             return
         for i in range(0, poollen):
             scorepercent = 100 - 100*1.0/(poollen-1)*i
-            poollist[i].updateDequeScore(scorepercent, aftertrade)
+            poollist[i].updateDequeScore(scorepercent, dt, aftertrade)
         
     @classmethod  
-    def updateWaverOtherOrder(cls, poollist, other, aftertrade=False):
+    def updateWaverOtherOrder(cls, poollist, other, dt, aftertrade=False):
         poollen = len(poollist)
         cls.logd("updateWaverIndexOrder poollen:%s" %(str(poollen)))
         if poollen == 0:
@@ -427,7 +463,7 @@ class Waver(object):
             elif poollist[i] >= other:
                 scorepercent = scorecurrent
                 break
-        other.updateDequeScore(scorepercent, aftertrade)
+        other.updateDequeScore(scorepercent, dt, aftertrade)
         
     @staticmethod
     def refreshWaverPool(context, data, poollist, stocklist, pretrade=False, aftertrade=False, notmain=True):
@@ -439,7 +475,11 @@ class Waver(object):
                 Waver.logd("empty poollist!, begin to init pool")
             else:
                 return poollist
-        #newlist = Waver.getWaverPool(context, stocklist)
+            
+        if context and context.current_dt:
+            dt = context.current_dt
+        else:
+            dt = dsobj.__context__.current_dt
         newadd = []
         todel= []
         d_count = len(stocklist)
@@ -473,10 +513,11 @@ class Waver(object):
                 poollist.append(wave)
         Waver.logd("len:%s,refresh to newadd:%s\n" %(str(len(newadd)), str(newadd)))
         Waver.logd("end count:%s" % len(poollist))
-        Waver.updateWaverPoolOrder(poollist, aftertrade)
-        Waver.updateWaverOtherOrder(poollist, Waver.index, aftertrade)
+        Waver.updateWaverPoolOrder(poollist, dt, aftertrade)
+        Waver.updateWaverOtherOrder(poollist, Waver.index, dt, aftertrade)
         
-        #print poollist
+        print poollist
+        print Waver.index
         #send after trade data for next day
         #Waver.sendWaverPool(context, data, poollist, True, True)
         Waver.sendWaverPool(context, data, [Waver.index]+poollist, aftertrade, notmain)
@@ -538,7 +579,9 @@ class Waver(object):
 if __name__ == '__main__':
     Waver.logd("run in main");
     #stocklist = GET_ALL_SECURITIES(True, True, 100)
-    stocklist = ['600000']
+    stocklist = ['600000','000001','600519','601857','002510']
     poollist = []
     context = data = None
     Waver.refreshWaverPool(context, data, poollist, stocklist, False, False, False)
+    #Waver.refreshWaverPool(context, data, poollist, stocklist, False, True, False)
+    
