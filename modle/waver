@@ -39,7 +39,7 @@ class Waver(object):
     #range 20 lower cci -100lower
     FLAG_WAVE_WEAK = -2
     #max scorerange deque length
-    MAX_SCORERANGE_DEQUE = 2
+    MAX_SCORERANGE_DEQUE = 10
     #send every handle
     HANDLE_SEND = True
     #sending high level item count
@@ -52,6 +52,8 @@ class Waver(object):
     
     #static index instance for average compare
     index = None
+    #threthhold position compare index to poollist
+    indexPos = 0
     
     def __init__(self, context, security, data={}):
         self.__security__ = security
@@ -368,7 +370,13 @@ class Waver(object):
     def getScoreMa(self, period=3, ref=0):
         if period+ref <= 1 or period+ref > len(self.scorerangedeque):
             return -1
-        return np.mean(np.array(self.scorerangedeque[-period-ref:-1-ref]))
+        if ref == 0:
+            ma = self.scorerangedeque[-period:]
+        else:
+            ma = self.scorerangedeque[-period-ref:-ref]
+        if len(ma) <= 0:
+            return 0
+        return np.mean(np.array(ma))
     
     def getScoreRaise(self):
         scoreref = self.getScore(1)
@@ -389,10 +397,8 @@ class Waver(object):
         fiblist = []
         for i in range(0, len(self.FIB_ARRAY)):
             scorefib = self.getScoreMaRaise(self.FIB_ARRAY[i])
-            if scorefib == 0:
-                continue
-            fiblist.push(scorefib)
-        print fiblist
+            fiblist.append(scorefib)
+        #print fiblist
         return fiblist
         
     def getScoreStr(self):
@@ -402,16 +408,16 @@ class Waver(object):
             scorestr += str(self.strdec(scorecurrent))
         scoreraise = self.getScoreRaise()
         if scoreraise > 0:
-            scorestr += '^+' + self.strdec(scoreraise)
+            scorestr += '^+' + str(self.strdec(scoreraise))
         if scoreraise < 0:
-            scorestr += 'v-' + self.strdec(-scoreraise)
+            scorestr += 'v-' + str(self.strdec(-scoreraise))
         fiblist = self.getScoreFibReverter()
         for i in range(0, len(fiblist)):
             scorefib = fiblist[i]
             if scorefib > 0:
-                scorestr += self.FIB_ARRAY[i]+'^+' + self.strdec(scorefib)
+                scorestr += 'M'+str(self.FIB_ARRAY[i])+'^+' + str(self.strdec(scorefib))
             if scorefib < 0:
-                scorestr += self.FIB_ARRAY[i]+'v-' + self.strdec(-scorefib)
+                scorestr += 'M'+str(self.FIB_ARRAY[i])+'v-' + str(self.strdec(-scorefib))
         return scorestr
         
     def updateDequeScore(self, score, dt, overwrited=False):
@@ -447,6 +453,7 @@ class Waver(object):
             return
         for i in range(0, poollen):
             scorepercent = 100 - 100*1.0/(poollen-1)*i
+            #scorepercent = cls.RET_BUY
             poollist[i].updateDequeScore(scorepercent, dt, aftertrade)
         
     @classmethod  
@@ -462,6 +469,7 @@ class Waver(object):
                 continue
             elif poollist[i] >= other:
                 scorepercent = scorecurrent
+                cls.indexPos = i
                 break
         other.updateDequeScore(scorepercent, dt, aftertrade)
         
@@ -480,6 +488,8 @@ class Waver(object):
             dt = context.current_dt
         else:
             dt = dsobj.__context__.current_dt
+        #for test
+        #dt = None
         newadd = []
         todel= []
         d_count = len(stocklist)
@@ -583,5 +593,7 @@ if __name__ == '__main__':
     poollist = []
     context = data = None
     Waver.refreshWaverPool(context, data, poollist, stocklist, False, False, False)
-    #Waver.refreshWaverPool(context, data, poollist, stocklist, False, True, False)
+    for i in range(0, 20):
+        Waver.refreshWaverPool(context, data, poollist, stocklist, False, True, False)
+        Waver.RET_BUY += 1
     
