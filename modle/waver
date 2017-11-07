@@ -185,6 +185,8 @@ class Waver(object):
         '''
         strong range flag to compare with myself
         '''
+        #flag to wave data not enough for new security
+        self.waveenough = False
         self.waveboundflag = 0
         self.waverangeflag = 0
         self.wavedirectflag = 0
@@ -372,7 +374,12 @@ class Waver(object):
             self.waveboundflag = self.FLAG_WAVE_MIDWEAK
         else:
             self.waveboundflag = self.FLAG_WAVE_WEAK
-            
+        #flag data enough
+        if self.waverangeflag == self.FLAG_WAVE_NOENOUGH or self.waveboundflag == self.FLAG_WAVE_NOENOUGH:
+            self.waveenough = False
+        else:
+            self.waveenough = True
+        
     def getScore(self, ref=0):
         if len(self.scorerangedeque) < ref+1:
             return -1
@@ -390,6 +397,9 @@ class Waver(object):
         return np.mean(np.array(ma))
     
     def getScoreRaise(self):
+        #ignore no stable raise
+        if not self.waveenough:
+            return 0
         scoreref = self.getScore(1)
         if scoreref < 0:
             # no more than raise data
@@ -398,6 +408,9 @@ class Waver(object):
         return scorecurrent - scoreref
         
     def getScoreMaRaise(self, period=3):
+        #ignore no stable raise
+        if not self.waveenough:
+            return 0
         scoremaref = self.getScoreMa(period, 1)
         if scoremaref < 0:
             return 0
