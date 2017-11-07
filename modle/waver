@@ -70,7 +70,7 @@ class Waver(object):
         self.__security__ = security
         self._do_init(context, data)
     def __repr__(self):
-        return "%s %s%s#%s:%s%s%%%s/%s:%s%s%%%s|%s%s\n" %(str(self.__security__),str(self.getScoreMark()),str(self.period),str(self.waveindex),str(self.wavechr),
+        return "%s %s%s#%s:%s%s%%%s/%s:%s%s%%%s|%s?%s\n" %(str(self.__security__),str(self.getScoreMark()),str(self.period),str(self.waveindex),str(self.wavechr),
             str(self.kd),str(self.k),str(self.kmaxindex),str(self.kmaxchr),str(self.kmaxkd),str(self.kmax),str(self.waveseqstr),self.getScoreStr())
 
     def _do_init(self, context, data):
@@ -432,21 +432,32 @@ class Waver(object):
             scoremk += '^'
         elif self.waveboundflag == self.FLAG_WAVE_WEAK:
             scoremk += 'v'
+        elif self.waveboundflag == self.FLAG_WAVE_MIDSTR:
+            scoremk += '/'
+        elif self.waveboundflag == self.FLAG_WAVE_MIDWEAK:
+            scoremk += '\\'
+        elif self.waveboundflag == self.FLAG_WAVE_NOENOUGH:
+            scoremk += '*'
         else:
-            scoremk += '='
+            pass
         #waverange second
         if self.waverangeflag == self.FLAG_WAVE_STRONG:
             scoremk += '^'
         elif self.waverangeflag == self.FLAG_WAVE_WEAK:
             scoremk += 'v'
+        elif self.waverangeflag == self.FLAG_WAVE_NOENOUGH:
+            scoremk += '*'
         else:
             scoremk += '='
+        #gold cross
+        if self.kd >= 0:
+            scoremk +='$'
         #wavedirection last
         scoremk += self.TRIGRAMS421R[self.wavedirectflag]['mark']
         return scoremk
      
     def getScoreStr(self):
-        scorestr = '?'
+        scorestr = ''
         scorecurrent = self.getScore()
         if scorecurrent >= 0:
             scorestr += str(self.strdec(scorecurrent))
@@ -570,8 +581,8 @@ class Waver(object):
         Waver.updateWaverPoolOrder(poollist, dt, aftertrade)
         Waver.updateWaverOtherOrder(poollist, Waver.index, dt, aftertrade)
         
-        print poollist
-        print Waver.index
+        #print poollist
+        #print Waver.index
         #send after trade data for next day
         #Waver.sendWaverPool(context, data, poollist, True, True)
         Waver.sendWaverPool(context, data, [Waver.index]+poollist, aftertrade, notmain)
@@ -600,35 +611,23 @@ class Waver(object):
     
     @staticmethod
     def sendWaverPool(context, data, poollist, pretrading=False, sendMail=False):
-        REDSTAR_NEW = '+'
-        REDSTAR_DEL = '-'
-        REDSTAR_FIRE = '$'
-        REDSTAR_LOCK = '*'
-        REDSTAR_LOCKPRICE = '!'
-        REDSTAR_LOCKVOL = '@'
-        def redStar(security, idx):
-            s = poollist[idx]
+        REDSTAR_ORDERSP_NORMAL = '?'
+        REDSTAR_ORDERSP_INDEX = '||'
+        #REDSTAR_DEL = '-'
+        #REDSTAR_FIRE = '$'
+        def redStar(security, idx, bundle):
+            wave = poollist[idx]
             rs = ''
-            if s.locked():
-                rs += REDSTAR_LOCK
-            elif s.locked_price:
-                rs += REDSTAR_LOCKPRICE
-            elif s.locked_vol:
-                rs += REDSTAR_LOCKVOL
+            rs += wave.getScoreMark()
+            if Waver.indexPos !=0 and idx == Waver.indexPos + 1:
+                rs += REDSTAR_ORDERSP_INDEX
+                #split index security
+                Waver.logd("security:%s %s indexPos:%s" %(str( bundle['name']),str(security), str(idx)))
             else:
-                #no other locked factor
-                pass
-            if s.fired(): 
-                if s.locked_sell:
-                    rs += ('('+REDSTAR_FIRE+')')
-                else:
-                    rs += REDSTAR_FIRE
-            if s.day_has_aimed < 0:
-                rs += REDSTAR_DEL
-            if s.day_has_aimed == 0:
-                rs += REDSTAR_NEW
-            return rs
-        DSUtil.sendSecurities(context, data, [s.security() for s in poollist], pretrading, sendMail, pretrading, None)
+                rs += REDSTAR_ORDERSP_NORMAL
+            rs += wave.getScoreStr()
+            bundle['name'] += rs
+        DSUtil.sendSecurities(context, data, [s.security() for s in poollist], pretrading, sendMail, pretrading, redStar)
 
 if __name__ == '__main__':
     Waver.logd("run in main");
@@ -637,7 +636,4 @@ if __name__ == '__main__':
     poollist = []
     context = data = None
     Waver.refreshWaverPool(context, data, poollist, stocklist, False, False, False)
-    for i in range(0, 20):
-        Waver.refreshWaverPool(context, data, poollist, stocklist, False, True, False)
-        Waver.RET_BUY += 1
     
