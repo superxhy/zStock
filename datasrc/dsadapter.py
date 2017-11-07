@@ -314,7 +314,7 @@ class DSUtil(object):
             print "%s bundle..." % (security)
             bundle = GET_BUNDLE(context,security,cryptal,data)
             if redStarCb :
-                bundle['name'] += redStarCb(security, idx)
+                redStarCb(security, idx, bundle)
             bundleList.append(bundle)
             idx += 1
         #schema = ['code','name','industry','close','wave','inert']
