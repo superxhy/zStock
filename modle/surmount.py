@@ -621,7 +621,7 @@ class Surmount(object):
         REDSTAR_LOCK = '*'
         REDSTAR_LOCKPRICE = '!'
         REDSTAR_LOCKVOL = '@'
-        def redStar(security, idx):
+        def redStar(security, idx, bundle):
             s = poollist[idx]
             rs = ''
             if s.locked():
@@ -642,5 +642,6 @@ class Surmount(object):
                 rs += REDSTAR_DEL
             if s.day_has_aimed == 0:
                 rs += REDSTAR_NEW
+            bundle['name'] += rs
             return rs
         DSUtil.sendSecurities(context, data, [s.security() for s in poollist], pretrading, sendMail, pretrading, redStar)
