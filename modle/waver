@@ -144,7 +144,14 @@ class Waver(object):
             return 1
         
     @classmethod
-    def cmpScoreRaise(cls, my, other):
+    def cmpScoreRaise(cls, my, other, cmpindex=False):
+        scoremy = my.getScore()
+        scoreother = other.getScore()
+        if cmpindex:
+            if scoremy > cls.getIndexScore() and scoreother < cls.getIndexScore():
+                return -1
+            if scoremy < cls.getIndexScore() and scoreother < cls.getIndexScore():
+                return -1
         scorersmy = my.getScoreRaise()
         scorersother = other.getScoreRaise()
         if scorersmy > scorersother:
@@ -155,7 +162,14 @@ class Waver(object):
             return 0
         
     @classmethod
-    def cmpScoreMaRaise(cls, my, other):
+    def cmpScoreMaRaise(cls, my, other, cmpindex=False):
+        scoremy = my.getScore()
+        scoreother = other.getScore()
+        if cmpindex:
+            if scoremy > cls.getIndexScore() and scoreother < cls.getIndexScore():
+                return -1
+            if scoremy < cls.getIndexScore() and scoreother < cls.getIndexScore():
+                return -1
         scoremarsmy = my.getScoreMaRaise()
         scoremarsother = other.getScoreMaRaise()
         if scoremarsmy > scoremarsother:
@@ -517,7 +531,7 @@ class Waver(object):
             waverslist = poollist[:] if cls.indexPos == 0 else poollist[0:cls.indexPos]
         else:
             waverslist = poollist[:]
-        waverslist.sort(cmp=lambda a,b: cls.cmpScoreRaise(a, b))
+        waverslist.sort(cmp=lambda a,b: cls.cmpScoreRaise(a, b, cmpindex))
         return waverslist
     
     @classmethod
@@ -526,7 +540,7 @@ class Waver(object):
             wavemarslist = poollist[:] if cls.indexPos == 0 else poollist[0:cls.indexPos]
         else:
             wavemarslist = poollist[:]
-        wavemarslist.sort(cmp=lambda a,b: cls.cmpScoreMaRaise(a, b))
+        wavemarslist.sort(cmp=lambda a,b: cls.cmpScoreMaRaise(a, b, cmpindex))
         return wavemarslist
     
     @classmethod
@@ -567,6 +581,10 @@ class Waver(object):
                 break
         other.updateDequeScore(scorepercent, dt, aftertrade)
         
+    @staticmethod
+    def getIndexScore():
+        return Waver.strdec(Waver.index.getScore())
+    
     @staticmethod
     def refreshWaverPool(context, data, poollist, stocklist, pretrade=False, aftertrade=False, notmain=True):
         if pretrade:
