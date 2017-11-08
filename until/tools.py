@@ -125,12 +125,17 @@ def getMarkDownTableFromPretty(tab):
     return header + border + content
 
 def getBlogMd(title,category,comments,tab,tabname=''):
-    mdtable  = getMarkDownTableFromPretty(tab)
     mdtitle = getMarkDownTitle(tabname)
     comments = 'false'
     mdprof = getMarkDownTableLine({'layout':'post','title':title,'category':category,'comments':comments},
         ['layout','title','category','comments'])
-    mdblog = mdprof + mdtitle + mdtable
+    mdblog = mdprof + mdtitle
+    if isinstance(tab, list):
+        for muti in tab:
+            mdblog += getMarkDownTableFromPretty(muti)
+            mdblog += '\n'
+    else:
+        mdblog += getMarkDownTableFromPretty(tab)
     return mdblog
     
 def quoteHtml(s):
@@ -138,7 +143,11 @@ def quoteHtml(s):
 
 def getHtmlTable(dictList, schema):
     maker = HtmlPageMaker()
-    maker.addTable(dictList,schema)
+    if len(dictList) > 0 and isinstance(dictList[0], list):
+        for muti in dictList:
+            maker.addTable(muti,schema)
+    else:
+        maker.addTable(dictList,schema)
     return maker
 
 def sendHtmlMail(subject , contentHtml, attachments, config=None):
@@ -153,7 +162,10 @@ def sendTable(subject, dictList, schema, config=None, isSend=True, useAttach=Tru
     maker = getHtmlTable(dictList, schema)
     #fname = maker.getTitle() + '.html'
     fname = 'curattach.html'
-    tab = getPrettyTable(dictList, schema)
+    if len(dictList) > 0 and isinstance(dictList[0], list):
+        tab = [getPrettyTable(t, schema) for t in dictList]
+    else:
+        tab = getPrettyTable(dictList, schema)
     title = maker.getTitle()
     comments = 'false'
     mdblog = getBlogMd(title, 'stock', comments, tab)
@@ -165,3 +177,4 @@ def sendTable(subject, dictList, schema, config=None, isSend=True, useAttach=Tru
         else:
             sendHtmlMail(subject, maker.getHtml() , None, config)
     return mdblog
+
