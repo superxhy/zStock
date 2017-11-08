@@ -309,24 +309,25 @@ class DSUtil(object):
         bundleList= []
         if len(stocks) == 0:
             return bundleList
-        #mutistocks list
-        if isinstance(stocks[0], list):
-            for muti in stocks:
-                bundleListMuti = []
-                getBundleList(bundleListMuti, muti)
-                bundleList.append(bundleListMuti)
-        else:
-            getBundleList(bundleList, stocks)
-            
-        def getBundleList(bundleList, stocks):
+        def getBundleList(bundleList, stocks, mutiindex=-1):
             idx = 0
             for security in stocks:
                 print "%s bundle..." % (security)
                 bundle = GET_BUNDLE(context,security,cryptal,data)
                 if redStarCb :
-                    redStarCb(security, idx, bundle)
+                    redStarCb(security, idx, bundle, mutiindex)
                 bundleList.append(bundle)
                 idx += 1
+        #mutistocks list
+        if isinstance(stocks[0], list):
+            mutiindex = 0
+            for muti in stocks:
+                bundleListMuti = []
+                getBundleList(bundleListMuti, muti, mutiindex)
+                bundleList.append(bundleListMuti)
+                mutiindex += 1
+        else:
+            getBundleList(bundleList, stocks)
         #schema = ['code','name','industry','close','wave','inert']
         schema = ['code','name','industry','close']
         configloader = DSUtil.getConfigLoader()
