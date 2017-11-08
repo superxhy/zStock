@@ -588,8 +588,6 @@ class Waver(object):
         newadd = []
         todel= []
         d_count = len(stocklist)
-        Waver.logd("begin count:%s" % (d_count))
-        d_i = 0
         #init index for avg compare
         if Waver.index == None:
             #NO KEEP score dequeue for temp use
@@ -603,6 +601,8 @@ class Waver(object):
                 wave.refresh(context, data)
         #add del refresh poollist by stocklist 
         else:
+            Waver.logd("begin count:%s" % (d_count))
+            d_i = 0
             #remove no trade security
             for wave in poollist:
                 if wave.security() not in stocklist:
@@ -622,8 +622,8 @@ class Waver(object):
                     wave = Waver(context, s)
                     newadd.append(wave.security())
                     poollist.append(wave)
-        Waver.logd("len:%s,refresh to newadd:%s\n" %(str(len(newadd)), str(newadd)))
-        Waver.logd("end count:%s" % len(poollist))
+            Waver.logd("len:%s,refresh to newadd:%s\n" %(str(len(newadd)), str(newadd)))
+            Waver.logd("end count:%s" % len(poollist))
         Waver.updateWaverPoolOrder(poollist, dt, aftertrade)
         Waver.updateWaverOtherOrder(poollist, Waver.index, dt, aftertrade)
         #print poollist
@@ -640,11 +640,18 @@ class Waver(object):
         if runTime % 5 != 0:
             return
         Waver.refreshWaverPool(context, data, poollist, [])
-        waverslist = Waver.getWaveRaiseList(poollist, True)
-        wavemarslist = Waver.getWaveMaRaiseList(poollist, True)
         #print poollist
         if Waver.HANDLE_SEND:
-            Waver.sendWaverPool(context, data, [waverslist[0:Waver.MAX_SEND_COUNT],wavemarslist[0:Waver.MAX_SEND_COUNT]], False, True)
+            #current raise order list
+            waverslist = Waver.getWaveRaiseList(poollist, True)[0:Waver.MAX_SEND_COUNT]
+            #ma3 raise order list
+            wavemarslist = Waver.getWaveMaRaiseList(poollist, True)[0:Waver.MAX_SEND_COUNT]
+            #current order list head
+            wavefirstlist = poollist[0:Waver.MAX_SEND_COUNT]
+            #current order list tail
+            wavelastlist = poollist[-Waver.MAX_SEND_COUNT:]
+            #push order list in once
+            Waver.sendWaverPool(context, data, [waverslist, wavemarslist, wavefirstlist, wavelastlist], False, True)
             
     @staticmethod
     def sendWaverPool(context, data, poollist, aftertrade=False, sendMail=False):
