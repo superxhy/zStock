@@ -54,7 +54,7 @@ class Waver(object):
     #send every handle
     HANDLE_SEND = True
     #sending high level item count
-    MAX_SEND_COUNT = 10
+    MAX_SEND_COUNT = 100
     
     #target flag
     RET_BUY = 1
@@ -644,8 +644,7 @@ class Waver(object):
         wavemarslist = Waver.getWaveMaRaiseList(poollist, True)
         #print poollist
         if Waver.HANDLE_SEND:
-            Waver.sendWaverPool(context, data, waverslist[0:Waver.MAX_SEND_COUNT], False, True)
-            Waver.sendWaverPool(context, data, wavemarslist[0:Waver.MAX_SEND_COUNT], False, True)
+            Waver.sendWaverPool(context, data, [waverslist[0:Waver.MAX_SEND_COUNT],wavemarslist[0:Waver.MAX_SEND_COUNT]], False, True)
             
     @staticmethod
     def sendWaverPool(context, data, poollist, aftertrade=False, sendMail=False):
@@ -653,8 +652,11 @@ class Waver(object):
         REDSTAR_ORDERSP_INDEX = '||'
         #REDSTAR_DEL = '-'
         #REDSTAR_FIRE = '$'
-        def redStar(security, idx, bundle):
-            wave = poollist[idx]
+        def redStar(security, idx, bundle, mutiindex=-1):
+            if mutiindex >= 0:
+                wave = poollist[mutiindex][idx]
+            else:
+                wave = poollist[idx]
             rs = ''
             rs += wave.getScoreMark()
             if Waver.indexPos !=0 and idx == Waver.indexPos + 1:
@@ -665,7 +667,14 @@ class Waver(object):
                 rs += REDSTAR_ORDERSP_NORMAL
             rs += wave.getScoreStr()
             bundle['name'] += rs
-        DSUtil.sendSecurities(context, data, [s.security() for s in poollist], aftertrade, sendMail, aftertrade, redStar)
+        sendlist = []
+        if len(poollist) > 0 and isinstance(poollist[0], list):
+            for muti in poollist:
+                mutilist = [s.security() for s in muti]
+                sendlist.append(mutilist)
+        else:
+            sendlist = [s.security() for s in poollist]
+        DSUtil.sendSecurities(context, data, sendlist, aftertrade, sendMail, aftertrade, redStar)
 
 if __name__ == '__main__':
     Waver.logd("run in main");
