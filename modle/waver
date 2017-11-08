@@ -151,7 +151,7 @@ class Waver(object):
             if scoremy > cls.getIndexScore() and scoreother < cls.getIndexScore():
                 return -1
             if scoremy < cls.getIndexScore() and scoreother < cls.getIndexScore():
-                return -1
+                return 1
         scorersmy = my.getScoreRaise()
         scorersother = other.getScoreRaise()
         if scorersmy > scorersother:
@@ -169,7 +169,7 @@ class Waver(object):
             if scoremy > cls.getIndexScore() and scoreother < cls.getIndexScore():
                 return -1
             if scoremy < cls.getIndexScore() and scoreother < cls.getIndexScore():
-                return -1
+                return 1
         scoremarsmy = my.getScoreMaRaise()
         scoremarsother = other.getScoreMaRaise()
         if scoremarsmy > scoremarsother:
@@ -699,7 +699,7 @@ class Waver(object):
                 sendlist.append(mutilist)
         else:
             sendlist = [s.security() for s in poollist]
-        DSUtil.sendSecurities(context, data, sendlist, aftertrade, sendMail, aftertrade, redStar)
+        DSUtil.sendSecurities(context, data, sendlist, False, sendMail, aftertrade, redStar)
 
 if __name__ == '__main__':
     Waver.logd("run in main");
