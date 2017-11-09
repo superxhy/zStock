@@ -644,6 +644,7 @@ class Waver(object):
             Waver.logd("end count:%s" % len(poollist))
         Waver.updateWaverPoolOrder(poollist, dt, aftertrade)
         Waver.updateWaverOtherOrder(poollist, Waver.index, dt, aftertrade)
+        Waver.logd("shindex:%s,indexPos:%s\n" %(str(Waver.index), str(Waver.indexPos)))
         #print poollist
         #print Waver.index
         #send after trade data for next day
@@ -665,7 +666,7 @@ class Waver(object):
             #ma3 raise order list
             wavemarslist = Waver.getWaveMaRaiseList(poollist, True)[0:Waver.MAX_SEND_COUNT]
             #current order list head
-            wavefirstlist = poollist[0:Waver.MAX_SEND_COUNT]
+            wavefirstlist = [Waver.index] +poollist[0:Waver.MAX_SEND_COUNT]
             #current order list tail
             wavelastlist = poollist[-Waver.MAX_SEND_COUNT:]
             #push order list in once
