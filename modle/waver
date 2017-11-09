@@ -666,9 +666,9 @@ class Waver(object):
             #ma3 raise order list
             wavemarslist = Waver.getWaveMaRaiseList(poollist, True)[0:Waver.MAX_SEND_COUNT]
             #current order list head
-            wavefirstlist = [Waver.index] +poollist[0:Waver.MAX_SEND_COUNT]
+            wavefirstlist = [Waver.index] +poollist[0:Waver.MAX_SEND_COUNT*2]
             #current order list tail
-            wavelastlist = poollist[-Waver.MAX_SEND_COUNT:]
+            wavelastlist = poollist[-Waver.MAX_SEND_COUNT*2:]
             #push order list in once
             Waver.sendWaverPool(context, data, [waverslist, wavemarslist, wavefirstlist, wavelastlist], False, True)
             
