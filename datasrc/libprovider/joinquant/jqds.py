@@ -161,7 +161,7 @@ class JqDatasrc(SecurityDataSrcBase):
         'name': info.display_name,
         'sname': info.name,
         'timeToMarket':info.start_date,
-        'industry':self.industry_dict.get(cur.industry_code,'行业'+cur.industry_code),
+        'industry':self.industry_dict.get(cur.industry_code,'行业'+str(cur.industry_code)),
         'sindustry':cur.industry_code}
         return securityInfo
     
