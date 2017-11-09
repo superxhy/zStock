@@ -583,6 +583,8 @@ class Waver(object):
         
     @staticmethod
     def getIndexScore():
+        if Waver.index == None:
+            return 0
         return Waver.strdec(Waver.index.getScore())
     
     @staticmethod
