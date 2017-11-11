@@ -18,7 +18,7 @@ class Waver(object):
     VERSION = '1.0.1'
     MDEBUG = True
     #max calculate wave item count
-    MAX_WAVE_COUNT = 40
+    MAX_WAVE_COUNT = 20
     #wave begin char
     WAVE_CHAR_GOLD = '@'
     #wave up char
@@ -147,11 +147,22 @@ class Waver(object):
     def cmpScoreRaise(cls, my, other, cmpindex=False):
         scoremy = my.getScore()
         scoreother = other.getScore()
+        #over index first
         if cmpindex:
             if scoremy > cls.getIndexScore() and scoreother < cls.getIndexScore():
                 return -1
             if scoremy < cls.getIndexScore() and scoreother < cls.getIndexScore():
                 return 1
+        #waveboundflag strong first
+        if my.waveboundflag > other.waveboundflag:
+            return -1
+        if my.waveboundflag < other.waveboundflag:
+            return 1
+        #wave range strong inactive first 
+        elif my.waverangeflag == cls.FLAG_WAVE_STRONG and other.waverangeflag != cls.FLAG_WAVE_STRONG:
+            return -1
+        elif my.waverangeflag != cls.FLAG_WAVE_STRONG and other.waverangeflag == cls.FLAG_WAVE_STRONG:
+            return 1
         scorersmy = my.getScoreRaise()
         scorersother = other.getScoreRaise()
         if scorersmy > scorersother:
@@ -178,6 +189,25 @@ class Waver(object):
             return 1
         return 0
     
+    @classmethod
+    def cmpBbi(cls, my, other, cmpindex=False):
+        scoremy = my.getScore()
+        scoreother = other.getScore()
+        #over index first
+        if cmpindex:
+            if scoremy > cls.getIndexScore() and scoreother < cls.getIndexScore():
+                return -1
+            if scoremy < cls.getIndexScore() and scoreother < cls.getIndexScore():
+                return 1
+        bbimy = my.getScoreBBI
+        bbiother = other.getScoreBBI()
+        if bbimy > bbiother:
+            return -1
+        if bbimy < bbiother:
+            return 1
+        if bbimy == bbiother:
+            return 0
+        
     '''
       @     B     D     F     
       ^  |  ^  |  ^  |  ^  |  
@@ -431,6 +461,16 @@ class Waver(object):
             return 0
         return np.mean(np.array(ma))
     
+    def getScoreBBI(self):
+        bbilist = []
+        for i in range(0, len(self.FIB_ARRAY)):
+            mafib = self.getScoreMa(self.FIB_ARRAY[i])
+            if mafib > 0:
+                bbilist.append(mafib)
+        if len(bbilist) <= 0:
+            return 0
+        return np.mean(np.array(bbilist))
+    
     def getScoreRaise(self):
         #ignore no stable raise
         if not self.waveenough:
@@ -496,6 +536,10 @@ class Waver(object):
         scorecurrent = self.getScore()
         if scorecurrent >= 0:
             scorestr += str(self.strdec(scorecurrent))
+            socrecurrentbbi = self.getScoreBBI()
+            if socrecurrentbbi > 0:
+                scorestr += '/'
+                scorestr += str(self.strdec(socrecurrentbbi))
         scoreraise = self.getScoreRaise()
         if scoreraise > 0:
             scorestr += '^+' + str(self.strdec(scoreraise))
@@ -533,6 +577,15 @@ class Waver(object):
             waverslist = poollist[:]
         waverslist.sort(cmp=lambda a,b: cls.cmpScoreRaise(a, b, cmpindex))
         return waverslist
+    
+    @classmethod
+    def getBbiList(cls, poollist, cmpindex=False):
+        if cmpindex:
+            bbilist = poollist[:] if cls.indexPos == 0 else poollist[0:cls.indexPos]
+        else:
+            bbilist = poollist[:]
+        bbilist.sort(cmp=lambda a,b: cls.cmpBbi(a, b, cmpindex))
+        return bbilist
     
     @classmethod
     def getWaveMaRaiseList(cls, poollist, cmpindex=False):
@@ -666,13 +719,15 @@ class Waver(object):
             #current raise order list
             waverslist = Waver.getWaveRaiseList(poollist, True)[0:Waver.MAX_SEND_COUNT]
             #ma3 raise order list
-            wavemarslist = Waver.getWaveMaRaiseList(poollist, True)[0:Waver.MAX_SEND_COUNT]
+            #wavemarslist = Waver.getWaveMaRaiseList(poollist, True)[0:Waver.MAX_SEND_COUNT]
+            #bbi order list
+            bbilist = Waver.getBbiList(poollist, True)[0:Waver.MAX_SEND_COUNT]
             #current order list head
             wavefirstlist = [Waver.index] +poollist[0:Waver.MAX_SEND_COUNT*2]
             #current order list tail
             wavelastlist = poollist[-Waver.MAX_SEND_COUNT*2:]
             #push order list in once
-            Waver.sendWaverPool(context, data, [waverslist, wavemarslist, wavefirstlist, wavelastlist], False, True)
+            Waver.sendWaverPool(context, data, [waverslist, bbilist, wavefirstlist, wavelastlist], False, True)
             
     @staticmethod
     def sendWaverPool(context, data, poollist, aftertrade=False, sendMail=False):
