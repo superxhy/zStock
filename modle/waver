@@ -159,9 +159,9 @@ class Waver(object):
         if my.waveboundflag < other.waveboundflag:
             return 1
         #wave range strong inactive first 
-        elif my.waverangeflag == cls.FLAG_WAVE_STRONG and other.waverangeflag != cls.FLAG_WAVE_STRONG:
+        if my.waverangeflag == cls.FLAG_WAVE_STRONG and other.waverangeflag != cls.FLAG_WAVE_STRONG:
             return -1
-        elif my.waverangeflag != cls.FLAG_WAVE_STRONG and other.waverangeflag == cls.FLAG_WAVE_STRONG:
+        if my.waverangeflag != cls.FLAG_WAVE_STRONG and other.waverangeflag == cls.FLAG_WAVE_STRONG:
             return 1
         scorersmy = my.getScoreRaise()
         scorersother = other.getScoreRaise()
@@ -199,7 +199,7 @@ class Waver(object):
                 return -1
             if scoremy < cls.getIndexScore() and scoreother < cls.getIndexScore():
                 return 1
-        bbimy = my.getScoreBBI
+        bbimy = my.getScoreBBI()
         bbiother = other.getScoreBBI()
         if bbimy > bbiother:
             return -1
