@@ -165,6 +165,12 @@ class Waver(object):
             return 1
         scorersmy = my.getScoreRaise()
         scorersother = other.getScoreRaise()
+        #only order sk more
+        sk = 10
+        if scorersmy > sk and scorersother < sk:
+            return -1
+        if scorersmy < sk and scorersother > sk:
+            return 1
         if scorersmy > scorersother:
             return -1
         if scorersmy < scorersother:
@@ -545,13 +551,13 @@ class Waver(object):
             scorestr += '^+' + str(self.strdec(scoreraise))
         if scoreraise < 0:
             scorestr += 'v-' + str(self.strdec(-scoreraise))
-        fiblist = self.getScoreFibReverter()
-        for i in range(0, len(fiblist)):
-            scorefib = fiblist[i]
-            if scorefib > 0:
-                scorestr += 'M'+str(self.FIB_ARRAY[i])+'^+' + str(self.strdec(scorefib))
-            if scorefib < 0:
-                scorestr += 'M'+str(self.FIB_ARRAY[i])+'v-' + str(self.strdec(-scorefib))
+        #fiblist = self.getScoreFibReverter()
+        #for i in range(0, len(fiblist)):
+        #    scorefib = fiblist[i]
+        #    if scorefib > 0:
+        #        scorestr += 'M'+str(self.FIB_ARRAY[i])+'^+' + str(self.strdec(scorefib))
+        #    if scorefib < 0:
+        #        scorestr += 'M'+str(self.FIB_ARRAY[i])+'v-' + str(self.strdec(-scorefib))
         return scorestr
         
     def updateDequeScore(self, score, dt, overwrited=False):
