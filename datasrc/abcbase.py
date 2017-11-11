@@ -956,7 +956,7 @@ class SecurityDataSrcBase(object):
         'name':name,
         'industry':industry,
         'close':close,
-        'per':calRate(close, closeRef)}
+        'per':calRate(close-closeRef, closeRef)}
         if not crypto:
             return bundle
         wave = [
