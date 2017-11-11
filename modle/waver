@@ -153,16 +153,6 @@ class Waver(object):
                 return -1
             if scoremy < cls.getIndexScore() and scoreother < cls.getIndexScore():
                 return 1
-        #waveboundflag strong first
-        if my.waveboundflag > other.waveboundflag:
-            return -1
-        if my.waveboundflag < other.waveboundflag:
-            return 1
-        #wave range strong inactive first 
-        if my.waverangeflag == cls.FLAG_WAVE_STRONG and other.waverangeflag != cls.FLAG_WAVE_STRONG:
-            return -1
-        if my.waverangeflag != cls.FLAG_WAVE_STRONG and other.waverangeflag == cls.FLAG_WAVE_STRONG:
-            return 1
         scorersmy = my.getScoreRaise()
         scorersother = other.getScoreRaise()
         #only order sk more
@@ -173,6 +163,16 @@ class Waver(object):
             return 1
         if scorersmy > scorersother:
             return -1
+        #waveboundflag strong first
+        if my.waveboundflag > other.waveboundflag:
+            return -1
+        if my.waveboundflag < other.waveboundflag:
+            return 1
+        #wave range strong inactive first 
+        if my.waverangeflag == cls.FLAG_WAVE_STRONG and other.waverangeflag != cls.FLAG_WAVE_STRONG:
+            return -1
+        if my.waverangeflag != cls.FLAG_WAVE_STRONG and other.waverangeflag == cls.FLAG_WAVE_STRONG:
+            return 1
         if scorersmy < scorersother:
             return 1
         if scorersmy == scorersother:
