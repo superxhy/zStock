@@ -940,16 +940,23 @@ class SecurityDataSrcBase(object):
     ['code','name','industry','close','wave','inert','vol']
     '''
     def GET_BUNDLE(self, context, security, crypto=False, data={}):
+        def calRate(a, b):
+            #avoid infinate
+            if np.isnan(b) or b == 0:
+                return 0
+            return float(decimal.Decimal(a/b * 100).quantize(decimal.Decimal('0.00')))
         code = security.split('.')[0]
         info = self.GET_SECURITY_INFO(security)
         name = info['name']
         industry = info['industry']
         close = self.GET_CLOSE_DAY(context, security)
+        closeRef = self.GET_CLOSE_DAY(context, security,1)
         bundle = {
         'code':code,
         'name':name,
         'industry':industry,
-        'close':close}
+        'close':close,
+        'per':calRate(close, closeRef)}
         if not crypto:
             return bundle
         wave = [
