@@ -329,7 +329,7 @@ class DSUtil(object):
         else:
             getBundleList(bundleList, stocks)
         #schema = ['code','name','industry','close','wave','inert']
-        schema = ['code','name','industry','close']
+        schema = ['code','name','industry','close','per']
         configloader = DSUtil.getConfigLoader()
         backtest = configloader != None and configloader.getRunConfig(context)['onbacktest']
         isSend = sendMail and (not backtest)
