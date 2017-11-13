@@ -141,13 +141,13 @@ def getBlogMd(title,category,comments,tab,tabname=''):
 def quoteHtml(s):
     return quote(s)
 
-def getHtmlTable(dictList, schema):
+def getHtmlTable(dictList, schema, indexhref):
     maker = HtmlPageMaker()
     if len(dictList) > 0 and isinstance(dictList[0], list):
         for muti in dictList:
-            maker.addTable(muti,schema)
+            maker.addTable(muti,schema,indexhref)
     else:
-        maker.addTable(dictList,schema)
+        maker.addTable(dictList,schema,indexhref)
     return maker
 
 def sendHtmlMail(subject , contentHtml, attachments, config=None):
@@ -159,7 +159,9 @@ def sendHtmlMail(subject , contentHtml, attachments, config=None):
         MailSender.sendHtmlMail(config, subject, contentHtml, attachments)
     
 def sendTable(subject, dictList, schema, config=None, isSend=True, useAttach=True):
-    maker = getHtmlTable(dictList, schema)
+    #use jqka data center href
+    indexhref = 'http://data.10jqka.com.cn/market/lhbgg/code/'
+    maker = getHtmlTable(dictList, schema, indexhref)
     #fname = maker.getTitle() + '.html'
     fname = 'curattach.html'
     if len(dictList) > 0 and isinstance(dictList[0], list):
