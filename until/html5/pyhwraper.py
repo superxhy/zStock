@@ -14,7 +14,6 @@ def quote(s):
     return str(s).replace('&','&amp;').replace('<', '&lt;').replace('>', '&gt;').replace(' ','&nbsp;').replace('\n', '<br/>').replace(
 '≡','&equiv;').replace('±', '&plusmn;').replace('⌈', '&lceil;').replace('⌊','&lfloor;').replace('§', '&sect;').replace('ψ', '&psi;').replace('⌉', '&rceil;').replace('⌋', '&rfloor;')
 
-
 class HtmlPageMaker(object):
     
     STYLE_MOBREM = '\n'.join([
@@ -171,7 +170,7 @@ class HtmlPageMaker(object):
             curDom = self.__curDom__
         return curDom << div(content, style=st)
        
-    def addTable(self, dictList, schema, st='',curDom=None):
+    def addTable(self, dictList, schema, indexhref='',curDom=None):
         if curDom == None:
             curDom = self.__curDom__
         tab = table(cl='table table-striped',style="table-layout: fixed; overflow:hidden")
@@ -187,7 +186,12 @@ class HtmlPageMaker(object):
                 continue
             datatr = tab << tr()
             for colum in schema:
-                datatr << td(item.get(colum,'-'))
+                itemdata = item.get(colum,'-')
+                #add code indexhref
+                if indexhref != '' and colum == 'code':
+                    datatr << td() << a(itemdata, href=indexhref + itemdata, target="_blank")
+                else:
+                    datatr << td(itemdata)
             #appen meta data in ONE row
             meta = []
             spanlen = str(len(schema))
