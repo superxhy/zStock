@@ -445,12 +445,13 @@ class Waver(object):
             self.waveboundflag = self.FLAG_WAVE_MIDWEAK
         else:
             self.waveboundflag = self.FLAG_WAVE_WEAK
-        #flag data enough
-        if self.waverangeflag == self.FLAG_WAVE_NOENOUGH or self.waveboundflag == self.FLAG_WAVE_NOENOUGH:
-            self.waveenough = False
-        else:
-            self.waveenough = True
         
+    def getWaveEnough(self):
+        if self.waverangeflag == self.FLAG_WAVE_NOENOUGH or self.waveboundflag == self.FLAG_WAVE_NOENOUGH:
+            return False
+        else:
+            return True
+            
     def getScore(self, ref=0):
         if len(self.scorerangedeque) < ref+1:
             return -1
@@ -479,7 +480,7 @@ class Waver(object):
     
     def getScoreRaise(self):
         #ignore no stable raise
-        if not self.waveenough:
+        if not (self.waveenough and self.getWaveEnough()):
             return 0
         scoreref = self.getScore(1)
         if scoreref < 0:
@@ -564,6 +565,8 @@ class Waver(object):
         lendequeue = len(self.scorerangedeque)
         #dequeue scorerange
         if overwrited and (not self.sameDay(dt)):
+            #flag data enough
+            self.waveenough = self.getWaveEnough()
             self.scorerangedeque.append(score)
             if lendequeue >= self.MAX_SCORERANGE_DEQUE:
                 del self.scorerangedeque[0]
