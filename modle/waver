@@ -171,11 +171,12 @@ class Waver(object):
             return -1
         if my.waverangeflag != cls.FLAG_WAVE_STRONG and other.waverangeflag == cls.FLAG_WAVE_STRONG:
             return 1
-        if scorersmy > scorersother:
+        #percentref first
+        if my.percentref > other.percentref:
             return -1
-        if scorersmy < scorersother:
+        if my.percentref < other.percentref:
             return 1
-        if scorersmy == scorersother:
+        if my.percentref == other.percentref:
             return 0
         
     @classmethod
@@ -227,6 +228,8 @@ class Waver(object):
         '''
         wave index cryptal
         '''
+        #percent raise compare yestody
+        self.percentref = 0
         #cci for period weekly
         self.cciw = 0
         #current wave period level, common in 'D' for daily , 'W' for weakly
@@ -310,14 +313,10 @@ class Waver(object):
                     self.aimed_time.month==current_dt.month and 
                     self.aimed_time.day==current_dt.day)
 
-    
-    def handleTarget(self, context, data, runTime):
-        try:
-            close_last = data[self.__security__].close
-        except Exception,e:
-            close_last = GET_CLOSE_DAY(context, self.__security__)
-        # decide to sell
-        return self.RET_KEEP
+    def getPercentRef(self, context):
+        close = GET_CLOSE_DAY(context, self.__security__)
+        closeRef = GET_CLOSE_DAY(context, self.__security__,1)
+        return self.calRate(close-closeRef, closeRef)
     
     def refresh(self, context, data={}, period='D'):
         K,D,J= KDJ_DATA(context,self.__security__, period, data, self.MAX_WAVE_COUNT)
@@ -393,7 +392,8 @@ class Waver(object):
         self.kmaxkd = kmaxkd
         self.waveseq = waveseq
         self.waveseqstr =waveseqstr
-        
+        #calculate percentref
+        self.percentref = self.getPercentRef(context)
         #calculate week bound
         self.cciw = CCI_DATA(context,self.__security__, 'W', data, 1)[-1]
         self.calcStrongRange()
@@ -718,6 +718,27 @@ class Waver(object):
         return poollist
         
     @staticmethod
+    def handleWaverPoolBegin(context, data, poollist, stocklist):
+        runTime = GET_RUN_MINUTES(context)
+        if runTime != 0:
+            return
+        Waver.refreshWaverPool(context, data, poollist, stocklist)
+        #print poollist
+        if Waver.HANDLE_SEND:
+            #current raise order list
+            waverslist = Waver.getWaveRaiseList(poollist, True)[0:Waver.MAX_SEND_COUNT]
+            #ma3 raise order list
+            #wavemarslist = Waver.getWaveMaRaiseList(poollist, True)[0:Waver.MAX_SEND_COUNT]
+            #bbi order list
+            bbilist = Waver.getBbiList(poollist, True)[0:Waver.MAX_SEND_COUNT]
+            #current order list head
+            wavefirstlist = [Waver.index] +poollist[0:Waver.MAX_SEND_COUNT*2]
+            #current order list tail
+            wavelastlist = poollist[-Waver.MAX_SEND_COUNT*2:]
+            #push order list in once
+            Waver.sendWaverPool(context, data, [waverslist, bbilist, wavefirstlist, wavelastlist], False, True)
+            
+    @staticmethod
     def handleWaverPool(context, data, poollist, sellcb, buycb):
         runTime = GET_RUN_MINUTES(context)
         if runTime % 5 != 0:
@@ -774,7 +795,14 @@ if __name__ == '__main__':
     stocklist = ['600000','000001','600519','601857','002510']
     poollist = []
     context = data = None
+    #pre trade for init
     Waver.refreshWaverPool(context, data, poollist, stocklist, True, False, False)
+    #9:25 update list
+    #Waver.refreshWaverPool(context, data, poollist, stocklist, False, False, False)
+    Waver.handleWaverPoolBegin(context, data, poollist, stocklist)
+    #intrade
     Waver.handleWaverPool(context, data, poollist, None, None)
+    #after trade
     Waver.refreshWaverPool(context, data, poollist, stocklist, False, True, False)
+    #pre trade next day
     Waver.refreshWaverPool(context, data, poollist, stocklist, True, False, False)
