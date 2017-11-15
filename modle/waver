@@ -567,6 +567,10 @@ class Waver(object):
         if overwrited and (not self.sameDay(dt)):
             #flag data enough
             self.waveenough = self.getWaveEnough()
+            if lendequeue > 0:
+                #update socre to use aftertrade data
+                self.scorerangedeque[-1] = score
+            #resume a new same data for next begin
             self.scorerangedeque.append(score)
             if lendequeue >= self.MAX_SCORERANGE_DEQUE:
                 del self.scorerangedeque[0]
