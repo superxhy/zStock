@@ -363,6 +363,11 @@ class Waver(object):
                     kmax = K[i]
                     kmaxkd = KD[i]
                     kmaxord = waveord
+        else:
+            k = K[-1]
+            kd = KD[-1]
+            kmax = k
+            kmaxkd = kd
         wavechr = chr(int(waveord))
         kmaxchr = chr(int(kmaxord))
         #format waveseq to str
@@ -380,7 +385,7 @@ class Waver(object):
         #period#waveindex:wavechr kd%k/kmaxindex:kmaxchr kmaxkd%kmax|waveseqstr
         #waveformat = "%s#%s:%s%s%%%s/%s:%s%s%%%s|%s" %(str(period),str(waveindex),str(wavechr),str(kd),str(k),str(kmaxindex),str(kmaxchr),str(kmaxkd),str(kmax),str(waveseqstr))
         #print waveformat
-        self.kma = np.mean(K[-self.MAX_WAVE_COUNT/2:])
+        #self.kma = np.mean(K[-self.MAX_WAVE_COUNT/2:])
         self.period = period
         self.waveindex = waveindex
         self.wavechr = wavechr
