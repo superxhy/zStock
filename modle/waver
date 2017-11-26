@@ -157,9 +157,9 @@ class Waver(object):
         scoreother = other.getScore()
         #over index first
         if cmpindex:
-            if scoremy > cls.getIndexScore() and scoreother < cls.getIndexScore():
+            if scoremy > cls.getIndexScore() and scoreother <= cls.getIndexScore():
                 return -1
-            if scoremy < cls.getIndexScore() and scoreother < cls.getIndexScore():
+            if scoremy <= cls.getIndexScore() and scoreother > cls.getIndexScore():
                 return 1
         scorersmy = my.getScoreRaise()
         scorersother = other.getScoreRaise()
@@ -198,9 +198,9 @@ class Waver(object):
         scoremy = my.getScore()
         scoreother = other.getScore()
         if cmpindex:
-            if scoremy > cls.getIndexScore() and scoreother < cls.getIndexScore():
+            if scoremy > cls.getIndexScore() and scoreother <= cls.getIndexScore():
                 return -1
-            if scoremy < cls.getIndexScore() and scoreother < cls.getIndexScore():
+            if scoremy <= cls.getIndexScore() and scoreother > cls.getIndexScore():
                 return 1
         scoremarsmy = my.getScoreMaRaise()
         scoremarsother = other.getScoreMaRaise()
