@@ -153,6 +153,21 @@ class Waver(object):
         
     @classmethod
     def cmpScoreRaise(cls, my, other, cmpindex=False):
+        #data not enough calc last
+        if my.waveboundflag == cls.FLAG_WAVE_NOENOUGH and other.waveboundflag != cls.FLAG_WAVE_NOENOUGH:
+            return 1
+        if my.waveboundflag != cls.FLAG_WAVE_NOENOUGH and other.waveboundflag == cls.FLAG_WAVE_NOENOUGH:
+            return -1
+        if my.waverangeflag == cls.FLAG_WAVE_NOENOUGH and other.waverangeflag != cls.FLAG_WAVE_NOENOUGH:
+            return 1
+        if my.waverangeflag != cls.FLAG_WAVE_NOENOUGH and other.waverangeflag == cls.FLAG_WAVE_NOENOUGH:
+            return -1
+        #percent raise first
+        pk = 2
+        if my.percentref > pk and other.percentref <= pk:
+            return -1
+        if my.percentref <= pk and other.percentref > pk:
+            return 1
         scoremy = my.getScore()
         scoreother = other.getScore()
         #over index first
@@ -163,12 +178,6 @@ class Waver(object):
                 return 1
         scorersmy = my.getScoreRaise()
         scorersother = other.getScoreRaise()
-        #percent raise first
-        pk = 2
-        if my.percentref > pk and other.percentref <= pk:
-            return -1
-        if my.percentref <= pk and other.percentref > pk:
-            return 1
         #only order sk more
         sk = 10
         if scorersmy > sk and scorersother < sk:
