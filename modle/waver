@@ -164,7 +164,7 @@ class Waver(object):
         scorersmy = my.getScoreRaise()
         scorersother = other.getScoreRaise()
         #percent raise first
-        pk = 0
+        pk = 2
         if my.percentref > pk and other.percentref <= pk:
             return -1
         if my.percentref <= pk and other.percentref > pk:
