@@ -613,7 +613,7 @@ class Waver(object):
     
     @classmethod
     def getBbiList(cls, poollist, cmpindex=False):
-        if cmpindex:
+        if not cmpindex:
             bbilist = poollist[:] if cls.indexPos == 0 else poollist[0:cls.indexPos]
         else:
             bbilist = poollist[:]
@@ -622,7 +622,7 @@ class Waver(object):
     
     @classmethod
     def getWaveMaRaiseList(cls, poollist, cmpindex=False):
-        if cmpindex:
+        if not cmpindex:
             wavemarslist = poollist[:] if cls.indexPos == 0 else poollist[0:cls.indexPos]
         else:
             wavemarslist = poollist[:]
