@@ -341,8 +341,8 @@ class Waver(object):
                     self.aimed_time.month==current_dt.month and 
                     self.aimed_time.day==current_dt.day)
 
-    def getPercentRef(self, context):
-        close = GET_CLOSE_DAY(context, self.__security__)
+    def getPercentRef(self, context, data):
+        close = GET_CLOSE_DAY(context, self.__security__,0,data)
         closeRef = GET_CLOSE_DAY(context, self.__security__,1)
         return self.calRate(close-closeRef, closeRef)
     
@@ -426,7 +426,7 @@ class Waver(object):
         self.waveseq = waveseq
         self.waveseqstr =waveseqstr
         #calculate percentref
-        self.percentref = self.getPercentRef(context)
+        self.percentref = self.getPercentRef(context, data)
         #calculate week bound
         self.cciw = CCI_DATA(context,self.__security__, 'W', data, 1)[-1]
         self.calcStrongRange()
@@ -776,7 +776,7 @@ class Waver(object):
         #print poollist
         if Waver.HANDLE_SEND:
             #current raise order list
-            waverslist = Waver.getWaveRaiseList(poollist, True)[0:Waver.MAX_SEND_COUNT]
+            waverslist = Waver.getWaveRaiseList(poollist, True)[0:Waver.MAX_SEND_COUNT*2]
             #ma3 raise order list
             #wavemarslist = Waver.getWaveMaRaiseList(poollist, True)[0:Waver.MAX_SEND_COUNT]
             #bbi order list
