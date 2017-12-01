@@ -175,9 +175,9 @@ class JqDatasrc(SecurityDataSrcBase):
         closeMin = attribute_history(security, get_count, unit='1m', fields=('close'), skip_paused=True, df=False)['close']
         close_intraday = self.SIMPLE_DATA(closeMin, dataCount, freq, offset)
         closeLast = 0
-        if any (data):
+        try:
             closeLast = data[security].close
-        else:
+        except Exception,e:
             closeLast = closeMin[-1]
         if not np.isnan(closeLast) and closeLast != 0:
             if(run_minutes==0):
@@ -194,9 +194,9 @@ class JqDatasrc(SecurityDataSrcBase):
         highMin = attribute_history(security, get_count, unit='1m', fields=('high'), skip_paused=True, df=False)['high']
         high_intraday = self.SIMPLE_DATA_HIGH(highMin, dataCount, freq, offset)
         highLast = 0
-        if any (data):
+        try:
             highLast = data[security].high
-        else:
+        except Exception,e:
             highLast = highMin[-1]
         if not np.isnan(highLast) and highLast != 0:
             if(run_minutes==0):
@@ -218,9 +218,9 @@ class JqDatasrc(SecurityDataSrcBase):
         lowMin = attribute_history(security, get_count, unit='1m', fields=('low'), skip_paused=True, df=False)['low']
         low_intraday = self.SIMPLE_DATA_LOW(lowMin, dataCount, freq, offset)
         lowLast = 0
-        if any (data):
+        try:
             lowLast = data[security].low
-        else:
+        except Exception,e:
             lowLast = lowMin[-1]
         if not np.isnan(lowLast) and lowLast != 0:
             if(run_minutes==0):
@@ -241,11 +241,7 @@ class JqDatasrc(SecurityDataSrcBase):
         get_count = dataCount * freq + offset
         volMin = 0.01*attribute_history(security, get_count, unit='1m', fields=('volume'), skip_paused=True, df=False)['volume']
         vol_intraday = self.SIMPLE_DATA_SUM(volMin, dataCount, freq, offset)
-        volLast = 0
-        if any (data):
-            volLast = data[security].volume
-        else:
-            volLast = volMin[-1]
+        volLast = volMin[-1]
         if not np.isnan(volLast) and volLast != 0:
             if(run_minutes==0):
                 #TODO: no support 9:25 vol?
@@ -403,17 +399,15 @@ class JqDatasrc(SecurityDataSrcBase):
     
     # 获取当前日线或ref天前收盘价
     def GET_CLOSE_DAY(self, context, security, ref=0 ,data={}):
-        closeLast = 0
-        if any(data):
-            closeLast = data[security].close
-        else:
-            closeLast = attribute_history(security, 1,'1m', ('close'), True)['close'][0]
         if ref == 0:
             run_minutes = self.GET_RUN_MINUTES(context)
             if run_minutes==0:
                 closeLast = get_current_data()[security].day_open
             else:
-                closeLast = attribute_history(security, 1,'1m', ('close'), True)['close'][0]
+                try:
+                    closeLast = data[security].close
+                except Exception,e:
+                    closeLast = attribute_history(security, 1,'1m', ('close'), True)['close'][0]
             return closeLast
         else:
             #df True 倒序
@@ -427,13 +421,13 @@ class JqDatasrc(SecurityDataSrcBase):
         else:
             closeLast = 0
             closeDay = close
-            if any (data):
-                closeLast = data[security].close
+            run_minutes = self.GET_RUN_MINUTES(context)
+            if run_minutes==0:
+                closeLast = get_current_data()[security].day_open
             else:
-                run_minutes = self.GET_RUN_MINUTES(context)
-                if run_minutes==0:
-                    closeLast = get_current_data()[security].day_open
-                else:
+                try:
+                    closeLast = data[security].close
+                except Exception,e:
                     closeLast = attribute_history(security, 1,'1m', ('close'), True)['close'][0]
             if not np.isnan(closeLast) and closeLast != 0:
                 closeDay = np.append(close,closeLast)
@@ -451,11 +445,14 @@ class JqDatasrc(SecurityDataSrcBase):
         if not isLastest:
             return closeWeek
         else:
-            closeLast = 0
-            if any (data):
-                closeLast = data[security].close
+            run_minutes = self.GET_RUN_MINUTES(context)
+            if run_minutes==0:
+                closeLast = get_current_data()[security].day_open
             else:
-                closeLast = attribute_history(security, 1,'1m', ('close'), True)['close'][0]
+                try:
+                    closeLast = data[security].close
+                except Exception,e:
+                    closeLast = attribute_history(security, 1,'1m', ('close'), True)['close'][0]
             if not np.isnan(closeLast) and closeLast != 0:
                 closeWeek= np.append(closeWeek,closeLast)
             return closeWeek
@@ -474,11 +471,14 @@ class JqDatasrc(SecurityDataSrcBase):
         if not isLastest:
             return closeMonth
         else:
-            closeLast = 0
-            if any (data):
-                closeLast = data[security].close
+            run_minutes = self.GET_RUN_MINUTES(context)
+            if run_minutes==0:
+                closeLast = get_current_data()[security].day_open
             else:
-                closeLast = attribute_history(security, 1,'1m', ('close'), True)['close'][0]
+                try:
+                    closeLast = data[security].close
+                except Exception,e:
+                    closeLast = attribute_history(security, 1,'1m', ('close'), True)['close'][0]
             if not np.isnan(closeLast) and closeLast != 0:
                 closeMonth = np.append(closeMonth,closeLast)
             return closeMonth
@@ -608,10 +608,9 @@ class JqDatasrc(SecurityDataSrcBase):
         if not isLastest:
             return closeDay, closeMonth, closeWeek
         else:
-            closeLast = 0
-            if any (data):
+            try:
                 closeLast = data[security].close
-            else:
+            except Exception,e:
                 closeLast = attribute_history(security, 1,'1m', ('close'), True)['close'][0]
             if not np.isnan(closeLast) and closeLast != 0:
                 closeDay = np.append(closeDay,closeLast)
@@ -622,28 +621,23 @@ class JqDatasrc(SecurityDataSrcBase):
     # 获取当前日线或ref天前成交量
     def GET_VOL_DAY(self, context, security, ref=0 ,data={}):
         if ref == 0:
-            volumeLast = 0
-            if any (data) and False:
-                volumeLast = 0.01*data[security].volume
-                print volumeLast
+            run_minutes = self.GET_RUN_MINUTES(context)
+            if run_minutes == 0:
+                #TODO, get 9:25 vol
+                try:
+                    volumeLast = 0.01*data[security].volume
+                    amountLast = data[security].money
+                except Exception,e:
+                    volumeLast = 0
+                self.data[security]={'volume':volumeLast,'amount':amountLast} 
             else:
-                run_minutes = self.GET_RUN_MINUTES(context)
-                if run_minutes == 0:
-                    #TODO, get 9:25 vol
-                    try:
-                        volumeLast = 0.01*data[security].volume
-                        amountLast = data[security].money
-                    except Exception,e:
-                        volumeLast = 0
-                    self.data[security]={'volume':volumeLast,'amount':amountLast} 
-                else:
-                    volumeMin =  0.01*attribute_history(security, run_minutes, unit='1m', fields=('volume'), skip_paused=True, df=False)['volume']
-                    volumeLast = np.sum(volumeMin)
-                    dataJj = self.data.get(security,None)
-                    if dataJj:
-                        #print volumeLast
-                        volumeLast += dataJj['volume']
-                        #print volumeLast
+                volumeMin =  0.01*attribute_history(security, run_minutes, unit='1m', fields=('volume'), skip_paused=True, df=False)['volume']
+                volumeLast = np.sum(volumeMin)
+                dataJj = self.data.get(security,None)
+                if dataJj:
+                    #print volumeLast
+                    volumeLast += dataJj['volume']
+                    #print volumeLast
             return volumeLast
         else:
             #df True 倒序
@@ -657,26 +651,23 @@ class JqDatasrc(SecurityDataSrcBase):
         else:
             volumeLast = 0
             volumeDay = volume
-            if any (data) and False:
-                volumeLast = 0.01*data[security].volume
+            run_minutes = self.GET_RUN_MINUTES(context)
+            if run_minutes == 0:
+                #TODO, get 9:25 vol
+                try:
+                    volumeLast = 0.01*data[security].volume
+                    amountLast = data[security].money
+                except Exception,e:
+                    volumeLast = 0
+                self.data[security]={'volume':volumeLast,'amount':amountLast} 
             else:
-                run_minutes = self.GET_RUN_MINUTES(context)
-                if run_minutes == 0:
-                    #TODO, get 9:25 vol
-                    try:
-                        volumeLast = 0.01*data[security].volume
-                        amountLast = data[security].money
-                    except Exception,e:
-                        volumeLast = 0
-                    self.data[security]={'volume':volumeLast,'amount':amountLast} 
-                else:
-                    volumeMin =  0.01*attribute_history(security, run_minutes, unit='1m', fields=('volume'), skip_paused=True, df=False)['volume']
-                    volumeLast = np.sum(volumeMin)
-                    dataJj = self.data.get(security,None)
-                    if dataJj:
-                        #print volumeLast
-                        volumeLast += dataJj['volume']
-                        #print volumeLast
+                volumeMin =  0.01*attribute_history(security, run_minutes, unit='1m', fields=('volume'), skip_paused=True, df=False)['volume']
+                volumeLast = np.sum(volumeMin)
+                dataJj = self.data.get(security,None)
+                if dataJj:
+                    #print volumeLast
+                    volumeLast += dataJj['volume']
+                    #print volumeLast
             if not np.isnan(volumeLast) and volumeLast != 0:
                 volumeDay = np.append(volume,volumeLast)
             return volumeDay
@@ -689,26 +680,23 @@ class JqDatasrc(SecurityDataSrcBase):
         else:
             amountLast = 0
             amountDay = amount
-            if any (data) and False:
-                amountLast = data[security].money
+            run_minutes = self.GET_RUN_MINUTES(context)
+            if run_minutes == 0:
+                #TODO, get 9:25 vol
+                try:
+                    volumeLast = 0.01*data[security].volume
+                    amountLast = data[security].money
+                except Exception,e:
+                    amountLast = 0
+                self.data[security]={'volume':volumeLast,'amount':amountLast} 
             else:
-                run_minutes = self.GET_RUN_MINUTES(context)
-                if run_minutes == 0:
-                    #TODO, get 9:25 vol
-                    try:
-                        volumeLast = 0.01*data[security].volume
-                        amountLast = data[security].money
-                    except Exception,e:
-                        amountLast = 0
-                    self.data[security]={'volume':volumeLast,'amount':amountLast} 
-                else:
-                    amountMin = attribute_history(security, run_minutes, unit='1m', fields=('money'), skip_paused=True, df=False)['money']
-                    amountLast = np.sum(amountMin)
-                    dataJj = self.data.get(security,None)
-                    if dataJj:
-                        #print amountLast
-                        amountLast += dataJj['amount']
-                        #print amountLast
+                amountMin = attribute_history(security, run_minutes, unit='1m', fields=('money'), skip_paused=True, df=False)['money']
+                amountLast = np.sum(amountMin)
+                dataJj = self.data.get(security,None)
+                if dataJj:
+                    #print amountLast
+                    amountLast += dataJj['amount']
+                    #print amountLast
             if not np.isnan(amountLast) and amountLast != 0:
                 amountDay = np.append(amount,amountLast)
             return amountDay
