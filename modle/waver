@@ -181,14 +181,6 @@ class Waver(object):
             return -1
         if my.kd < 0 and other.kd >= 0:
             return 1
-        scorersmy = my.getScoreRaise()
-        scorersother = other.getScoreRaise()
-        #only order sk more
-        sk = 10
-        if scorersmy > sk and scorersother < sk:
-            return -1
-        if scorersmy < sk and scorersother > sk:
-            return 1
         #waveboundflag strong first
         if my.waveboundflag > other.waveboundflag:
             return -1
@@ -198,6 +190,14 @@ class Waver(object):
         if my.waverangeflag == cls.FLAG_WAVE_STRONG and other.waverangeflag != cls.FLAG_WAVE_STRONG:
             return -1
         if my.waverangeflag != cls.FLAG_WAVE_STRONG and other.waverangeflag == cls.FLAG_WAVE_STRONG:
+            return 1
+        scorersmy = my.getScoreRaise()
+        scorersother = other.getScoreRaise()
+        #only order sk more
+        sk = 10
+        if scorersmy > sk and scorersother < sk:
+            return -1
+        if scorersmy < sk and scorersother > sk:
             return 1
         #percentref first
         if my.percentref > other.percentref:
