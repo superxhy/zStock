@@ -176,6 +176,11 @@ class Waver(object):
                 return -1
             if scoremy <= cls.getIndexScore() and scoreother > cls.getIndexScore():
                 return 1
+        #gold cross first
+        if my.kd >= 0 and other.kd < 0:
+            return -1
+        if my.kd < 0 and other.kd >= 0:
+            return 1
         scorersmy = my.getScoreRaise()
         scorersother = other.getScoreRaise()
         #only order sk more
@@ -613,7 +618,7 @@ class Waver(object):
         
     @classmethod
     def getWaveRaiseList(cls, poollist, cmpindex=False):
-        if cmpindex:
+        if not cmpindex:
             waverslist = poollist[:] if cls.indexPos == 0 else poollist[0:cls.indexPos]
         else:
             waverslist = poollist[:]
@@ -631,7 +636,7 @@ class Waver(object):
     
     @classmethod
     def getWaveMaRaiseList(cls, poollist, cmpindex=False):
-        if not cmpindex:
+        if cmpindex:
             wavemarslist = poollist[:] if cls.indexPos == 0 else poollist[0:cls.indexPos]
         else:
             wavemarslist = poollist[:]
@@ -759,17 +764,8 @@ class Waver(object):
         #print poollist
         if Waver.HANDLE_SEND:
             #current raise order list
-            waverslist = Waver.getWaveRaiseList(poollist, True)[0:Waver.MAX_SEND_COUNT]
-            #ma3 raise order list
-            #wavemarslist = Waver.getWaveMaRaiseList(poollist, True)[0:Waver.MAX_SEND_COUNT]
-            #bbi order list
-            bbilist = Waver.getBbiList(poollist, True)[0:Waver.MAX_SEND_COUNT]
-            #current order list head
-            wavefirstlist = [Waver.index] +poollist[0:Waver.MAX_SEND_COUNT*2]
-            #current order list tail
-            wavelastlist = poollist[-Waver.MAX_SEND_COUNT*2:]
-            #push order list in once
-            Waver.sendWaverPool(context, data, [waverslist, bbilist, wavefirstlist, wavelastlist], False, True)
+            waverslist = Waver.getWaveRaiseList(poollist, True)[0:Waver.MAX_SEND_COUNT*2]
+            Waver.sendWaverPool(context, data, waverslist, False, True)
             
     @staticmethod
     def handleWaverPool(context, data, poollist, sellcb, buycb):
