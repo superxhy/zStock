@@ -172,68 +172,82 @@ class JqDatasrc(SecurityDataSrcBase):
         run_minutes = self.GET_RUN_MINUTES(context)
         offset = run_minutes % freq
         get_count = dataCount * freq + offset
-    
+        intra = (freq-1 if offset == 0 else offset-1)
         closeMin = attribute_history(security, get_count, unit='1m', fields=('close'), skip_paused=True, df=False)['close']
-        close_intraday = self.SIMPLE_DATA(closeMin, dataCount, freq, offset)
         closeLast = 0
         try:
             closeLast = data[security].close
         except Exception,e:
-            closeLast = closeMin[-1]
+            closeLast = get_current_data()[security].last_price
         if not np.isnan(closeLast) and closeLast != 0:
             if(run_minutes==0):
+                close_intraday = self.SIMPLE_DATA(closeMin, dataCount, freq, 0)
                 close_intraday = np.append(close_intraday, get_current_data()[security].day_open)
-            elif(offset!=0):
+            else:
+                close_intraday = self.SIMPLE_DATA(closeMin, dataCount, freq, intra)
                 close_intraday = np.append(close_intraday, closeLast)
-        return close_intraday
+            return close_intraday
+        return self.SIMPLE_DATA(closeMin, dataCount, freq, offset)
 
     # 获取当前分时最高价
     def GET_HIGH_DATA_INTRADAY(self, context, security, data={}, freq=5, dataCount=1):
         run_minutes = self.GET_RUN_MINUTES(context)
         offset = run_minutes % freq
         get_count = dataCount * freq + offset
+        intra = (freq-1 if offset == 0 else offset-1)
         highMin = attribute_history(security, get_count, unit='1m', fields=('high'), skip_paused=True, df=False)['high']
-        high_intraday = self.SIMPLE_DATA_HIGH(highMin, dataCount, freq, offset)
         highLast = 0
         try:
             highLast = data[security].high
         except Exception,e:
             highLast = highMin[-1]
+            if run_minutes==240:
+                curLast = get_current_data()[security].last_price
+                if not np.isnan(curLast) and curLast > highLast:
+                    highLast = curLast
         if not np.isnan(highLast) and highLast != 0:
-            if(run_minutes==0):
-                closeLast = get_current_data()[security].day_open
-                high_intraday = np.append(high_intraday, closeLast)
-            elif(offset!=0):
-                highLast = highMin[-offset:].max()
-                high_intraday = np.append(high_intraday, highLast)
+            if run_minutes==0:
+                high_intraday = self.SIMPLE_DATA_HIGH(highMin, dataCount, freq, 0)
+                high_intraday = np.append(high_intraday, get_current_data()[security].day_open)
             else:
-                #use cur data
-                pass
-        return high_intraday
+                high_intraday = self.SIMPLE_DATA_HIGH(highMin, dataCount, freq, intra)
+                highLastPre = highMin[-intra-1:].max()
+                if not np.isnan(highLastPre):
+                    if highLastPre > highLast:
+                        highLast = highLastPre
+                high_intraday = np.append(high_intraday, highLast)
+            return high_intraday
+        return self.SIMPLE_DATA_HIGH(highMin, dataCount, freq, offset)
     
     # 获取当前分时最低价
     def GET_LOW_DATA_INTRADAY(self, context, security, data={}, freq=5, dataCount=1):
         run_minutes = self.GET_RUN_MINUTES(context)
         offset = run_minutes % freq
         get_count = dataCount * freq + offset
+        intra = (freq-1 if offset == 0 else offset-1)
         lowMin = attribute_history(security, get_count, unit='1m', fields=('low'), skip_paused=True, df=False)['low']
-        low_intraday = self.SIMPLE_DATA_LOW(lowMin, dataCount, freq, offset)
         lowLast = 0
         try:
             lowLast = data[security].low
         except Exception,e:
             lowLast = lowMin[-1]
+            if run_minutes==240:
+                curLast = get_current_data()[security].last_price
+                if not np.isnan(curLast) and curLast < lowLast:
+                    lowLast = curLast
         if not np.isnan(lowLast) and lowLast != 0:
             if(run_minutes==0):
-                closeLast = get_current_data()[security].day_open
-                low_intraday = np.append(low_intraday, closeLast)
-            elif(offset!=0):
-                highLast = lowMin[-offset:].min()
-                low_intraday = np.append(low_intraday, highLast)
+                low_intraday = self.SIMPLE_DATA_LOW(lowMin, dataCount, freq, 0)
+                low_intraday = np.append(low_intraday, get_current_data()[security].day_open)
             else:
-                #use cur data
-                pass
-        return low_intraday
+                low_intraday = self.SIMPLE_DATA_LOW(lowMin, dataCount, freq, intra)
+                lowLastPre = lowMin[-intra-1:].min()
+                if not np.isnan(lowLastPre):
+                    if lowLastPre < lowLast:
+                        lowLast = lowLastPre
+                low_intraday = np.append(low_intraday, lowLast)
+                return low_intraday
+        return self.SIMPLE_DATA_LOW(lowMin, dataCount, freq, offset)
     
     # 获取当前分时成交量
     def GET_VOL_DATA_INTRADAY(self, context, security, data={}, freq=5, dataCount=1):
@@ -270,6 +284,10 @@ class JqDatasrc(SecurityDataSrcBase):
             highData = attribute_history(security, run_minutes, unit='1m', fields=('high'), skip_paused=True, df=False)['high']
             #highLast = MAX_CN(highData,run_minutes)
             highLast = highData.max()
+            if run_minutes==240:
+                curLast = get_current_data()[security].last_price
+                if not np.isnan(curLast) and curLast > highLast:
+                    highLast = curLast
             return highLast
         else:
             #df True 倒序
@@ -283,6 +301,10 @@ class JqDatasrc(SecurityDataSrcBase):
             lowData = attribute_history(security, run_minutes, unit='1m', fields=('low'), skip_paused=True, df=False)['low']
             #highLast = MIN_CN(lowData,run_minutes)
             lowLast = lowData.min()
+            if run_minutes==240:
+                curLast = get_current_data()[security].last_price
+                if not np.isnan(curLast) and curLast < lowLast:
+                    lowLast = curLast
             return lowLast
         else:
             #df True 倒序
@@ -310,6 +332,10 @@ class JqDatasrc(SecurityDataSrcBase):
                 highData = attribute_history(security, run_minutes, unit='1m', fields=('high'), skip_paused=True, df=False)['high']
                 #highLast = MAX_CN(highData,run_minutes)
                 highLast = highData.max()
+                if run_minutes==240:
+                    curLast = get_current_data()[security].last_price
+                    if not np.isnan(curLast) and curLast > highLast:
+                        highLast = curLast
             highDay = np.append(high,highLast)
             return highDay
     
@@ -327,6 +353,10 @@ class JqDatasrc(SecurityDataSrcBase):
                 lowData = attribute_history(security, run_minutes, unit='1m', fields=('low'), skip_paused=True, df=False)['low']
                 #highLast = MIN_CN(lowData,run_minutes)
                 lowLast = lowData.min()
+                if run_minutes==240:
+                    curLast = get_current_data()[security].last_price
+                    if not np.isnan(curLast) and curLast < lowLast:
+                        lowLast = curLast
             lowDay = np.append(low,lowLast)
             return lowDay
 
@@ -334,16 +364,18 @@ class JqDatasrc(SecurityDataSrcBase):
     def GET_HIGH_DATA_WEEK(self, context,security,isLastest=True,data={},dataCount=1):
         freq = 5
         highData = self.GET_HIGH_DATA_DAY(context, security, isLastest, data, dataCount*freq)
-        high = highData[:-1]
-        highLast = np.nan
         highWeek = np.array([np.nan])
+        highLast = highData[-1]
+        if np.isnan(highLast):
+            return highWeek
         if len(highData) < freq:
             return highWeek
+        high = highData[:-1]
         weekday = context.current_dt.isoweekday()
         highWeek = self.SIMPLE_DATA_HIGH(high,dataCount,freq,weekday-1)
         highLast = highData[-weekday:].max()
         if np.isnan(highLast):
-            highLast = self.SIMPLE_DATA_HIGH(highData,1,freq,0)[-1]
+            highLast = self.SIMPLE_DATA_HIGH(highData,1,weekday,0)[-1]
         highWeek= np.append(highWeek,highLast)
         return highWeek
     
@@ -351,16 +383,18 @@ class JqDatasrc(SecurityDataSrcBase):
     def GET_LOW_DATA_WEEK(self, context,security,isLastest=True,data={},dataCount=1):
         freq = 5
         lowData = self.GET_LOW_DATA_DAY(context, security, isLastest, data, dataCount*freq)
-        low = lowData[:-1]
-        lowLast = np.nan
         lowWeek = np.array([np.nan])
+        lowLast = lowData[-1]
+        if np.isnan(lowLast):
+            return lowWeek
         if len(lowData) < freq:
             return lowWeek
+        low = lowData[:-1]
         weekday = context.current_dt.isoweekday()
         lowWeek = self.SIMPLE_DATA_LOW(low,dataCount,freq,weekday-1)
         lowLast = lowData[-weekday:].min()
         if np.isnan(lowLast):
-            lowLast = self.SIMPLE_DATA_LOW(lowData,1,freq,0)[-1]
+            lowLast = self.SIMPLE_DATA_LOW(lowData,1,weekday,0)[-1]
         lowWeek= np.append(lowWeek,lowLast)
         return lowWeek
    
@@ -368,16 +402,18 @@ class JqDatasrc(SecurityDataSrcBase):
     def GET_HIGH_DATA_MONTH(self, context,security,isLastest=True,data={},dataCount=1):
         freq = 20
         highData = self.GET_HIGH_DATA_DAY(context, security, isLastest, data, dataCount*freq)
-        high = highData[:-1]
-        highLast = np.nan
+        highLast = highData[-1]
         highMonth = np.array([np.nan])
+        if np.isnan(highLast):
+            return highMonth
         if len(highData) < freq:
             return highMonth
+        high = highData[:-1]
         day = context.current_dt.day
         highMonth = self.SIMPLE_DATA_HIGH(high,dataCount,freq,day-1)
         highLast = highData[-day:].max()
         if np.isnan(highLast):
-            highLast = self.SIMPLE_DATA_HIGH(highData,1,freq,0)[-1]
+            highLast = self.SIMPLE_DATA_HIGH(highData,1,day,0)[-1]
         highMonth= np.append(highMonth,highLast)
         return highMonth
     
@@ -385,16 +421,18 @@ class JqDatasrc(SecurityDataSrcBase):
     def GET_LOW_DATA_MONTH(self, context,security,isLastest=True,data={},dataCount=1):
         freq = 20
         lowData = self.GET_LOW_DATA_DAY(context, security, isLastest, data, dataCount*freq)
-        low = lowData[:-1]
-        lowLast = np.nan
+        lowLast = lowData[-1]
         lowMonth = np.array([np.nan])
+        if np.isnan(lowLast):
+            return lowMonth
         if len(lowData) < freq:
             return lowMonth
+        low = lowData[:-1]
         day = context.current_dt.day
         lowMonth = self.SIMPLE_DATA_LOW(low,dataCount,freq,day-1)
         lowLast = lowData[-day:].min()
         if np.isnan(lowLast):
-            lowLast = self.SIMPLE_DATA_LOW(lowData,1,freq,0)[-1]
+            lowLast = self.SIMPLE_DATA_LOW(lowData,1,day,0)[-1]
         lowMonth= np.append(lowMonth,lowLast)
         return lowMonth
     
@@ -404,6 +442,8 @@ class JqDatasrc(SecurityDataSrcBase):
             run_minutes = self.GET_RUN_MINUTES(context)
             if run_minutes==0:
                 closeLast = get_current_data()[security].day_open
+            elif run_minutes==240:
+                closeLast = get_current_data()[security].last_price
             else:
                 try:
                     closeLast = data[security].close
@@ -425,6 +465,8 @@ class JqDatasrc(SecurityDataSrcBase):
             run_minutes = self.GET_RUN_MINUTES(context)
             if run_minutes==0:
                 closeLast = get_current_data()[security].day_open
+            elif run_minutes==240:
+                closeLast = get_current_data()[security].last_price
             else:
                 try:
                     closeLast = data[security].close
@@ -449,6 +491,8 @@ class JqDatasrc(SecurityDataSrcBase):
             run_minutes = self.GET_RUN_MINUTES(context)
             if run_minutes==0:
                 closeLast = get_current_data()[security].day_open
+            elif run_minutes==240:
+                closeLast = get_current_data()[security].last_price
             else:
                 try:
                     closeLast = data[security].close
@@ -475,6 +519,8 @@ class JqDatasrc(SecurityDataSrcBase):
             run_minutes = self.GET_RUN_MINUTES(context)
             if run_minutes==0:
                 closeLast = get_current_data()[security].day_open
+            elif run_minutes==240:
+                closeLast = get_current_data()[security].last_price
             else:
                 try:
                     closeLast = data[security].close
