@@ -478,11 +478,17 @@ class SecurityDataSrcBase(object):
         len2 = len(high)
         len3 = len(low)
         if len1 != len2 or len1 != len3:
-            print "GET_PERIOD_DATA len neq!!!:%s,%s,%s" %(str(len1),str(len2),str(len3))
+            print "%s,freq:%s GET_PERIOD_DATA len neq!!!:%s,%s,%s" %(str(security),str(freq),str(len1),str(len2),str(len3))
+            #print close
+            #print high
+            #print low
             lenmin = np.array([len1,len2,len3]).min()
-            close = close[:-(len1-lenmin)]
-            high = high[:-(len2-lenmin)]
-            low = low[:-(len3-lenmin)]
+            if len1 > lenmin:
+                close = close[:-(len1-lenmin)]
+            if len2 > lenmin:
+                high  =  high[:-(len2-lenmin)]
+            if len3 > lenmin:
+                low   =   low[:-(len3-lenmin)]
         return high, low ,close
     
     def KDJ_DATA(self, context, security, freq = 'D', data={}, dataCount=1):
@@ -782,6 +788,7 @@ class SecurityDataSrcBase(object):
             avgRate = calRate(closeLast-avg, avg)
         else:
             avgRate = calRate(avg, closeLast)
+        #print avgRate
         kArray = []
         for i in range(0, len(close)):
             kdata = [high[i],low[i],close[i]]
@@ -937,7 +944,7 @@ class SecurityDataSrcBase(object):
         return [idxformat,str(','.join(idxK)), str(','.join(idxBody)),[str(idxMax), str(idxMin)]]
     
     '''
-    ['code','name','industry','close','wave','inert','vol']
+    ['code','name','industry','close','per','wave','inert','vol']
     '''
     def GET_BUNDLE(self, context, security, crypto=False, data={}):
         def calRate(a, b):
@@ -949,7 +956,7 @@ class SecurityDataSrcBase(object):
         info = self.GET_SECURITY_INFO(security)
         name = info['name']
         industry = info['industry']
-        close = self.GET_CLOSE_DAY(context, security)
+        close = self.GET_CLOSE_DAY(context, security,0,data)
         closeRef = self.GET_CLOSE_DAY(context, security,1)
         bundle = {
         'code':code,
