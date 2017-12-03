@@ -178,13 +178,16 @@ class JqDatasrc(SecurityDataSrcBase):
         try:
             closeLast = data[security].close
         except Exception,e:
-            closeLast = get_current_data()[security].last_price
+            if run_minutes==240:
+                closeLast = get_current_data()[security].last_price
+            else:
+                closeLast = closeMin[-1]
         if not np.isnan(closeLast) and closeLast != 0:
-            if(run_minutes==0):
+            if run_minutes==0:
                 close_intraday = self.SIMPLE_DATA(closeMin, dataCount, freq, 0)
                 close_intraday = np.append(close_intraday, get_current_data()[security].day_open)
             else:
-                close_intraday = self.SIMPLE_DATA(closeMin, dataCount, freq, intra)
+                close_intraday = self.SIMPLE_DATA(closeMin[:-1], dataCount, freq, intra)
                 close_intraday = np.append(close_intraday, closeLast)
             return close_intraday
         return self.SIMPLE_DATA(closeMin, dataCount, freq, offset)
@@ -210,7 +213,7 @@ class JqDatasrc(SecurityDataSrcBase):
                 high_intraday = self.SIMPLE_DATA_HIGH(highMin, dataCount, freq, 0)
                 high_intraday = np.append(high_intraday, get_current_data()[security].day_open)
             else:
-                high_intraday = self.SIMPLE_DATA_HIGH(highMin, dataCount, freq, intra)
+                high_intraday = self.SIMPLE_DATA_HIGH(highMin[:-1], dataCount, freq, intra)
                 highLastPre = highMin[-intra-1:].max()
                 if not np.isnan(highLastPre):
                     if highLastPre > highLast:
@@ -236,17 +239,17 @@ class JqDatasrc(SecurityDataSrcBase):
                 if not np.isnan(curLast) and curLast < lowLast:
                     lowLast = curLast
         if not np.isnan(lowLast) and lowLast != 0:
-            if(run_minutes==0):
+            if run_minutes==0:
                 low_intraday = self.SIMPLE_DATA_LOW(lowMin, dataCount, freq, 0)
                 low_intraday = np.append(low_intraday, get_current_data()[security].day_open)
             else:
-                low_intraday = self.SIMPLE_DATA_LOW(lowMin, dataCount, freq, intra)
+                low_intraday = self.SIMPLE_DATA_LOW(lowMin[:-1], dataCount, freq, intra)
                 lowLastPre = lowMin[-intra-1:].min()
                 if not np.isnan(lowLastPre):
                     if lowLastPre < lowLast:
                         lowLast = lowLastPre
                 low_intraday = np.append(low_intraday, lowLast)
-                return low_intraday
+            return low_intraday
         return self.SIMPLE_DATA_LOW(lowMin, dataCount, freq, offset)
     
     # 获取当前分时成交量
