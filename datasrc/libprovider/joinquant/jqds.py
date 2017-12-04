@@ -173,12 +173,12 @@ class JqDatasrc(SecurityDataSrcBase):
         offset = run_minutes % freq
         get_count = dataCount * freq + offset
         ar_data = attribute_history(security, get_count, unit='1m', fields=('close'), skip_paused=True, df=False)
-        if ar_data.get('close') == None:
+        if ar_data.get('close') is None:
             print "security:%s in freq:%s NO GET_CLOSE_DATA_INTRADAY!" %(str(security),str(freq))
             return np.array([np.nan])
         return self.GET_CLOSE_DATA_INTRADAY_DF(context, security, data, freq, ar_data)
         
-    def GET_CLOSE_DATA_INTRADAY_DF(self, context, security, data={}, freq=5, ar_data):
+    def GET_CLOSE_DATA_INTRADAY_DF(self, context, security, data, freq, ar_data):
         run_minutes = self.GET_RUN_MINUTES(context)
         offset = run_minutes % freq
         intra = (freq-1 if offset == 0 else offset-1)
@@ -208,12 +208,12 @@ class JqDatasrc(SecurityDataSrcBase):
         offset = run_minutes % freq
         get_count = dataCount * freq + offset
         ar_data = attribute_history(security, get_count, unit='1m', fields=('high'), skip_paused=True, df=False)
-        if ar_data.get('high') == None:
+        if ar_data.get('high') is None:
             print "security:%s in freq:%s NO GET_HIGH_DATA_INTRADAY!" %(str(security),str(freq))
             return np.array([np.nan])
         return self.GET_HIGH_DATA_INTRADAY_DF(context, security, data, freq, ar_data)
         
-    def GET_HIGH_DATA_INTRADAY_DF(self, context, security, data={}, freq=5, ar_data):
+    def GET_HIGH_DATA_INTRADAY_DF(self, context, security, data, freq, ar_data):
         run_minutes = self.GET_RUN_MINUTES(context)
         offset = run_minutes % freq
         intra = (freq-1 if offset == 0 else offset-1)
@@ -248,12 +248,12 @@ class JqDatasrc(SecurityDataSrcBase):
         offset = run_minutes % freq
         get_count = dataCount * freq + offset
         ar_data = attribute_history(security, get_count, unit='1m', fields=('low'), skip_paused=True, df=False)
-        if ar_data.get('low') == None:
+        if ar_data.get('low') is None:
             print "security:%s in freq:%s NO GET_LOW_DATA_INTRADAY!" %(str(security),str(freq))
             return np.array([np.nan])
         return self.GET_LOW_DATA_INTRADAY_DF(context, security, data, freq, ar_data)
         
-    def GET_LOW_DATA_INTRADAY_DF(self, context, security, data={}, freq=5, ar_data):
+    def GET_LOW_DATA_INTRADAY_DF(self, context, security, data, freq, ar_data):
         run_minutes = self.GET_RUN_MINUTES(context)
         offset = run_minutes % freq
         intra = (freq-1 if offset == 0 else offset-1)
@@ -354,12 +354,12 @@ class JqDatasrc(SecurityDataSrcBase):
     # 获取日线历史数据最大值
     def GET_HIGH_DATA_DAY(self, context,security,isLastest=True,data={},dataCount=1):
         ar_data = attribute_history(security, dataCount, unit='1d', fields=('high'), skip_paused=True, df=False)
-        if ar_data.get('high') == None:
+        if ar_data.get('high') is None:
             print "security:%s in context:%s NO GET_HIGH_DATA_DAY!" %(str(security),str(context))
             return np.array([np.nan])
         return self.GET_HIGH_DATA_DAY_DF(context, security, isLastest, data, ar_data)
     
-    def GET_HIGH_DATA_DAY_DF(self, context,security,isLastest=True,data={},ar_data):
+    def GET_HIGH_DATA_DAY_DF(self, context,security,isLastest,data,ar_data):
         high = ar_data['high']
         if not isLastest:
             return high
@@ -382,12 +382,12 @@ class JqDatasrc(SecurityDataSrcBase):
     # 获取日线历史数据最小值
     def GET_LOW_DATA_DAY(self, context,security,isLastest=True,data={},dataCount=1):
         ar_data = attribute_history(security, dataCount, unit='1d', fields=('low'), skip_paused=True, df=False)
-        if ar_data.get('low') == None:
+        if ar_data.get('low') is None:
             print "security:%s in context:%s NO GET_LOW_DATA_DAY!" %(str(security),str(context))
             return np.array([np.nan])
         return self.GET_LOW_DATA_DAY_DF(context, security, isLastest, data, ar_data)
     
-    def GET_LOW_DATA_DAY_DF(self, context,security,isLastest=True,data={},ar_data):
+    def GET_LOW_DATA_DAY_DF(self, context,security,isLastest,data,ar_data):
         low = ar_data['low']
         if not isLastest:
             return low
@@ -411,12 +411,12 @@ class JqDatasrc(SecurityDataSrcBase):
     def GET_HIGH_DATA_WEEK(self, context,security,isLastest=True,data={},dataCount=1):
         freq = 5
         ar_data = attribute_history(security, dataCount*freq, unit='1d', fields=('high'), skip_paused=True, df=False)
-        if ar_data.get('high') == None:
+        if ar_data.get('high') is None:
             print "security:%s in context:%s NO GET_HIGH_DATA_WEEK!" %(str(security),str(context))
             return np.array([np.nan])
         return self.GET_HIGH_DATA_WEEK_DF(context, security, isLastest, data, ar_data)
         
-    def GET_HIGH_DATA_WEEK_DF(self, context,security,isLastest=True,data={},ar_data):
+    def GET_HIGH_DATA_WEEK_DF(self, context,security,isLastest,data,ar_data):
         freq = 5
         highData = self.GET_HIGH_DATA_DAY_DF(context, security, isLastest, data, ar_data)
         dataCount = len(highData)//freq
@@ -424,8 +424,9 @@ class JqDatasrc(SecurityDataSrcBase):
         highLast = highData[-1]
         if np.isnan(highLast):
             return highWeek
-        if len(highData) < freq:
-            return highWeek
+        if len(highData) <= freq:
+            highLast = self.SIMPLE_DATA_HIGH(highData,1,freq,0)[-1]
+            return np.array([highLast])
         high = highData[:-1]
         weekday = context.current_dt.isoweekday()
         highWeek = self.SIMPLE_DATA_HIGH(high,dataCount,freq,weekday-1)
@@ -439,12 +440,12 @@ class JqDatasrc(SecurityDataSrcBase):
     def GET_LOW_DATA_WEEK(self, context,security,isLastest=True,data={},dataCount=1):
         freq = 5
         ar_data = attribute_history(security, dataCount*freq, unit='1d', fields=('low'), skip_paused=True, df=False)
-        if ar_data.get('low') == None:
+        if ar_data.get('low') is None:
             print "security:%s in context:%s NO GET_LOW_DATA_WEEK!" %(str(security),str(context))
             return np.array([np.nan])
         return self.GET_LOW_DATA_WEEK_DF(context, security, isLastest, data, ar_data)
         
-    def GET_LOW_DATA_WEEK_DF(self, context,security,isLastest=True,data={},ar_data):
+    def GET_LOW_DATA_WEEK_DF(self, context,security,isLastest,data,ar_data):
         freq = 5
         lowData = self.GET_LOW_DATA_DAY_DF(context, security, isLastest, data, ar_data)
         dataCount = len(lowData)//freq
@@ -452,8 +453,9 @@ class JqDatasrc(SecurityDataSrcBase):
         lowLast = lowData[-1]
         if np.isnan(lowLast):
             return lowWeek
-        if len(lowData) < freq:
-            return lowWeek
+        if len(lowData) <= freq:
+            lowLast = self.SIMPLE_DATA_LOW(lowData,1,freq,0)[-1]
+            return np.array([lowLast])
         low = lowData[:-1]
         weekday = context.current_dt.isoweekday()
         lowWeek = self.SIMPLE_DATA_LOW(low,dataCount,freq,weekday-1)
@@ -467,12 +469,12 @@ class JqDatasrc(SecurityDataSrcBase):
     def GET_HIGH_DATA_MONTH(self, context,security,isLastest=True,data={},dataCount=1):
         freq = 20
         ar_data = attribute_history(security, dataCount*freq, unit='1d', fields=('high'), skip_paused=True, df=False)
-        if ar_data.get('high') == None:
+        if ar_data.get('high') is None:
             print "security:%s in context:%s NO GET_HIGH_DATA_MONTH!" %(str(security),str(context))
             return np.array([np.nan])
         return self.GET_HIGH_DATA_MONTH_DF(context, security, isLastest, data, ar_data)
     
-    def GET_HIGH_DATA_MONTH_DF(self, context,security,isLastest=True,data={},ar_data):
+    def GET_HIGH_DATA_MONTH_DF(self, context,security,isLastest,data,ar_data):
         freq = 20
         highData = self.GET_HIGH_DATA_DAY_DF(context, security, isLastest, data, ar_data)
         dataCount = len(highData)//freq
@@ -480,8 +482,9 @@ class JqDatasrc(SecurityDataSrcBase):
         highMonth = np.array([np.nan])
         if np.isnan(highLast):
             return highMonth
-        if len(highData) < freq:
-            return highMonth
+        if len(highData) <= freq:
+            highLast = self.SIMPLE_DATA_HIGH(highData,1,freq,0)[-1]
+            return np.array([highLast])
         high = highData[:-1]
         day = context.current_dt.day
         highMonth = self.SIMPLE_DATA_HIGH(high,dataCount,freq,day-1)
@@ -495,12 +498,12 @@ class JqDatasrc(SecurityDataSrcBase):
     def GET_LOW_DATA_MONTH(self, context,security,isLastest=True,data={},dataCount=1):
         freq = 20
         ar_data = attribute_history(security, dataCount*freq, unit='1d', fields=('low'), skip_paused=True, df=False)
-        if ar_data.get('low') == None:
+        if ar_data.get('low') is None:
             print "security:%s in context:%s NO GET_LOW_DATA_MONTH!" %(str(security),str(context))
             return np.array([np.nan])
         return self.GET_LOW_DATA_MONTH_DF(context, security, isLastest, data, ar_data)
     
-    def GET_LOW_DATA_MONTH_DF(self, context,security,isLastest=True,data={},ar_data):
+    def GET_LOW_DATA_MONTH_DF(self, context,security,isLastest,data,ar_data):
         freq = 20
         lowData = self.GET_LOW_DATA_DAY_DF(context, security, isLastest, data,ar_data)
         dataCount = len(lowData)//freq
@@ -508,8 +511,9 @@ class JqDatasrc(SecurityDataSrcBase):
         lowMonth = np.array([np.nan])
         if np.isnan(lowLast):
             return lowMonth
-        if len(lowData) < freq:
-            return lowMonth
+        if len(lowData) <= freq:
+            lowLast = self.SIMPLE_DATA_LOW(lowData,1,freq,0)[-1]
+            return np.array([lowLast])
         low = lowData[:-1]
         day = context.current_dt.day
         lowMonth = self.SIMPLE_DATA_LOW(low,dataCount,freq,day-1)
@@ -540,12 +544,12 @@ class JqDatasrc(SecurityDataSrcBase):
     # 获取日线历史数据
     def GET_CLOSE_DATA_DAY(self, context, security, isLastest=True,data={},dataCount=20):
         ar_data = attribute_history(security, dataCount, unit='1d', fields=('close'), skip_paused=True, df=False)
-        if ar_data.get('close') == None:
+        if ar_data.get('close') is None:
             print "security:%s NO GET_CLOSE_DATA_DAY!" %(str(security))
             return np.array([np.nan])
         return self.GET_CLOSE_DATA_DAY_DF(context, security, isLastest, data, ar_data)
     
-    def GET_CLOSE_DATA_DAY_DF(self, context, security, isLastest=True,data={},ar_data):
+    def GET_CLOSE_DATA_DAY_DF(self, context, security, isLastest,data,ar_data):
         close = ar_data['close']
         if not isLastest:
             return close
@@ -570,36 +574,37 @@ class JqDatasrc(SecurityDataSrcBase):
     def GET_CLOSE_DATA_WEEK(self, context,security,isLastest=True,data={},dataCount=20):
         freq = 5
         ar_data = attribute_history(security, dataCount*freq, unit='1d', fields=('close'), skip_paused=True, df=False)
-        if ar_data.get('close') == None:
+        if ar_data.get('close') is None:
             print "security:%s NO GET_CLOSE_DATA_WEEK!" %(str(security))
             return np.array([np.nan])
         return self.GET_CLOSE_DATA_WEEK_DF(context, security, isLastest, data, ar_data)
     
-    def GET_CLOSE_DATA_WEEK_DF(self, context,security,isLastest=True,data={},ar_data):
+    def GET_CLOSE_DATA_WEEK_DF(self, context,security,isLastest,data,ar_data):
         freq = 5
         close = ar_data['close']
         dataCount = len(close)//freq
         closeWeek = np.array([np.nan])
-        if len(close) < freq:
+        if np.isnan(close[-1]):
             return closeWeek
         weekday = context.current_dt.isoweekday()
         closeWeek = self.SIMPLE_DATA(close,dataCount,freq,weekday-1)
         if not isLastest:
             return closeWeek
+        run_minutes = self.GET_RUN_MINUTES(context)
+        if run_minutes==0:
+            closeLast = get_current_data()[security].day_open
+        elif run_minutes==240:
+            closeLast = get_current_data()[security].last_price
         else:
-            run_minutes = self.GET_RUN_MINUTES(context)
-            if run_minutes==0:
-                closeLast = get_current_data()[security].day_open
-            elif run_minutes==240:
-                closeLast = get_current_data()[security].last_price
-            else:
-                try:
-                    closeLast = data[security].close
-                except Exception,e:
-                    closeLast = attribute_history(security, 1,'1m', ('close'), True)['close'][0]
-            if not np.isnan(closeLast) and closeLast != 0:
-                closeWeek= np.append(closeWeek,closeLast)
-            return closeWeek
+            try:
+                closeLast = data[security].close
+            except Exception,e:
+                closeLast = attribute_history(security, 1,'1m', ('close'), True)['close'][0]
+        if len(close) <= freq:
+            return np.array([closeLast])
+        if not np.isnan(closeLast) and closeLast != 0:
+            closeWeek= np.append(closeWeek,closeLast)
+        return closeWeek
 
     # 获取月线历史数据
     def GET_CLOSE_DATA_MONTH(self, context,security,isLastest=True,data={},dataCount=20,isSample=False):
@@ -607,59 +612,59 @@ class JqDatasrc(SecurityDataSrcBase):
         #TODO use trade month sample
         freq = 20
         ar_data = attribute_history(security, dataCount*freq, unit='1d', fields=('close'), skip_paused=True, df=False)
-        if ar_data.get('close') == None:
+        if ar_data.get('close') is None:
             print "security:%s NO GET_CLOSE_DATA_MONTH!" %(str(security))
             return np.array([np.nan])
         return self.GET_CLOSE_DATA_MONTH_DF(context, security, isLastest, data, ar_data, isSample)
     
-    def GET_CLOSE_DATA_MONTH_DF(self, context,security,isLastest=True,data={},ar_data,isSample=False):
+    def GET_CLOSE_DATA_MONTH_DF(self, context,security,isLastest,data,ar_data,isSample=False):
         #if isSample == True
         #TODO use trade month sample
         freq = 20
         close = ar_data['close']
         dataCount = len(close)//freq
         closeMonth = np.array([np.nan])
-        if len(close) < freq:
+        if np.isnan(close[-1]):
             return closeMonth
         day = context.current_dt.day
         closeMonth = self.SIMPLE_DATA(close,dataCount,freq,day-1)
         if not isLastest:
             return closeMonth
+        run_minutes = self.GET_RUN_MINUTES(context)
+        if run_minutes==0:
+            closeLast = get_current_data()[security].day_open
+        elif run_minutes==240:
+            closeLast = get_current_data()[security].last_price
         else:
-            run_minutes = self.GET_RUN_MINUTES(context)
-            if run_minutes==0:
-                closeLast = get_current_data()[security].day_open
-            elif run_minutes==240:
-                closeLast = get_current_data()[security].last_price
-            else:
-                try:
-                    closeLast = data[security].close
-                except Exception,e:
-                    closeLast = attribute_history(security, 1,'1m', ('close'), True)['close'][0]
-            if not np.isnan(closeLast) and closeLast != 0:
-                closeMonth = np.append(closeMonth,closeLast)
-            return closeMonth
+            try:
+                closeLast = data[security].close
+            except Exception,e:
+                closeLast = attribute_history(security, 1,'1m', ('close'), True)['close'][0]
+        if len(close) <= freq:
+            return np.array([closeLast])
+        if not np.isnan(closeLast) and closeLast != 0:
+            closeMonth = np.append(closeMonth,closeLast)
+        return closeMonth
     
     # 获取季线历史数据
     def GET_CLOSE_DATA_SEASON(self,context,security,isLastest=True,data={},dataCount=20):
         freq = 3*20
         ar_data = attribute_history(security, dataCount*freq, unit='1d', fields=('close'), skip_paused=True, df=False)
-        if ar_data.get('close') == None:
+        if ar_data.get('close') is None:
             print "security:%s NO GET_CLOSE_DATA_SEASON!" %(str(security))
             return np.array([np.nan])
         return self.GET_CLOSE_DATA_SEASON_DF(context, security, isLastest, data, ar_data)
     
-    def GET_CLOSE_DATA_SEASON_DF(self,context,security,isLastest=True,data={},ar_data):
+    def GET_CLOSE_DATA_SEASON_DF(self,context,security,isLastest,data,ar_data):
         freq = 3
         closeData = self.GET_CLOSE_DATA_MONTH_DF(context, security, isLastest, data, ar_data)
         dataCount = len(closeData)//freq
         close = closeData[:-1]
         closeLast = np.nan
-        closeSeason = np.array([np.nan])
-        if len(closeData) >= freq:
-            closeLast = closeData[-1]
+        if len(closeData) <= freq:
+            return np.array([closeData[-1]])
         else: 
-            return closeSeason
+            closeLast = closeData[-1]
         month = context.current_dt.month
         season = (freq if month % freq == 0 else month % freq)
         closeSeason = self.SIMPLE_DATA(close,dataCount,freq,season-1)
@@ -671,22 +676,21 @@ class JqDatasrc(SecurityDataSrcBase):
     def GET_CLOSE_DATA_YEAR(self,context,security,isLastest=True,data={},dataCount=20):
         freq = 12*20
         ar_data = attribute_history(security, dataCount*freq, unit='1d', fields=('close'), skip_paused=True, df=False)
-        if ar_data.get('close') == None:
+        if ar_data.get('close') is None:
             print "security:%s NO GET_CLOSE_DATA_YEAR!" %(str(security))
             return np.array([np.nan])
         return self.GET_CLOSE_DATA_YEAR_DF(context, security, isLastest, data, ar_data)
     
-    def GET_CLOSE_DATA_YEAR_DF(self,context,security,isLastest=True,data={},ar_data):
+    def GET_CLOSE_DATA_YEAR_DF(self,context,security,isLastest,data,ar_data):
         freq = 12
         closeData = self.GET_CLOSE_DATA_MONTH_DF(context, security, isLastest, data, ar_data)
         dataCount = len(closeData)//freq
         close = closeData[:-1]
         closeLast = np.nan
-        closeYear = np.array([np.nan])
-        if len(closeData) >= freq:
-            closeLast = closeData[-1]
+        if len(closeData) <= freq:
+            return np.array([closeData[-1]])
         else: 
-            return closeYear
+            closeLast = closeData[-1]
         month = context.current_dt.month
         closeYear = self.SIMPLE_DATA(close,dataCount,freq,month-1)
         if not np.isnan(closeLast) and closeLast != 0:
@@ -698,28 +702,27 @@ class JqDatasrc(SecurityDataSrcBase):
     def GET_HIGH_DATA_SEASON(self,context,security,isLastest=True,data={},dataCount=20):
         freq = 3*20
         ar_data = attribute_history(security, dataCount*freq, unit='1d', fields=('high'), skip_paused=True, df=False)
-        if ar_data.get('high') == None:
+        if ar_data.get('high') is None:
             print "security:%s in context:%s NO GET_HIGH_DATA_SEASON!" %(str(security),str(context))
             return np.array([np.nan])
         return self.GET_HIGH_DATA_SEASON_DF(context, security, isLastest, data, ar_data)
     
-    def GET_HIGH_DATA_SEASON_DF(self,context,security,isLastest=True,data={},ar_data):
+    def GET_HIGH_DATA_SEASON_DF(self,context,security,isLastest,data,ar_data):
         freq = 3
         highData = self.GET_HIGH_DATA_MONTH_DF(context, security, isLastest, data, ar_data)
         dataCount = len(highData)//freq
         high = highData[:-1]
         highLast = np.nan
-        highSeason = np.array([np.nan])
-        if len(highData) >= freq:
-            pass
-        else: 
-            return highSeason
+        if len(highData) <= freq:
+            highLast = self.SIMPLE_DATA_HIGH(highData,1,freq,0)[-1]
+            return array([highLast])
         month = context.current_dt.month
         season = (freq if month % freq == 0 else month % freq)
         highSeason = self.SIMPLE_DATA_HIGH(high,dataCount,freq,season-1)
         highLast = highData[-season:].max()
-        if not np.isnan(highLast) and highLast != 0:
-            highSeason= np.append(highSeason,highLast)
+        if np.isnan(highLast):
+            highLast = self.SIMPLE_DATA_HIGH(highData,1,season,0)[-1]
+        highSeason= np.append(highSeason,highLast)
         return highSeason
     
     # 获取季线历史数据最小值
@@ -727,28 +730,27 @@ class JqDatasrc(SecurityDataSrcBase):
     def GET_LOW_DATA_SEASON(self,context,security,isLastest=True,data={},dataCount=20):
         freq = 3*20
         ar_data = attribute_history(security, dataCount*freq, unit='1d', fields=('low'), skip_paused=True, df=False)
-        if ar_data.get('low') == None:
+        if ar_data.get('low') is None:
             print "security:%s in context:%s NO GET_LOW_DATA_SEASON!" %(str(security),str(context))
             return np.array([np.nan])
         return self.GET_LOW_DATA_SEASON_DF(context, security, isLastest, data, ar_data)
         
-    def GET_LOW_DATA_SEASON_DF(self,context,security,isLastest=True,data={},ar_data):
+    def GET_LOW_DATA_SEASON_DF(self,context,security,isLastest,data,ar_data):
         freq = 3
         lowData = self.GET_LOW_DATA_MONTH_DF(context, security, isLastest, data, ar_data)
         dataCount = len(lowData)//freq
         low = lowData[:-1]
         lowLast = np.nan
-        lowSeason = np.array([np.nan])
-        if len(lowData) >= freq:
-            pass
-        else: 
-            return lowSeason
+        if len(lowData) <= freq:
+            lowLast = self.SIMPLE_DATA_LOW(lowData,1,freq,0)[-1]
+            return np.array([lowLast])
         month = context.current_dt.month
         season = (freq if month % freq == 0 else month % freq)
         lowSeason = self.SIMPLE_DATA_LOW(low,dataCount,freq,season-1)
         lowLast = lowData[-season:].min()
-        if not np.isnan(lowLast) and lowLast != 0:
-            lowSeason= np.append(lowSeason,lowLast)
+        if np.isnan(lowLast):
+            lowLast = self.SIMPLE_DATA_LOW(lowData,1,season,0)[-1]
+        lowSeason= np.append(lowSeason,lowLast)
         return lowSeason
     
     # 获取年线历史数据最大值
@@ -756,27 +758,26 @@ class JqDatasrc(SecurityDataSrcBase):
     def GET_HIGH_DATA_YEAR(self,context,security,isLastest=True,data={},dataCount=20):
         freq = 12*20
         ar_data = attribute_history(security, dataCount*freq, unit='1d', fields=('high'), skip_paused=True, df=False)
-        if ar_data.get('high') == None:
+        if ar_data.get('high') is None:
             print "security:%s in context:%s NO GET_HIGH_DATA_YEAR!" %(str(security),str(context))
             return np.array([np.nan])
         return self.GET_HIGH_DATA_YEAR_DF(context, security, isLastest, data, ar_data)
     
-    def GET_HIGH_DATA_YEAR_DF(self,context,security,isLastest=True,data={},ar_data):
+    def GET_HIGH_DATA_YEAR_DF(self,context,security,isLastest,data,ar_data):
         freq = 12
         highData = self.GET_HIGH_DATA_MONTH_DF(context, security, isLastest, data, ar_data)
         dataCount = len(highData)//freq
         high = highData[:-1]
         highLast = np.nan
-        highYear = np.array([np.nan])
-        if len(highData) >= freq:
-            pass
-        else: 
-            return highYear
+        if len(highData) <= freq:
+            highLast = self.SIMPLE_DATA_HIGH(highData,1,freq,0)[-1]
+            return np.array([highLast])
         month = context.current_dt.month
         highYear = self.SIMPLE_DATA_HIGH(high,dataCount,freq,month-1)
         highLast = highData[-month:].max()
-        if not np.isnan(highLast) and highLast != 0:
-            highYear= np.append(highYear,highLast)
+        if np.isnan(highLast):
+            highLast = self.SIMPLE_DATA_HIGH(highData,1,month,0)[-1]
+        highYear= np.append(highYear,highLast)
         return highYear
     
     # 获取年线历史数据最小值
@@ -784,27 +785,26 @@ class JqDatasrc(SecurityDataSrcBase):
     def GET_LOW_DATA_YEAR(self,context,security,isLastest=True,data={},dataCount=20):
         freq = 12*20
         ar_data = attribute_history(security, dataCount*freq, unit='1d', fields=('low'), skip_paused=True, df=False)
-        if ar_data.get('low') == None:
+        if ar_data.get('low') is None:
             print "security:%s in context:%s NO GET_LOW_DATA_SEASON!" %(str(security),str(context))
             return np.array([np.nan])
         return self.GET_LOW_DATA_YEAR_DF(context, security, isLastest, data, ar_data)
     
-    def GET_LOW_DATA_YEAR_DF(self,context,security,isLastest=True,data={},ar_data):
+    def GET_LOW_DATA_YEAR_DF(self,context,security,isLastest,data,ar_data):
         freq = 12
         lowData = self.GET_LOW_DATA_MONTH_DF(context, security, isLastest, data, ar_data)
         dataCount = len(lowData)//freq
         low = lowData[:-1]
         lowLast = np.nan
-        lowYear = np.array([np.nan])
-        if len(lowData) >= freq:
-            pass
-        else: 
-            return lowYear
+        if len(lowData) <= freq:
+            lowLast = self.SIMPLE_DATA_LOW(lowData,1,freq,0)[-1]
+            return np.array([lowLast])
         month = context.current_dt.month
         lowYear = self.SIMPLE_DATA_LOW(low,dataCount,freq,month-1)
         lowLast = lowData[-month:].min()
-        if not np.isnan(lowLast) and lowLast != 0:
-            lowYear= np.append(lowYear,lowLast)
+        if np.isnan(lowLast):
+            lowLast = self.SIMPLE_DATA_LOW(lowData,1,month,0)[-1]
+        lowYear= np.append(lowYear,lowLast)
         return lowYear
     
     #overide
@@ -814,51 +814,51 @@ class JqDatasrc(SecurityDataSrcBase):
         low = np.array([np.nan])
         if freq == 'D':
             ar_data = attribute_history(security, dataCount, unit='1d', fields=('close','high','low'), skip_paused=True, df=False)
-            if ar_data.get('close') == None or ar_data.get('high') == None or ar_data.get('low') == None: 
-                print "security:%s in freq:%s NO GET_PERIOD_DATA!" %(str(freq),str(context))
+            if ar_data.get('close') is None or ar_data.get('high') is None or ar_data.get('low') is None: 
+                print "security:%s in freq:%s NO GET_PERIOD_DATA!" %(str(security),str(freq))
                 return high, low ,close
-            close = self.GET_CLOSE_DATA_DAY_DF(context, security, False, data, ar_data)
-            high = self.GET_HIGH_DATA_DAY_DF(context, security, False, data, ar_data)
-            low = self.GET_LOW_DATA_DAY_DF(context, security, False, data, ar_data)
+            close = self.GET_CLOSE_DATA_DAY_DF(context, security, True, data, ar_data)
+            high = self.GET_HIGH_DATA_DAY_DF(context, security, True, data, ar_data)
+            low = self.GET_LOW_DATA_DAY_DF(context, security, True, data, ar_data)
         elif freq == 'W':
             ar_data = attribute_history(security, dataCount*5, unit='1d', fields=('close','high','low'), skip_paused=True, df=False)
-            if ar_data.get('close') == None or ar_data.get('high') == None or ar_data.get('low') == None: 
-                print "security:%s in freq:%s NO GET_PERIOD_DATA!" %(str(freq),str(context))
+            if ar_data.get('close') is None or ar_data.get('high') is None or ar_data.get('low') is None: 
+                print "security:%s in freq:%s NO GET_PERIOD_DATA!" %(str(security),str(freq))
                 return high, low ,close
-            close = self.GET_CLOSE_DATA_WEEK_DF(context, security, False, data, ar_data)
-            high = self.GET_HIGH_DATA_WEEK_DF(context, security, False, data, ar_data)
-            low = self.GET_LOW_DATA_WEEK_DF(context, security, False, data, ar_data)
+            close = self.GET_CLOSE_DATA_WEEK_DF(context, security, True, data, ar_data)
+            high = self.GET_HIGH_DATA_WEEK_DF(context, security, True, data, ar_data)
+            low = self.GET_LOW_DATA_WEEK_DF(context, security, True, data, ar_data)
         elif freq == 'M':
             ar_data = attribute_history(security, dataCount*20, unit='1d', fields=('close','high','low'), skip_paused=True, df=False)
-            if ar_data.get('close') == None or ar_data.get('high') == None or ar_data.get('low') == None: 
-                print "security:%s in freq:%s NO GET_PERIOD_DATA!" %(str(freq),str(context))
+            if ar_data.get('close') is None or ar_data.get('high') is None or ar_data.get('low') is None: 
+                print "security:%s in freq:%s NO GET_PERIOD_DATA!" %(str(security),str(freq))
                 return high, low ,close
-            close = self.GET_CLOSE_DATA_MONTH_DF(context, security, False, data, ar_data)
-            high = self.GET_HIGH_DATA_MONTH_DF(context, security, False, data, ar_data)
-            low = self.GET_LOW_DATA_MONTH_DF(context, security, False, data, ar_data)
+            close = self.GET_CLOSE_DATA_MONTH_DF(context, security, True, data, ar_data)
+            high = self.GET_HIGH_DATA_MONTH_DF(context, security, True, data, ar_data)
+            low = self.GET_LOW_DATA_MONTH_DF(context, security, True, data, ar_data)
         elif freq == 'S':
             ar_data = attribute_history(security, dataCount*3*20, unit='1d', fields=('close','high','low'), skip_paused=True, df=False)
-            if ar_data.get('close') == None or ar_data.get('high') == None or ar_data.get('low') == None: 
-                print "security:%s in freq:%s NO GET_PERIOD_DATA!" %(str(freq),str(context))
+            if ar_data.get('close') is None or ar_data.get('high') is None or ar_data.get('low') is None: 
+                print "security:%s in freq:%s NO GET_PERIOD_DATA!" %(str(security),str(freq))
                 return high, low ,close
-            close = self.GET_CLOSE_DATA_SEASON_DF(context, security, False, data, ar_data)
-            high = self.GET_HIGH_DATA_SEASON_DF(context, security, False, data, ar_data)
-            low = self.GET_LOW_DATA_SEASON_DF(context, security, False, data, ar_data)
+            close = self.GET_CLOSE_DATA_SEASON_DF(context, security, True, data, ar_data)
+            high = self.GET_HIGH_DATA_SEASON_DF(context, security, True, data, ar_data)
+            low = self.GET_LOW_DATA_SEASON_DF(context, security, True, data, ar_data)
         elif freq == 'Y':
             ar_data = attribute_history(security, dataCount*12*20, unit='1d', fields=('close','high','low'), skip_paused=True, df=False)
-            if ar_data.get('close') == None or ar_data.get('high') == None or ar_data.get('low') == None: 
-                print "security:%s in freq:%s NO GET_PERIOD_DATA!" %(str(freq),str(context))
+            if ar_data.get('close') is None or ar_data.get('high') is None or ar_data.get('low') is None: 
+                print "security:%s in freq:%s NO GET_PERIOD_DATA!" %(str(security),str(freq))
                 return high, low ,close
-            close = self.GET_CLOSE_DATA_YEAR_DF(context, security, False, data, ar_data)
-            high = self.GET_HIGH_DATA_YEAR_DF(context, security, False, data, ar_data)
-            low = self.GET_LOW_DATA_YEAR_DF(context, security, False, data, ar_data)
+            close = self.GET_CLOSE_DATA_YEAR_DF(context, security, True, data, ar_data)
+            high = self.GET_HIGH_DATA_YEAR_DF(context, security, True, data, ar_data)
+            low = self.GET_LOW_DATA_YEAR_DF(context, security, True, data, ar_data)
         else :
             run_minutes = self.GET_RUN_MINUTES(context)
             offset = run_minutes % freq
             get_count = dataCount * freq + offset
-            ar_data = attribute_history(security, get_count, unit='1m', fields=('close'), skip_paused=True, df=False)
-            if ar_data.get('close') == None or ar_data.get('high') == None or ar_data.get('low') == None:
-                print "security:%s in freq:%s NO GET_PERIOD_DATA!" %(str(freq),str(context))
+            ar_data = attribute_history(security, get_count, unit='1m', fields=('close','high','low'), skip_paused=True, df=False)
+            if ar_data.get('close') is None or ar_data.get('high') is None or ar_data.get('low') is None:
+                print "security:%s in freq:%s NO GET_PERIOD_DATA!" %(str(security),str(freq))
                 return high, low ,close
             close = self.GET_CLOSE_DATA_INTRADAY_DF(context, security, data, freq, ar_data)
             high = self.GET_HIGH_DATA_INTRADAY_DF(context, security, data, freq, ar_data)
@@ -868,18 +868,19 @@ class JqDatasrc(SecurityDataSrcBase):
         len1 = len(close)
         len2 = len(high)
         len3 = len(low)
+        #print "%s,freq:%s GET_PERIOD_DATA !!!:%s,%s,%s" %(str(security),str(freq),str(len1),str(len2),str(len3))
+        #print close
+        #print high
+        #print low
         if len1 != len2 or len1 != len3:
             print "%s,freq:%s GET_PERIOD_DATA len neq!!!:%s,%s,%s" %(str(security),str(freq),str(len1),str(len2),str(len3))
-            #print close
-            #print high
-            #print low
+            print close
+            print high
+            print low
             lenmin = np.array([len1,len2,len3]).min()
-            if len1 > lenmin:
-                close = close[:-(len1-lenmin)]
-            if len2 > lenmin:
-                high  =  high[:-(len2-lenmin)]
-            if len3 > lenmin:
-                low   =   low[:-(len3-lenmin)]
+            close = close[len1-lenmin:]
+            high  =  high[len2-lenmin:]
+            low   =   low[len3-lenmin:]
         return high, low ,close
     
     # 获取日线周线月线收盘价历史数据
