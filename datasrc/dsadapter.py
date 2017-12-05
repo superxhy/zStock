@@ -16,6 +16,8 @@ DS_CLASS_NAME = "tushare"
 
 dsfactory = DataSrcFactory.getFrom(DS_CLASS_PATH,DS_CLASS_NAME)
 dsobj = dsfactory.getDataSrc()
+print dsobj.getDataSrcName()
+print dsobj.getVersionName()
 print dir(dsobj)
 
 def MACD_CN(close, fastperiod=12, slowperiod=26, signalperiod=9) :
