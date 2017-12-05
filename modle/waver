@@ -11,12 +11,13 @@ import decimal
 from datasrc import * 
 #TODO jq not suport root path
 #from dsadapter import *
+import datetime
 
 class Waver(object):
     """wave model"""
     MODULE = 'Waver'
     VERSION = '1.0.1'
-    MDEBUG = False
+    MDEBUG = True
     #max calculate wave item count
     MAX_WAVE_COUNT = 20
     #wave begin char
@@ -152,7 +153,7 @@ class Waver(object):
             return 1
         
     @classmethod
-    def cmpScoreRaise(cls, my, other, cmpindex=False):
+    def cmpScoreRaise(cls, my, other, cmpindex=False, pretrade=False):
         #data not enough calc last
         if my.waveboundflag == cls.FLAG_WAVE_NOENOUGH and other.waveboundflag != cls.FLAG_WAVE_NOENOUGH:
             return 1
@@ -163,7 +164,7 @@ class Waver(object):
         if my.waverangeflag != cls.FLAG_WAVE_NOENOUGH and other.waverangeflag == cls.FLAG_WAVE_NOENOUGH:
             return -1
         #percent raise first
-        pk = 2
+        pk = 0 if pretrade else 2
         if my.percentref > pk and other.percentref <= pk:
             return -1
         if my.percentref <= pk and other.percentref > pk:
@@ -617,12 +618,12 @@ class Waver(object):
                 self.scorerangedeque[-1] = score
         
     @classmethod
-    def getWaveRaiseList(cls, poollist, cmpindex=False):
+    def getWaveRaiseList(cls, poollist, cmpindex=False, pretrade=False):
         if not cmpindex:
             waverslist = poollist[:] if cls.indexPos == 0 else poollist[0:cls.indexPos]
         else:
             waverslist = poollist[:]
-        waverslist.sort(cmp=lambda a,b: cls.cmpScoreRaise(a, b, cmpindex))
+        waverslist.sort(cmp=lambda a,b: cls.cmpScoreRaise(a, b, cmpindex, pretrade))
         return waverslist
     
     @classmethod
@@ -689,6 +690,7 @@ class Waver(object):
     
     @staticmethod
     def refreshWaverPool(context, data, poollist, stocklist, pretrade=False, aftertrade=False, notmain=True):
+        Waver.logd("%s refreshWaverPool" %(str(datetime.datetime.now().strftime('%Y-%m-%d-%H%M%S'))))
         if pretrade:
             if len(stocklist) == 0:
                 Waver.logd("empty stocklist, stop pool")
@@ -696,9 +698,7 @@ class Waver(object):
             if len(poollist) == 0:
                 Waver.logd("empty poollist! begin to init pool")
             else:
-                Waver.logd("poollist has been inited before, igonore for pretrade")
-                return Waver.getIndexScore()
-            
+                Waver.logd("poollist has been inited before, begin to refresh")
         if context and context.current_dt:
             dt = context.current_dt
         else:
@@ -723,26 +723,25 @@ class Waver(object):
         else:
             Waver.logd("begin count:%s" % (d_count))
             d_i = 0
+            toref = []
             #remove no trade security
             for wave in poollist:
                 if wave.security() not in stocklist:
                     todel.append(wave.security())
                     poollist.remove(wave)
+                else:
+                    toref.append(wave.security())
+                    wave.refresh(context, data)
             Waver.logd("len:%s,refresh to todel:%s\n" %(str(len(todel)), str(todel)))
-            #add or refresh on trade security
-            for s in stocklist:
-                #g.debug =  security
+            #add on trade security
+            newadd = [s for s in stocklist if s not in toref]
+            Waver.logd("len:%s,refresh to newadd:%s\n" %(str(len(newadd)), str(newadd)))
+            for s in newadd:
                 d_i = d_i + 1;
                 if d_i % (d_count//100 + 1) == 0:
                     Waver.logd("doing:%s %%" % str(d_i/(d_count//100 + 1)))
-                waverIndex = Waver.getSecurityIndex(poollist, s)
-                if waverIndex >= 0:
-                    poollist[waverIndex].refresh(context, data)
-                else:
-                    wave = Waver(context, s)
-                    newadd.append(wave.security())
-                    poollist.append(wave)
-            Waver.logd("len:%s,refresh to newadd:%s\n" %(str(len(newadd)), str(newadd)))
+                wave = Waver(context, s)
+                poollist.append(wave)
             Waver.logd("end count:%s" % len(poollist))
         Waver.updateWaverPoolOrder(poollist, dt, aftertrade)
         Waver.updateWaverOtherOrder(poollist, Waver.index, dt, aftertrade)
@@ -751,7 +750,9 @@ class Waver(object):
         #print Waver.index
         #send after trade data for next day
         #Waver.sendWaverPool(context, data, poollist, True, True)
-        if pretrade or aftertrade:
+        if pretrade:
+            Waver.sendWaverPool(context, data, poollist[0:Waver.MAX_SEND_COUNT], False, True)
+        if aftertrade:
             Waver.sendWaverPool(context, data, [Waver.index]+poollist, True, notmain)
         return Waver.getIndexScore()
         
@@ -760,12 +761,31 @@ class Waver(object):
         runTime = GET_RUN_MINUTES(context)
         if runTime != 0:
             return Waver.getIndexScore()
-        Waver.refreshWaverPool(context, data, poollist, stocklist)
+        Waver.refreshWaverPool(context, data, poollist, [])
+        #print poollist
+        if Waver.HANDLE_SEND:
+            #current raise order list
+            waverslist = Waver.getWaveRaiseList(poollist, True, True)[0:Waver.MAX_SEND_COUNT*2]
+            Waver.sendWaverPool(context, data, waverslist, False, True)
+            
+    @staticmethod
+    def handleWaverPoolEnd(context, data, poollist):
+        runTime = GET_RUN_MINUTES(context)
+        if runTime != 240:
+            return Waver.getIndexScore()
+        Waver.refreshWaverPool(context, data, poollist, [])
         #print poollist
         if Waver.HANDLE_SEND:
             #current raise order list
             waverslist = Waver.getWaveRaiseList(poollist, True)[0:Waver.MAX_SEND_COUNT*2]
-            Waver.sendWaverPool(context, data, waverslist, False, True)
+            #ma3 raise order list
+            #wavemarslist = Waver.getWaveMaRaiseList(poollist, True)[0:Waver.MAX_SEND_COUNT]
+            #bbi order list
+            bbilist = Waver.getBbiList(poollist, True)[0:Waver.MAX_SEND_COUNT]
+            #current all list 
+            wavealllist = [Waver.index] +poollist
+            #push order list in once
+            Waver.sendWaverPool(context, data, [waverslist, bbilist, wavealllist], False, True)
             
     @staticmethod
     def handleWaverPool(context, data, poollist, sellcb, buycb):
@@ -791,6 +811,7 @@ class Waver(object):
     
     @staticmethod
     def sendWaverPool(context, data, poollist, aftertrade=False, sendMail=False):
+        Waver.logd("%s sendWaverPool" %(str(datetime.datetime.now().strftime('%Y-%m-%d-%H%M%S'))))
         REDSTAR_ORDERSP_NORMAL = '?'
         REDSTAR_ORDERSP_INDEX = '||'
         #REDSTAR_DEL = '-'
@@ -825,7 +846,7 @@ if __name__ == '__main__':
     stocklist = ['600000','000001','600519','601857','002510']
     poollist = []
     context = data = None
-    #pre trade for init
+    #pre trade for init or update list
     Waver.refreshWaverPool(context, data, poollist, stocklist, True, False, False)
     #9:25 update list
     #Waver.refreshWaverPool(context, data, poollist, stocklist, False, False, False)
