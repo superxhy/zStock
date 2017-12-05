@@ -195,10 +195,10 @@ class JqDatasrc(SecurityDataSrcBase):
         if not np.isnan(closeLast) and closeLast != 0:
             if run_minutes==0:
                 close_intraday = self.SIMPLE_DATA(closeMin, dataCount, freq, 0)
-                close_intraday = np.append(close_intraday, get_current_data()[security].day_open)
+                closeLast = self.GET_CLOSE_DAY(context, security, 0, data)
             else:
                 close_intraday = self.SIMPLE_DATA(closeMin[:-1], dataCount, freq, intra)
-                close_intraday = np.append(close_intraday, closeLast)
+            close_intraday = np.append(close_intraday, closeLast)
             return close_intraday
         return self.SIMPLE_DATA(closeMin, dataCount, freq, offset)
 
@@ -231,14 +231,14 @@ class JqDatasrc(SecurityDataSrcBase):
         if not np.isnan(highLast) and highLast != 0:
             if run_minutes==0:
                 high_intraday = self.SIMPLE_DATA_HIGH(highMin, dataCount, freq, 0)
-                high_intraday = np.append(high_intraday, get_current_data()[security].day_open)
+                highLast = self.GET_CLOSE_DAY(context, security, 0, data)
             else:
                 high_intraday = self.SIMPLE_DATA_HIGH(highMin[:-1], dataCount, freq, intra)
                 highLastPre = highMin[-intra-1:].max()
                 if not np.isnan(highLastPre):
                     if highLastPre > highLast:
                         highLast = highLastPre
-                high_intraday = np.append(high_intraday, highLast)
+            high_intraday = np.append(high_intraday, highLast)
             return high_intraday
         return self.SIMPLE_DATA_HIGH(highMin, dataCount, freq, offset)
     
@@ -271,14 +271,14 @@ class JqDatasrc(SecurityDataSrcBase):
         if not np.isnan(lowLast) and lowLast != 0:
             if run_minutes==0:
                 low_intraday = self.SIMPLE_DATA_LOW(lowMin, dataCount, freq, 0)
-                low_intraday = np.append(low_intraday, get_current_data()[security].day_open)
+                lowLast = self.GET_CLOSE_DAY(context, security, 0, data)
             else:
                 low_intraday = self.SIMPLE_DATA_LOW(lowMin[:-1], dataCount, freq, intra)
                 lowLastPre = lowMin[-intra-1:].min()
                 if not np.isnan(lowLastPre):
                     if lowLastPre < lowLast:
                         lowLast = lowLastPre
-                low_intraday = np.append(low_intraday, lowLast)
+            low_intraday = np.append(low_intraday, lowLast)
             return low_intraday
         return self.SIMPLE_DATA_LOW(lowMin, dataCount, freq, offset)
     
@@ -313,7 +313,7 @@ class JqDatasrc(SecurityDataSrcBase):
         if ref==0:
             run_minutes = self.GET_RUN_MINUTES(context)
             if run_minutes == 0:
-                return get_current_data()[security].day_open
+                return self.GET_CLOSE_DAY(context, security, 0)
             highData = attribute_history(security, run_minutes, unit='1m', fields=('high'), skip_paused=True, df=False)['high']
             #highLast = MAX_CN(highData,run_minutes)
             highLast = highData.max()
@@ -330,7 +330,7 @@ class JqDatasrc(SecurityDataSrcBase):
         if ref==0:
             run_minutes = self.GET_RUN_MINUTES(context)
             if run_minutes == 0:
-                return get_current_data()[security].day_open
+                return self.GET_CLOSE_DAY(context, security, 0)
             lowData = attribute_history(security, run_minutes, unit='1m', fields=('low'), skip_paused=True, df=False)['low']
             #highLast = MIN_CN(lowData,run_minutes)
             lowLast = lowData.min()
@@ -345,8 +345,10 @@ class JqDatasrc(SecurityDataSrcBase):
             
     def GET_OPEN_DAY(self, context, security, ref=0):
         if ref==0:
-            current_data = get_current_data()
-            return current_data[security].day_open
+            run_minutes = self.GET_RUN_MINUTES(context)
+            if run_minutes == 0:
+                return self.GET_CLOSE_DAY(context, security, 0)
+            return get_current_data()[security].day_open
         else:
             #df True 倒序
             return attribute_history(security, ref, '1d', ('open'), True)['open'][0]
@@ -367,7 +369,7 @@ class JqDatasrc(SecurityDataSrcBase):
             run_minutes = self.GET_RUN_MINUTES(context)
             if run_minutes == 0:
                 #highLast = attribute_history(security, 1, unit='1m', fields=('high'), skip_paused=True, df=False)['high']
-                highLast = get_current_data()[security].day_open
+                highLast = self.GET_CLOSE_DAY(context, security, 0)
             else:
                 highData = attribute_history(security, run_minutes, unit='1m', fields=('high'), skip_paused=True, df=False)['high']
                 #highLast = MAX_CN(highData,run_minutes)
@@ -395,7 +397,7 @@ class JqDatasrc(SecurityDataSrcBase):
             run_minutes = self.GET_RUN_MINUTES(context)
             if run_minutes == 0:
                 #lowLast = attribute_history(security, 1, unit='1m', fields=('low'), skip_paused=True, df=False)['low']
-                lowLast = get_current_data()[security].day_open
+                lowLast = self.GET_CLOSE_DAY(context, security, 0)
             else:
                 lowData = attribute_history(security, run_minutes, unit='1m', fields=('low'), skip_paused=True, df=False)['low']
                 #highLast = MIN_CN(lowData,run_minutes)
@@ -529,6 +531,8 @@ class JqDatasrc(SecurityDataSrcBase):
             run_minutes = self.GET_RUN_MINUTES(context)
             if run_minutes==0:
                 closeLast = get_current_data()[security].day_open
+                if not np.isnan(closeLast):
+                    closeLast = self.GET_CLOSE_DAY(context, security, 1, data)
             elif run_minutes==240:
                 closeLast = get_current_data()[security].last_price
             else:
@@ -556,16 +560,7 @@ class JqDatasrc(SecurityDataSrcBase):
         else:
             closeLast = 0
             closeDay = close
-            run_minutes = self.GET_RUN_MINUTES(context)
-            if run_minutes==0:
-                closeLast = get_current_data()[security].day_open
-            elif run_minutes==240:
-                closeLast = get_current_data()[security].last_price
-            else:
-                try:
-                    closeLast = data[security].close
-                except Exception,e:
-                    closeLast = attribute_history(security, 1,'1m', ('close'), True)['close'][0]
+            closeLast = self.GET_CLOSE_DAY(context, security, 0, data)
             if not np.isnan(closeLast) and closeLast != 0:
                 closeDay = np.append(close,closeLast)
             return closeDay
@@ -590,16 +585,7 @@ class JqDatasrc(SecurityDataSrcBase):
         closeWeek = self.SIMPLE_DATA(close,dataCount,freq,weekday-1)
         if not isLastest:
             return closeWeek
-        run_minutes = self.GET_RUN_MINUTES(context)
-        if run_minutes==0:
-            closeLast = get_current_data()[security].day_open
-        elif run_minutes==240:
-            closeLast = get_current_data()[security].last_price
-        else:
-            try:
-                closeLast = data[security].close
-            except Exception,e:
-                closeLast = attribute_history(security, 1,'1m', ('close'), True)['close'][0]
+        closeLast = self.GET_CLOSE_DAY(context, security, 0, data)
         if len(close) <= freq:
             return np.array([closeLast])
         if not np.isnan(closeLast) and closeLast != 0:
@@ -630,16 +616,7 @@ class JqDatasrc(SecurityDataSrcBase):
         closeMonth = self.SIMPLE_DATA(close,dataCount,freq,day-1)
         if not isLastest:
             return closeMonth
-        run_minutes = self.GET_RUN_MINUTES(context)
-        if run_minutes==0:
-            closeLast = get_current_data()[security].day_open
-        elif run_minutes==240:
-            closeLast = get_current_data()[security].last_price
-        else:
-            try:
-                closeLast = data[security].close
-            except Exception,e:
-                closeLast = attribute_history(security, 1,'1m', ('close'), True)['close'][0]
+        closeLast = self.GET_CLOSE_DAY(context, security, 0, data)
         if len(close) <= freq:
             return np.array([closeLast])
         if not np.isnan(closeLast) and closeLast != 0:
