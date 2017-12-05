@@ -68,8 +68,10 @@ class SecurityDataSrcBase(object):
         #run_hours = 0
         run_minutes = 0
         #before trade return lastest data
-        if hour < 9 or (hour == 9 and minute < 25):
+        if hour < 9:
             return 240
+        if hour == 9 and minute < 25:
+            return 0
         if hour < 13:
             run_minutes = (hour-9)*60 + minute - 30
         else:
