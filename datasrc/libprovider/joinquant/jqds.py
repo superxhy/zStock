@@ -528,23 +528,23 @@ class JqDatasrc(SecurityDataSrcBase):
     # 获取当前日线或ref天前收盘价
     def GET_CLOSE_DAY(self, context, security, ref=0 ,data={}):
         if ref == 0:
-            try:
-                closeLast = data[security].close
-            except Exception,e:
-                run_minutes = self.GET_RUN_MINUTES(context)
-                if run_minutes==0:
-                    auction_minutes = self.GET_CALLAUCTION_MINUTES(context)
-                    if auction_minutes < 0:
-                        closeLast = np.nan
-                    elif auction_minutes < 10 and self.getRunConfig()['onbacktest']:
-                        closeLast = np.nan
-                    else:
-                        closeLast = get_current_data()[security].day_open
-                    if np.isnan(closeLast):
-                        closeLast = self.GET_CLOSE_DAY(context, security, 1, data)
-                elif run_minutes==240:
-                    closeLast = get_current_data()[security].last_price
+            run_minutes = self.GET_RUN_MINUTES(context)
+            if run_minutes==0:
+                auction_minutes = self.GET_CALLAUCTION_MINUTES(context)
+                if auction_minutes < 0:
+                    closeLast = np.nan
+                elif auction_minutes < 10 and self.getRunConfig()['onbacktest']:
+                    closeLast = np.nan
                 else:
+                    closeLast = get_current_data()[security].day_open
+                if np.isnan(closeLast):
+                    closeLast = self.GET_CLOSE_DAY(context, security, 1, data)
+            elif run_minutes==240:
+                closeLast = get_current_data()[security].last_price
+            else:
+                try:
+                    closeLast = data[security].close
+                except Exception,e:
                     closeLast = attribute_history(security, 1,'1m', ('close'), True)['close'][0]
             return closeLast
         else:
