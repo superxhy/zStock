@@ -86,6 +86,28 @@ class SecurityDataSrcBase(object):
         return run_minutes
 
     @staticmethod
+    def GET_CALLAUCTION_MINUTES(context):
+        if context == None:
+            return 10
+        #9:15-9:25
+        hour = context.current_dt.hour
+        minute = context.current_dt.minute
+        #run_hours = 0
+        run_minutes = 0
+        #before trade return lastest data
+        if hour < 9:
+            return 10
+        #reset call auction for pretrade
+        if hour == 9 and minute < 15:
+            return -1
+        run_minutes = (hour-9)*60 + minute - 15
+        if run_minutes < 0:
+            run_minutes = -1
+        if run_minutes > 10:
+            run_minutes = 10
+        return run_minutes
+    
+    @staticmethod
     def SIMPLE_DATA(src, count, freq, offset=0):
         des = np.array([])
         for i in range (0,count):
