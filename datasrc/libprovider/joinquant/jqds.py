@@ -547,6 +547,16 @@ class JqDatasrc(SecurityDataSrcBase):
                 except Exception,e:
                     closeLast = attribute_history(security, 1,'1m', ('close'), True)['close'][0]
             return closeLast
+        #elif ref == 1:
+        #    run_minutes = self.GET_RUN_MINUTES(context)
+        #    if run_minutes > 0:
+        #        try:
+        #            closeLast = data[security].pre_close
+        #        except Exception,e:
+        #            closeLast = attribute_history(security, 1,'1d', ('close'), True)['close'][0]
+        #    else:
+        #        closeLast = attribute_history(security, 1,'1d', ('close'), True)['close'][0]
+        #    return closeLast
         else:
             #df True 倒序
             return attribute_history(security, ref, '1d', ('close'), True)['close'][0]
