@@ -105,7 +105,7 @@ class JqDatasrc(SecurityDataSrcBase):
         super(JqDatasrc, self).__init__(name)
     
     def getVersionName(self):
-        return "1.12.6"
+        return "1.12.7"
     
     def getDataSrcName(self):
         return "joinquant"
@@ -533,7 +533,7 @@ class JqDatasrc(SecurityDataSrcBase):
                 auction_minutes = self.GET_CALLAUCTION_MINUTES(context)
                 if auction_minutes < 0:
                     closeLast = np.nan
-                elif auction_minutes < 10 and self.getRunConfig()['onbacktest']:
+                elif auction_minutes < 10 and self.getRunConfig(context)['onbacktest']:
                     closeLast = np.nan
                 else:
                     closeLast = get_current_data()[security].day_open
