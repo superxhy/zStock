@@ -530,14 +530,21 @@ class JqDatasrc(SecurityDataSrcBase):
         if ref == 0:
             run_minutes = self.GET_RUN_MINUTES(context)
             if run_minutes==0:
-                if context.run_params.type == 'simple_backtest' or context.run_params.type == 'full_backtest':
-                    auction_minutes = self.GET_CALLAUCTION_MINUTES(context)
-                    if auction_minutes < 10:
-                        closeLast = np.nan
-                    else:
-                        closeLast = get_current_data()[security].day_open
-                else:
+                auction_minutes = self.GET_CALLAUCTION_MINUTES(context)
+                #pre auction use yestoday close
+                if auction_minutes < 10:
+                    closeLast = np.nan
+                #call auction end to pull day_open
+                elif auction_minutes < 15:
                     closeLast = get_current_data()[security].day_open
+                #use ontrade data
+                else:
+                    try:
+                        closeLast = data[security].close
+                    except Exception,e:
+                        closeLast = get_current_data()[security].last_price
+                        if np.isnan(closeLast):
+                            closeLast = get_current_data()[security].day_open
                 if np.isnan(closeLast):
                     closeLast = self.GET_CLOSE_DAY(context, security, 1, data)
             elif run_minutes==240:
