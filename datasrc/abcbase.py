@@ -103,8 +103,6 @@ class SecurityDataSrcBase(object):
         run_minutes = (hour-9)*60 + minute - 15
         if run_minutes < 0:
             run_minutes = -1
-        if run_minutes > 10:
-            run_minutes = 10
         return run_minutes
     
     @staticmethod
@@ -981,7 +979,7 @@ class SecurityDataSrcBase(object):
         name = info['name']
         industry = info['industry']
         close = self.GET_CLOSE_DAY(context, security,0,data)
-        closeRef = self.GET_CLOSE_DAY(context, security,1)
+        closeRef = self.GET_CLOSE_DAY(context, security,1,data)
         bundle = {
         'code':code,
         'name':name,
