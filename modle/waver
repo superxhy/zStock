@@ -348,7 +348,12 @@ class Waver(object):
         closeRef = GET_CLOSE_DAY(context, self.__security__,1)
         return self.calRate(close-closeRef, closeRef)
     
-    def refresh(self, context, data={}, period='D'):
+    def refresh(self, context, data={}, period='D', callauction=False):
+        #calculate percentref
+        self.percentref = self.getPercentRef(context, data)
+        #skip to refresh for callauction
+        if callauction:
+            return
         K,D,J= KDJ_DATA(context,self.__security__, period, data, self.MAX_WAVE_COUNT)
         KD = K- D
         #print np.array([str(s) for s in KD])
@@ -427,8 +432,6 @@ class Waver(object):
         self.kmaxkd = kmaxkd
         self.waveseq = waveseq
         self.waveseqstr =waveseqstr
-        #calculate percentref
-        self.percentref = self.getPercentRef(context, data)
         #calculate week bound
         self.cciw = CCI_DATA(context,self.__security__, 'W', data, 1)[-1]
         self.calcStrongRange()
@@ -700,6 +703,11 @@ class Waver(object):
                 Waver.logd("empty poollist! begin to init pool")
             else:
                 Waver.logd("poollist has been inited before, begin to refresh")
+        callauction = False
+        runTimeCA = GET_CALLAUCTION_MINUTES(context)
+        if runTimeCA >= 0 and runTimeCA < 15:
+            Waver.logd("%s refreshWaverPool for callauction")
+            callauction = True
         if context and context.current_dt:
             dt = context.current_dt
         else:
@@ -715,11 +723,11 @@ class Waver(object):
             szzs = GET_ALL_INDEXES()[0]
             Waver.index = Waver(context, szzs)
         else:
-            Waver.index.refresh(context, data)
+            Waver.index.refresh(context, data, callauction)
         #only refresh for empty stocklist
         if d_count == 0:
             for wave in poollist:
-                wave.refresh(context, data)
+                wave.refresh(context, data, callauction)
         #add del refresh poollist by stocklist 
         else:
             Waver.logd("begin count:%s" % (d_count))
