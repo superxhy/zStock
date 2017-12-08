@@ -85,10 +85,14 @@ class SecurityDataSrcBase(object):
         #run_5_minutes = run_5_minutes//5
         return run_minutes
 
+    #[-1] pretrade
+    #[0,10) on call auction
+    #[10,15) stable openprice
+    #[15,15+240] on trade
     @staticmethod
     def GET_CALLAUCTION_MINUTES(context):
         if context == None:
-            return 10
+            return 15+240
         #9:15-9:25
         hour = context.current_dt.hour
         minute = context.current_dt.minute
@@ -96,13 +100,15 @@ class SecurityDataSrcBase(object):
         run_minutes = 0
         #before trade return lastest data
         if hour < 9:
-            return 10
+            return 15+240
         #reset call auction for pretrade
         if hour == 9 and minute < 15:
             return -1
         run_minutes = (hour-9)*60 + minute - 15
         if run_minutes < 0:
             run_minutes = -1
+        if run_minutes > 15+240:
+            run_minutes = 15+240
         return run_minutes
     
     @staticmethod
