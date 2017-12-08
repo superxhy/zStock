@@ -671,6 +671,8 @@ class Waver(object):
         
     @classmethod  
     def updateWaverOtherOrder(cls, poollist, other, dt, aftertrade=False):
+        if other == None:
+            return
         poollen = len(poollist)
         cls.logd("updateWaverIndexOrder poollen:%s" %(str(poollen)))
         if poollen == 0:
@@ -706,7 +708,7 @@ class Waver(object):
         callauction = False
         runTimeCA = GET_CALLAUCTION_MINUTES(context)
         if runTimeCA >= 0 and runTimeCA < 15:
-            Waver.logd("%s refreshWaverPool for callauction")
+            Waver.logd("%s refreshWaverPool for callauction" %(str(runTimeCA)))
             callauction = True
         if context and context.current_dt:
             dt = context.current_dt
@@ -718,16 +720,17 @@ class Waver(object):
         todel= []
         d_count = len(stocklist)
         #init index for avg compare
-        if Waver.index == None:
-            #NO KEEP score dequeue for temp use
-            szzs = GET_ALL_INDEXES()[0]
-            Waver.index = Waver(context, szzs)
-        else:
-            Waver.index.refresh(context, data, callauction)
+        if not callauction:
+            if Waver.index == None:
+                #NO KEEP score dequeue for temp use
+                szzs = GET_ALL_INDEXES()[0]
+                Waver.index = Waver(context, szzs)
+            else:
+                Waver.index.refresh(context, data)
         #only refresh for empty stocklist
         if d_count == 0:
             for wave in poollist:
-                wave.refresh(context, data, callauction)
+                wave.refresh(context, data, 'D', callauction)
         #add del refresh poollist by stocklist 
         else:
             Waver.logd("begin count:%s" % (d_count))
