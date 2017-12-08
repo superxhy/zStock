@@ -755,9 +755,10 @@ class Waver(object):
                 wave = Waver(context, s)
                 poollist.append(wave)
             Waver.logd("end count:%s" % len(poollist))
-        Waver.updateWaverPoolOrder(poollist, dt, aftertrade)
-        Waver.updateWaverOtherOrder(poollist, Waver.index, dt, aftertrade)
-        Waver.logd("shindex:%s,indexPos:%s\n" %(str(Waver.index), str(Waver.indexPos)))
+        if not callauction:
+            Waver.updateWaverPoolOrder(poollist, dt, aftertrade)
+            Waver.updateWaverOtherOrder(poollist, Waver.index, dt, aftertrade)
+            Waver.logd("shindex:%s,indexPos:%s\n" %(str(Waver.index), str(Waver.indexPos)))
         #print poollist
         #print Waver.index
         #send after trade data for next day
