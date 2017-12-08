@@ -32,6 +32,9 @@ def CCI_CN(high, low, close, timeperiod=14):
 def GET_RUN_MINUTES(context):
     return SecurityDataSrcBase.GET_RUN_MINUTES(context)
 
+def GET_CALLAUCTION_MINUTES(context):
+    return SecurityDataSrcBase.GET_CALLAUCTION_MINUTES(context)
+
 def CROSS_LAST_COUNT(src, crossval, crossup=True):
     return SecurityDataSrcBase.CROSS_LAST_COUNT(src, crossval, crossup)
 
