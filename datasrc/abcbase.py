@@ -221,6 +221,99 @@ class SecurityDataSrcBase(object):
         dValue = func(dValue)
         jValue = func(jValue)
         return kValue, dValue, jValue
+
+    @staticmethod
+    def HHV_COM(val, period=1, fixpre=False):
+        lenval = len(val)
+        lenrolling = lenval - period
+        if lenrolling < 0:
+            return np.array([np.nan])
+        resh = np.array([])
+        fdropnan = lambda arr: np.array([s for s in arr if not np.isnan(s)])
+        fmax = lambda arr: np.nan if len(arr) == 0 else arr.max()
+        precount = False
+        for i in range(0, period):
+            if not fixpre:
+                resh = np.append(resh, np.nan)
+                continue
+            if i < 1:
+                resh = np.append(resh, val[i])
+                if np.isnan(val[i]):
+                    precount = True
+                continue
+            resh = np.append(resh, fmax(fdropnan(val[:i+1])))
+        for i in range(0, lenrolling):
+            if precount:
+                hhv = val[i+1:period+i+1].max()
+                if np.isnan(hhv):
+                    hhv = fmax(fdropnan(val[i+1:period+i+1]))
+                else:
+                    precount = False
+            else:
+                hhv = val[i+1:period+i+1].max()
+            resh = np.append(resh, hhv)
+            #resh = np.append(resh, fmax(fdropnan(val[i+1:period+i+1])))
+        return resh
+
+    @staticmethod
+    def LLV_COM(val, period=1, fixpre=False):
+        lenval = len(val)
+        lenrolling = lenval - period
+        if lenrolling < 0:
+            return np.array([np.nan])
+        resl = np.array([])
+        fdropnan = lambda arr: np.array([s for s in arr if not np.isnan(s)])
+        fmin = lambda arr: np.nan if len(arr) == 0 else arr.min()
+        precount = False
+        for i in range(0, period):
+            if not fixpre:
+                resl = np.append(resl, np.nan)
+                continue
+            if i < 1:
+                resl = np.append(resl, val[i])
+                if np.isnan(val[i]):
+                    precount = True
+                continue
+            resl = np.append(resl, fmin(fdropnan(val[:i+1])))
+        for i in range(0, lenrolling):
+            if precount:
+                llv = val[i+1:period+i+1].min()
+                if np.isnan(llv):
+                    llv = fmin(fdropnan(val[i+1:period+i+1]))
+                else:
+                    precount = False
+            else:
+                llv = val[i+1:period+i+1].min()
+            resl = np.append(resl, llv)
+            #resl = np.append(resl, fmin(fdropnan(val[i+1:period+i+1])))
+        return resl
+
+    @staticmethod
+    def SMA_COM(val, period=3, weight=1):
+        res = np.array([])
+        last = np.nan
+        for i in range(0, len(val)):
+            x = val[i]
+            sma = x if np.isnan(last) else (x + (period - weight) * last *1.0) / period
+            last = x if np.isnan(sma) else sma
+            res = np.append(res, sma)
+        return res
+
+    @staticmethod
+    def KDJ_COM(high, low, close, fastk_period=9, slowk_period=3, slowd_period=3, fixpre=True) :
+        len1 = len(high)
+        len2 = len(low)
+        len3 = len(close)
+        if len1 != len2 or len1 != len3:
+            print ("KDJ_COM input invalid for len:%s %s %s " %(str(len1),str(len2),str(len3)))
+            return np.array([np.nan]),np.array([np.nan]),np.array([np.nan])
+        hValue = SecurityDataSrcBase.HHV_COM(high, fastk_period, fixpre)
+        lValue = SecurityDataSrcBase.LLV_COM(low, fastk_period, fixpre)
+        rsValue = (close - lValue) / (hValue - lValue) * 100
+        kValue = SecurityDataSrcBase.SMA_COM(rsValue, slowk_period)
+        dValue = SecurityDataSrcBase.SMA_COM(kValue,  slowd_period)
+        jValue = 3 * kValue - 2 * dValue
+        return kValue, dValue, jValue
     
     # RSI COMMON
     @staticmethod
@@ -308,6 +401,23 @@ class SecurityDataSrcBase(object):
     @staticmethod
     def MA_CN(close,timeperiod=5):
         return tl.MA(close, timeperiod, 0)
+
+    @staticmethod
+    def calRate(a, b):
+        #avoid infinate
+        if np.isnan(b) or b == 0:
+            return 0
+        return float(decimal.Decimal(a/b * 100).quantize(decimal.Decimal('0.00')))
+    
+    def PERCENT_DAY(self, context, security, data={}, ref=1):
+        close = self.GET_CLOSE_DAY(context, security, 0, data)
+        if ref==0:
+            closeRef = self.GET_OPEN_DAY(context, security, 0)
+        else:
+            closeRef = self.GET_CLOSE_DAY(context, security,ref)
+        if ref==1 and np.isnan(closeRef):
+            closeRef = self.GET_OPEN_DAY(context, security, 0)
+        return self.calRate(close-closeRef, closeRef)
     
     def STD_DATA_DAY(self, context, security, data={}, dataCount=1):
         closeDay = self.GET_CLOSE_DATA_DAY(context, security, True, data, dataCount-1+20)
@@ -469,7 +579,7 @@ class SecurityDataSrcBase(object):
     def KDJ_DAY(self, context, security, data={}, ref=0):
         k,d,j = self.KDJ_DATA_DAY(context, security, data, ref+1)
         if np.isnan(k[-1]):
-            return 0,0,0,
+            return np.nan,np.nan,np.nan,
         return k[-1-ref],d[-1-ref],j[-1-ref]
 
     def KDJ_DATA_DAY(self, context, security, data={}, dataCount=1):
@@ -524,8 +634,9 @@ class SecurityDataSrcBase(object):
         precision = 40
         high, low, close = self.GET_PERIOD_DATA(context, security, freq, data, dataCount+precision)
         if np.isnan(close[-1]):
-            return np.array([0]),np.array([0]),np.array([0])
-        K_V, D_V, J_V = self.KDJ_CN(high, low, close)
+            return np.array([np.nan]),np.array([np.nan]),np.array([np.nan])
+        #K_V, D_V, J_V = self.KDJ_CN(high, low, close)
+        K_V, D_V, J_V = self.KDJ_COM(high, low, close)
         if len(K_V) > precision:
             K_V = K_V[precision:]
             D_V = D_V[precision:]
@@ -975,23 +1086,16 @@ class SecurityDataSrcBase(object):
     ['code','name','industry','close','per','wave','inert','vol']
     '''
     def GET_BUNDLE(self, context, security, crypto=False, data={}):
-        def calRate(a, b):
-            #avoid infinate
-            if np.isnan(b) or b == 0:
-                return 0
-            return float(decimal.Decimal(a/b * 100).quantize(decimal.Decimal('0.00')))
         code = security.split('.')[0]
         info = self.GET_SECURITY_INFO(security)
         name = info['name']
         industry = info['industry']
-        close = self.GET_CLOSE_DAY(context, security,0,data)
-        closeRef = self.GET_CLOSE_DAY(context, security,1,data)
         bundle = {
         'code':code,
         'name':name,
         'industry':industry,
-        'close':close,
-        'per':calRate(close-closeRef, closeRef)}
+        'close':self.GET_CLOSE_DAY(context, security,0,data),
+        'per':self.PERCENT_DAY(context, security, data)}
         if not crypto:
             return bundle
         wave = [
