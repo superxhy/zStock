@@ -38,6 +38,11 @@ def GET_CALLAUCTION_MINUTES(context):
 def CROSS_LAST_COUNT(src, crossval, crossup=True):
     return SecurityDataSrcBase.CROSS_LAST_COUNT(src, crossval, crossup)
 
+def PERCENT_DAY(context, security, data={}, ref=1):
+    curname = sys._getframe().f_code.co_name
+    ret = dsobj.invokeMethod(curname, context, security, data, ref)
+    return ret
+
 def STD_DATA_DAY(context, security, data={}, dataCount=1):
     curname = sys._getframe().f_code.co_name
     ret = dsobj.invokeMethod(curname, context, security, data, dataCount)
@@ -344,4 +349,4 @@ class DSUtil(object):
             print "useAttach send"
         else:
             print ret
-        return bundleList
+        return bundleList 
