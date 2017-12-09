@@ -350,7 +350,7 @@ class Waver(object):
     
     def refresh(self, context, data={}, period='D', callauction=False):
         #calculate percentref
-        self.percentref = self.getPercentRef(context, data)
+        self.percentref = PERCENT_DAY(context, self.__security__, data)
         #skip to refresh for callauction
         if callauction:
             return
@@ -460,7 +460,7 @@ class Waver(object):
             else:
                 self.wavedirectflag = int(bcdstr, 2)
         #calculate strong range
-        if np.isnan(self.k) or self.k == 0:
+        if np.isnan(self.k) or self.k == 100:
             #no daily data enough
             self.waverangeflag = self.FLAG_WAVE_NOENOUGH
         elif self.k >= 80:
