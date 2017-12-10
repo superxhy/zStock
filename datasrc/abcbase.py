@@ -416,8 +416,10 @@ class SecurityDataSrcBase(object):
         else:
             closeRef = self.GET_CLOSE_DAY(context, security,ref)
         if ref==1 and np.isnan(closeRef):
-            closeRef = self.GET_OPEN_DAY(context, security, 0)
-        return self.calRate(close-closeRef, closeRef)
+            #issue price higher 120% than openday
+            closeRef = self.GET_OPEN_DAY(context, security, 0)*1.0/1.2
+            #print "security:%s no refclose, use issueprice:%s" %(str(security),str(closeRef))
+        return self.calRate(close-closeRef, closeRef), close
     
     def STD_DATA_DAY(self, context, security, data={}, dataCount=1):
         closeDay = self.GET_CLOSE_DATA_DAY(context, security, True, data, dataCount-1+20)
@@ -1086,16 +1088,19 @@ class SecurityDataSrcBase(object):
     ['code','name','industry','close','per','wave','inert','vol']
     '''
     def GET_BUNDLE(self, context, security, crypto=False, data={}):
+        per, close = self.PERCENT_DAY(context, security, data)
         code = security.split('.')[0]
         info = self.GET_SECURITY_INFO(security)
         name = info['name']
+        if per >= 20:
+            name = 'N'+ str(name)
         industry = info['industry']
         bundle = {
         'code':code,
         'name':name,
         'industry':industry,
-        'close':self.GET_CLOSE_DAY(context, security,0,data),
-        'per':self.PERCENT_DAY(context, security, data)}
+        'close':close,
+        'per':per}
         if not crypto:
             return bundle
         wave = [
