@@ -712,8 +712,6 @@ class Waver(object):
             dt = dsobj.__context__.current_dt
         #for test
         #dt = None
-        newadd = []
-        todel= []
         d_count = len(stocklist)
         #init index for avg compare
         if not callauction:
@@ -731,16 +729,25 @@ class Waver(object):
         else:
             Waver.logd("begin count:%s" % (d_count))
             d_i = 0
+            newadd = []
+            todel= []
             toref = []
             #remove no trade security
             for wave in poollist:
                 if wave.security() not in stocklist:
                     todel.append(wave.security())
-                    poollist.remove(wave)
+                    #poollist.remove(wave)
                 else:
                     toref.append(wave.security())
                     wave.refresh(context, data)
             Waver.logd("len:%s,refresh to todel:%s\n" %(str(len(todel)), str(todel)))
+            #inverted order todel
+            if len(todel) > 0:
+                for i in range(len(poollist)-1, -1, -1):
+                    if poollist[i].security() in todel:
+                        wave = poollist.pop(i)
+                        Waver.logd("poollist del:%s" %(str(wave.security())))
+                        todel.remove(wave.security())
             #add on trade security
             newadd = [s for s in stocklist if s not in toref]
             Waver.logd("len:%s,refresh to newadd:%s\n" %(str(len(newadd)), str(newadd)))
