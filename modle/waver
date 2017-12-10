@@ -169,13 +169,11 @@ class Waver(object):
             return -1
         if my.percentref <= pk and other.percentref > pk:
             return 1
-        scoremy = my.getScore()
-        scoreother = other.getScore()
         #over index first
         if cmpindex:
-            if scoremy > cls.getIndexScore() and scoreother <= cls.getIndexScore():
+            if my.getExcessIndex()==True and other.getExcessIndex()==False:
                 return -1
-            if scoremy <= cls.getIndexScore() and scoreother > cls.getIndexScore():
+            if my.getExcessIndex()==False and other.getExcessIndex()==True:
                 return 1
         #gold cross first
         if my.kd >= 0 and other.kd < 0:
@@ -211,12 +209,10 @@ class Waver(object):
         
     @classmethod
     def cmpScoreMaRaise(cls, my, other, cmpindex=False):
-        scoremy = my.getScore()
-        scoreother = other.getScore()
         if cmpindex:
-            if scoremy > cls.getIndexScore() and scoreother <= cls.getIndexScore():
+            if my.getExcessIndex()==True and other.getExcessIndex()==False:
                 return -1
-            if scoremy <= cls.getIndexScore() and scoreother > cls.getIndexScore():
+            if my.getExcessIndex()==False and other.getExcessIndex()==True:
                 return 1
         scoremarsmy = my.getScoreMaRaise()
         scoremarsother = other.getScoreMaRaise()
@@ -232,9 +228,9 @@ class Waver(object):
         scoreother = other.getScore()
         #over index first
         if cmpindex:
-            if scoremy > cls.getIndexScore() and scoreother < cls.getIndexScore():
+            if my.getExcessIndex()==True and other.getExcessIndex()==False:
                 return -1
-            if scoremy < cls.getIndexScore() and scoreother < cls.getIndexScore():
+            if my.getExcessIndex()==False and other.getExcessIndex()==True:
                 return 1
         bbimy = my.getScoreBBI()
         bbiother = other.getScoreBBI()
@@ -329,28 +325,16 @@ class Waver(object):
     def strdec(n):
         return float(decimal.Decimal(n).quantize(decimal.Decimal('0.00')))
     
-    @staticmethod
-    def calRate(a, b):
-        #avoid infinate
-        if np.isnan(b) or b == 0:
-            return 0
-        return a/b * 100
-    
-    
     def sameDay(self, current_dt):
         return (self.aimed_time != None and 
                     self.aimed_time.year==current_dt.year and 
                     self.aimed_time.month==current_dt.month and 
                     self.aimed_time.day==current_dt.day)
 
-    def getPercentRef(self, context, data):
-        close = GET_CLOSE_DAY(context, self.__security__,0,data)
-        closeRef = GET_CLOSE_DAY(context, self.__security__,1)
-        return self.calRate(close-closeRef, closeRef)
-    
     def refresh(self, context, data={}, period='D', callauction=False):
         #calculate percentref
-        self.percentref = PERCENT_DAY(context, self.__security__, data)
+        percentref, lastprice = PERCENT_DAY(context, self.__security__, data)
+        self.percentref = percentref
         #skip to refresh for callauction
         if callauction:
             return
@@ -545,8 +529,16 @@ class Waver(object):
         #print fiblist
         return fiblist
         
+    def getExcessIndex(self):
+        indexscore = 0 if Waver.index == None else Waver.index.getScore()
+        return self.getScore() > indexscore
+            
     def getScoreMark(self):
         scoremk = ''
+        if self.getExcessIndex():
+            scoremk += '?'
+        else:
+            scoremk += '!'
         #wavebound first
         if self.waveboundflag == self.FLAG_WAVE_STRONG:
             scoremk += '^'
@@ -629,6 +621,10 @@ class Waver(object):
             waverslist = poollist[:]
         waverslist.sort(cmp=lambda a,b: cls.cmpScoreRaise(a, b, cmpindex, pretrade))
         return waverslist
+    
+    @classmethod
+    def getWaveSubnewList(cls, poollist):
+        return [w for w in poollist if w.waveboundflag == Waver.FLAG_WAVE_NOENOUGH]
     
     @classmethod
     def getBbiList(cls, poollist, cmpindex=False):
@@ -764,7 +760,9 @@ class Waver(object):
         #send after trade data for next day
         #Waver.sendWaverPool(context, data, poollist, True, True)
         if pretrade:
-            Waver.sendWaverPool(context, data, poollist[0:Waver.MAX_SEND_COUNT], False, True)
+            wavefirstlist = [Waver.index] + poollist[0:Waver.MAX_SEND_COUNT]
+            wavelastlist = Waver.getWaveSubnewList(poollist)
+            Waver.sendWaverPool(context, data, [wavefirstlist,wavelastlist], False, True)
         if aftertrade:
             Waver.sendWaverPool(context, data, [Waver.index]+poollist, True, notmain)
         return Waver.getIndexScore()
@@ -779,7 +777,9 @@ class Waver(object):
         if Waver.HANDLE_SEND:
             #current raise order list
             waverslist = Waver.getWaveRaiseList(poollist, True, True)[0:Waver.MAX_SEND_COUNT*2]
-            Waver.sendWaverPool(context, data, waverslist, False, True)
+            #current order list tail
+            wavelastlist = Waver.getWaveSubnewList(poollist)
+            Waver.sendWaverPool(context, data, [waverslist, wavelastlist], False, True)
             
     @staticmethod
     def handleWaverPoolEnd(context, data, poollist):
@@ -817,16 +817,16 @@ class Waver(object):
             #current order list head
             wavefirstlist = [Waver.index] +poollist[0:Waver.MAX_SEND_COUNT*2]
             #current order list tail
-            wavelastlist = poollist[-Waver.MAX_SEND_COUNT*2:]
+            wavelastlist = Waver.getWaveSubnewList(poollist)
             #push order list in once
-            Waver.sendWaverPool(context, data, [waverslist, bbilist, wavefirstlist, wavelastlist], False, True)
+            Waver.sendWaverPool(context, data, [waverslist, bbilist, wavelastlist, wavefirstlist], False, True)
         return Waver.getIndexScore()
     
     @staticmethod
     def sendWaverPool(context, data, poollist, aftertrade=False, sendMail=False):
         Waver.logd("%s sendWaverPool" %(str(datetime.datetime.now().strftime('%Y-%m-%d-%H%M%S'))))
-        REDSTAR_ORDERSP_NORMAL = '?'
-        REDSTAR_ORDERSP_INDEX = '||'
+        #REDSTAR_ORDERSP_NORMAL = '?'
+        #REDSTAR_ORDERSP_INDEX = '!'
         #REDSTAR_DEL = '-'
         #REDSTAR_FIRE = '$'
         def redStar(security, idx, bundle, mutiindex=-1):
@@ -836,12 +836,6 @@ class Waver(object):
                 wave = poollist[idx]
             rs = ''
             rs += wave.getScoreMark()
-            if Waver.indexPos !=0 and idx == Waver.indexPos + 1:
-                rs += REDSTAR_ORDERSP_INDEX
-                #split index security
-                Waver.logd("security:%s %s indexPos:%s" %(str( bundle['name']),str(security), str(idx)))
-            else:
-                rs += REDSTAR_ORDERSP_NORMAL
             rs += wave.getScoreStr()
             bundle['name'] += rs
         sendlist = []
