@@ -164,7 +164,7 @@ class Waver(object):
         if my.waverangeflag != cls.FLAG_WAVE_NOENOUGH and other.waverangeflag == cls.FLAG_WAVE_NOENOUGH:
             return -1
         #percent raise first
-        pk = 0 if pretrade else 2
+        pk = 1 if pretrade else 2
         if my.percentref > pk and other.percentref <= pk:
             return -1
         if my.percentref <= pk and other.percentref > pk:
@@ -224,8 +224,6 @@ class Waver(object):
     
     @classmethod
     def cmpBbi(cls, my, other, cmpindex=False):
-        scoremy = my.getScore()
-        scoreother = other.getScore()
         #over index first
         if cmpindex:
             if my.getExcessIndex()==True and other.getExcessIndex()==False:
@@ -783,9 +781,9 @@ class Waver(object):
         #print poollist
         if Waver.HANDLE_SEND:
             #current raise order list
-            waverslist = Waver.getWaveRaiseList(poollist, True, True)[0:Waver.MAX_SEND_COUNT*2]
+            waverslist = Waver.getWaveRaiseList(poollist, True, True)[0:Waver.MAX_SEND_COUNT/2]
             #current order list tail
-            wavelastlist = Waver.getWaveSubnewList(poollist)
+            wavelastlist = Waver.getWaveRaiseList(Waver.getWaveSubnewList(poollist), True, True)[0:Waver.MAX_SEND_COUNT/2]
             Waver.sendWaverPool(context, data, [waverslist, wavelastlist], False, True)
             
     @staticmethod
