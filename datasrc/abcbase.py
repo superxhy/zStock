@@ -587,7 +587,334 @@ class SecurityDataSrcBase(object):
     def KDJ_DATA_DAY(self, context, security, data={}, dataCount=1):
         return self.KDJ_DATA(context, security, 'D',data, dataCount)
     
-    def GET_PERIOD_DATA(self,context, security, freq = 'D', data={}, dataCount=1):
+    def GET_PERIOD_DATA_MIN(self,context, security, data={}, dataCount=1):
+        close = self.GET_CLOSE_DATA_MIN(context,security, data, dataCount)
+        high = self.GET_HIGH_DATA_MIN(context, security, data, dataCount)
+        low = self.GET_LOW_DATA_MIN(context, security, data, dataCount)
+        if len(close) == 0 or np.isnan(close[-1]):
+            return np.array([np.nan]),np.array([np.nan]),np.array([np.nan])
+        len1 = len(close)
+        len2 = len(high)
+        len3 = len(low)
+        if len1 != len2 or len1 != len3:
+            print "%s, GET_PERIOD_DATA_MIN len neq!!!:%s,%s,%s" %(str(security),str(len1),str(len2),str(len3))
+            #print close
+            #print high
+            #print low
+            lenmin = np.array([len1,len2,len3]).min()
+            close = close[len1-lenmin:]
+            high  =  high[len2-lenmin:]
+            low   =   low[len3-lenmin:]
+        return high, low ,close
+    
+    def GET_PERIOD_DATA_DAY(self,context, security, data={}, dataCount=1):
+        close = self.GET_CLOSE_DATA_DAY(context, security, True, data, dataCount)
+        high = self.GET_HIGH_DATA_DAY(context, security, True, {}, dataCount)
+        low = self.GET_LOW_DATA_DAY(context, security, True, {}, dataCount)
+        len1 = len(close)
+        len2 = len(high)
+        len3 = len(low)
+        if len1 != len2 or len1 != len3:
+            print "%s, GET_PERIOD_DATA_DAY len neq!!!:%s,%s,%s" %(str(security),str(len1),str(len2),str(len3))
+            #print close
+            #print high
+            #print low
+            lenmin = np.array([len1,len2,len3]).min()
+            close = close[len1-lenmin:]
+            high  =  high[len2-lenmin:]
+            low   =   low[len3-lenmin:]
+        return high, low ,close
+    
+    def GET_CLOSE_DATA_INTRADAY_DA(self, context, security, data, freq, m_close):
+        run_minutes = self.GET_RUN_MINUTES(context)
+        offset = run_minutes % freq
+        intra = (freq-1 if offset == 0 else offset-1)
+        closeMin = m_close
+        dataCount = len(closeMin)//freq
+        closeLast = closeMin[-1]
+        if np.isnan(closeLast):
+            return np.array([np.nan])
+        if run_minutes==240:
+            closeLast = self.GET_CLOSE_DAY(context, security, 0, data)
+        if run_minutes==0:
+            close_intraday = self.SIMPLE_DATA(closeMin, dataCount, freq, 0)
+            closeLast = self.GET_CLOSE_DAY(context, security, 0, data)
+        else:
+            close_intraday = self.SIMPLE_DATA(closeMin[:-1], dataCount, freq, intra)
+        close_intraday = np.append(close_intraday, closeLast)
+        return close_intraday
+    
+    def GET_HIGH_DATA_INTRADAY_DA(self, context, security, data, freq, m_high):
+        run_minutes = self.GET_RUN_MINUTES(context)
+        offset = run_minutes % freq
+        intra = (freq-1 if offset == 0 else offset-1)
+        highMin = m_high
+        dataCount = len(highMin)//freq
+        highLast = highMin[-1]
+        if np.isnan(highLast):
+            return np.array([np.nan])
+        if run_minutes==240:
+            curLast = self.GET_CLOSE_DAY(context, security, 0, data)
+            if not np.isnan(curLast) and curLast > highLast:
+                highLast = curLast
+        if run_minutes==0:
+            high_intraday = self.SIMPLE_DATA_HIGH(highMin, dataCount, freq, 0)
+            highLast = self.GET_CLOSE_DAY(context, security, 0, data)
+        else:
+            high_intraday = self.SIMPLE_DATA_HIGH(highMin[:-1], dataCount, freq, intra)
+            highLastPre = highMin[-intra-1:].max()
+            if not np.isnan(highLastPre):
+                if highLastPre > highLast:
+                    highLast = highLastPre
+        high_intraday = np.append(high_intraday, highLast)
+        return high_intraday
+    
+    def GET_LOW_DATA_INTRADAY_DA(self, context, security, data, freq, m_low):
+        run_minutes = self.GET_RUN_MINUTES(context)
+        offset = run_minutes % freq
+        intra = (freq-1 if offset == 0 else offset-1)
+        lowMin = m_low
+        dataCount = len(lowMin)//freq
+        lowLast = lowMin[-1]
+        if np.isnan(lowLast):
+            return np.array([np.nan])
+            lowLast = lowMin[-1]
+        if run_minutes==240:
+            curLast = self.GET_CLOSE_DAY(context, security, 0, data)
+            if not np.isnan(curLast) and curLast < lowLast:
+                lowLast = curLast
+        if run_minutes==0:
+            low_intraday = self.SIMPLE_DATA_LOW(lowMin, dataCount, freq, 0)
+            lowLast = self.GET_CLOSE_DAY(context, security, 0, data)
+        else:
+            low_intraday = self.SIMPLE_DATA_LOW(lowMin[:-1], dataCount, freq, intra)
+            lowLastPre = lowMin[-intra-1:].min()
+            if not np.isnan(lowLastPre):
+                if lowLastPre < lowLast:
+                    lowLast = lowLastPre
+        low_intraday = np.append(low_intraday, lowLast)
+        return low_intraday
+    
+    def GET_CLOSE_DATA_WEEK_DA(self, context,security,isLastest,data,d_close):
+        freq = 5
+        close = d_close
+        dataCount = len(close)//freq
+        closeWeek = np.array([np.nan])
+        if np.isnan(close[-1]):
+            return closeWeek
+        weekday = context.current_dt.isoweekday()
+        closeWeek = self.SIMPLE_DATA(close,dataCount,freq,weekday-1)
+        if not isLastest:
+            return closeWeek
+        closeLast = self.GET_CLOSE_DAY(context, security, 0, data)
+        if len(close) <= freq:
+            return np.array([closeLast])
+        if not np.isnan(closeLast) and closeLast != 0:
+            closeWeek= np.append(closeWeek,closeLast)
+        return closeWeek
+    
+    def GET_HIGH_DATA_WEEK_DA(self, context,security,isLastest,data,d_high):
+        freq = 5
+        highData = d_high
+        dataCount = len(highData)//freq
+        highWeek = np.array([np.nan])
+        highLast = highData[-1]
+        if np.isnan(highLast):
+            return highWeek
+        if len(highData) <= freq:
+            highLast = self.SIMPLE_DATA_HIGH(highData,1,freq,0)[-1]
+            return np.array([highLast])
+        high = highData[:-1]
+        weekday = context.current_dt.isoweekday()
+        highWeek = self.SIMPLE_DATA_HIGH(high,dataCount,freq,weekday-1)
+        highLast = highData[-weekday:].max()
+        if np.isnan(highLast):
+            highLast = self.SIMPLE_DATA_HIGH(highData,1,weekday,0)[-1]
+        highWeek= np.append(highWeek,highLast)
+        return highWeek
+    
+    def GET_LOW_DATA_WEEK_DA(self, context,security,isLastest,data,d_low):
+        freq = 5
+        lowData = d_low
+        dataCount = len(lowData)//freq
+        lowWeek = np.array([np.nan])
+        lowLast = lowData[-1]
+        if np.isnan(lowLast):
+            return lowWeek
+        if len(lowData) <= freq:
+            lowLast = self.SIMPLE_DATA_LOW(lowData,1,freq,0)[-1]
+            return np.array([lowLast])
+        low = lowData[:-1]
+        weekday = context.current_dt.isoweekday()
+        lowWeek = self.SIMPLE_DATA_LOW(low,dataCount,freq,weekday-1)
+        lowLast = lowData[-weekday:].min()
+        if np.isnan(lowLast):
+            lowLast = self.SIMPLE_DATA_LOW(lowData,1,weekday,0)[-1]
+        lowWeek= np.append(lowWeek,lowLast)
+        return lowWeek
+    
+    def GET_CLOSE_DATA_MONTH_DA(self, context,security,isLastest,data,d_close):
+        freq = 20
+        close = d_close
+        dataCount = len(close)//freq
+        closeMonth = np.array([np.nan])
+        if np.isnan(close[-1]):
+            return closeMonth
+        day = context.current_dt.day
+        closeMonth = self.SIMPLE_DATA(close,dataCount,freq,day-1)
+        if not isLastest:
+            return closeMonth
+        closeLast = self.GET_CLOSE_DAY(context, security, 0, data)
+        if len(close) <= freq:
+            return np.array([closeLast])
+        if not np.isnan(closeLast) and closeLast != 0:
+            closeMonth = np.append(closeMonth,closeLast)
+        return closeMonth
+    
+    def GET_HIGH_DATA_MONTH_DA(self, context,security,isLastest,data,d_high):
+        freq = 20
+        highData = d_high
+        dataCount = len(highData)//freq
+        highLast = highData[-1]
+        highMonth = np.array([np.nan])
+        if np.isnan(highLast):
+            return highMonth
+        if len(highData) <= freq:
+            highLast = self.SIMPLE_DATA_HIGH(highData,1,freq,0)[-1]
+            return np.array([highLast])
+        high = highData[:-1]
+        day = context.current_dt.day
+        highMonth = self.SIMPLE_DATA_HIGH(high,dataCount,freq,day-1)
+        highLast = highData[-day:].max()
+        if np.isnan(highLast):
+            highLast = self.SIMPLE_DATA_HIGH(highData,1,day,0)[-1]
+        highMonth= np.append(highMonth,highLast)
+        return highMonth
+    
+    def GET_LOW_DATA_MONTH_DA(self, context,security,isLastest,data,d_low):
+        freq = 20
+        lowData = d_low
+        dataCount = len(lowData)//freq
+        lowLast = lowData[-1]
+        lowMonth = np.array([np.nan])
+        if np.isnan(lowLast):
+            return lowMonth
+        if len(lowData) <= freq:
+            lowLast = self.SIMPLE_DATA_LOW(lowData,1,freq,0)[-1]
+            return np.array([lowLast])
+        low = lowData[:-1]
+        day = context.current_dt.day
+        lowMonth = self.SIMPLE_DATA_LOW(low,dataCount,freq,day-1)
+        lowLast = lowData[-day:].min()
+        if np.isnan(lowLast):
+            lowLast = self.SIMPLE_DATA_LOW(lowData,1,day,0)[-1]
+        lowMonth= np.append(lowMonth,lowLast)
+        return lowMonth
+    
+    def GET_CLOSE_DATA_SEASON_DA(self,context,security,isLastest,data,d_close):
+        freq = 3
+        closeData = self.GET_CLOSE_DATA_MONTH_DA(context, security, isLastest, data, d_close)
+        dataCount = len(closeData)//freq
+        close = closeData[:-1]
+        closeLast = np.nan
+        if len(closeData) <= freq:
+            return np.array([closeData[-1]])
+        else: 
+            closeLast = closeData[-1]
+        month = context.current_dt.month
+        season = (freq if month % freq == 0 else month % freq)
+        closeSeason = self.SIMPLE_DATA(close,dataCount,freq,season-1)
+        if not np.isnan(closeLast) and closeLast != 0:
+            closeSeason = np.append(closeSeason,closeLast)
+        return  closeSeason
+    
+    def GET_HIGH_DATA_SEASON_DA(self,context,security,isLastest,data,d_high):
+        freq = 3
+        highData = self.GET_HIGH_DATA_MONTH_DA(context, security, isLastest, data, d_high)
+        dataCount = len(highData)//freq
+        high = highData[:-1]
+        highLast = np.nan
+        if len(highData) <= freq:
+            highLast = self.SIMPLE_DATA_HIGH(highData,1,freq,0)[-1]
+            return np.array([highLast])
+        month = context.current_dt.month
+        season = (freq if month % freq == 0 else month % freq)
+        highSeason = self.SIMPLE_DATA_HIGH(high,dataCount,freq,season-1)
+        highLast = highData[-season:].max()
+        if np.isnan(highLast):
+            highLast = self.SIMPLE_DATA_HIGH(highData,1,season,0)[-1]
+        highSeason= np.append(highSeason,highLast)
+        return highSeason
+    
+    def GET_LOW_DATA_SEASON_DA(self,context,security,isLastest,data,d_low):
+        freq = 3
+        lowData = self.GET_LOW_DATA_MONTH_DA(context, security, isLastest, data, d_low)
+        dataCount = len(lowData)//freq
+        low = lowData[:-1]
+        lowLast = np.nan
+        if len(lowData) <= freq:
+            lowLast = self.SIMPLE_DATA_LOW(lowData,1,freq,0)[-1]
+            return np.array([lowLast])
+        month = context.current_dt.month
+        season = (freq if month % freq == 0 else month % freq)
+        lowSeason = self.SIMPLE_DATA_LOW(low,dataCount,freq,season-1)
+        lowLast = lowData[-season:].min()
+        if np.isnan(lowLast):
+            lowLast = self.SIMPLE_DATA_LOW(lowData,1,season,0)[-1]
+        lowSeason= np.append(lowSeason,lowLast)
+        return lowSeason
+    
+    def GET_CLOSE_DATA_YEAR_DA(self,context,security,isLastest,data,d_close):
+        freq = 12
+        closeData = self.GET_CLOSE_DATA_MONTH_DA(context, security, isLastest, data, d_close)
+        dataCount = len(closeData)//freq
+        close = closeData[:-1]
+        closeLast = np.nan
+        if len(closeData) <= freq:
+            return np.array([closeData[-1]])
+        else: 
+            closeLast = closeData[-1]
+        month = context.current_dt.month
+        closeYear = self.SIMPLE_DATA(close,dataCount,freq,month-1)
+        if not np.isnan(closeLast) and closeLast != 0:
+            closeYear = np.append(closeYear,closeLast)
+        return  closeYear
+    
+    def GET_HIGH_DATA_YEAR_DA(self,context,security,isLastest,data,d_high):
+        freq = 12
+        highData = self.GET_HIGH_DATA_MONTH_DA(context, security, isLastest, data, d_high)
+        dataCount = len(highData)//freq
+        high = highData[:-1]
+        highLast = np.nan
+        if len(highData) <= freq:
+            highLast = self.SIMPLE_DATA_HIGH(highData,1,freq,0)[-1]
+            return np.array([highLast])
+        month = context.current_dt.month
+        highYear = self.SIMPLE_DATA_HIGH(high,dataCount,freq,month-1)
+        highLast = highData[-month:].max()
+        if np.isnan(highLast):
+            highLast = self.SIMPLE_DATA_HIGH(highData,1,month,0)[-1]
+        highYear= np.append(highYear,highLast)
+        return highYear
+    
+    def GET_LOW_DATA_YEAR_DA(self,context,security,isLastest,data, d_low):
+        freq = 12
+        lowData = self.GET_LOW_DATA_MONTH_DA(context, security, isLastest, data, d_low)
+        dataCount = len(lowData)//freq
+        low = lowData[:-1]
+        lowLast = np.nan
+        if len(lowData) <= freq:
+            lowLast = self.SIMPLE_DATA_LOW(lowData,1,freq,0)[-1]
+            return np.array([lowLast])
+        month = context.current_dt.month
+        lowYear = self.SIMPLE_DATA_LOW(low,dataCount,freq,month-1)
+        lowLast = lowData[-month:].min()
+        if np.isnan(lowLast):
+            lowLast = self.SIMPLE_DATA_LOW(lowData,1,month,0)[-1]
+        lowYear= np.append(lowYear,lowLast)
+        return lowYear
+    
+    def GET_PERIOD_DATA_OLD(self,context, security, freq = 'D', data={}, dataCount=1):
         if freq == 'D':
             close = self.GET_CLOSE_DATA_DAY(context, security, True, data, dataCount)
             high = self.GET_HIGH_DATA_DAY(context, security, True, {}, dataCount)
@@ -623,13 +950,196 @@ class SecurityDataSrcBase(object):
             #print high
             #print low
             lenmin = np.array([len1,len2,len3]).min()
-            if len1 > lenmin:
-                close = close[:-(len1-lenmin)]
-            if len2 > lenmin:
-                high  =  high[:-(len2-lenmin)]
-            if len3 > lenmin:
-                low   =   low[:-(len3-lenmin)]
+            close = close[len1-lenmin:]
+            high  =  high[len2-lenmin:]
+            low   =   low[len3-lenmin:]
         return high, low ,close
+    
+    def GET_PERIOD_DATA(self,context, security, freq = 'D', data={}, dataCount=1):
+        close = np.array([np.nan])
+        high = np.array([np.nan])
+        low = np.array([np.nan])
+        if freq == 'D':
+            high, low, close = self.GET_PERIOD_DATA_DAY(self,context, security, data={}, dataCount)
+            if len(close) == 0 or np.isnan(close[-1]):
+                print "security:%s in freq:%s NO GET_PERIOD_DATA_DA!" %(str(security),str(freq))
+                return np.array([np.nan]),np.array([np.nan]),np.array([np.nan])
+        elif freq == 'W':
+            d_high, d_low, d_close = self.GET_PERIOD_DATA_DAY(self,context, security, data={}, dataCount*5)
+            if len(d_close) == 0 or np.isnan(d_close[-1]):
+                print "security:%s in freq:%s NO GET_PERIOD_DATA_DA!" %(str(security),str(freq))
+                return np.array([np.nan]),np.array([np.nan]),np.array([np.nan])
+            close = self.GET_CLOSE_DATA_WEEK_DA(context, security, True, data, d_close)
+            high = self.GET_HIGH_DATA_WEEK_DA(context, security, True, data, d_high)
+            low = self.GET_LOW_DATA_WEEK_DA(context, security, True, data, d_low)
+        elif freq == 'M':
+            d_high, d_low, d_close = self.GET_PERIOD_DATA_DAY(self,context, security, data={}, dataCount*20)
+            if len(d_close) == 0 or np.isnan(d_close[-1]):
+                print "security:%s in freq:%s NO GET_PERIOD_DATA_DA!" %(str(security),str(freq))
+                return np.array([np.nan]),np.array([np.nan]),np.array([np.nan])
+            close = self.GET_CLOSE_DATA_MONTH_DA(context, security, True, data, d_close)
+            high = self.GET_HIGH_DATA_MONTH_DA(context, security, True, data, d_high)
+            low = self.GET_LOW_DATA_MONTH_DA(context, security, True, data, d_low)
+        elif freq == 'S':
+            d_high, d_low, d_close = self.GET_PERIOD_DATA_DAY(self,context, security, data={}, dataCount*3*20)
+            if len(d_close) == 0 or np.isnan(d_close[-1]):
+                print "security:%s in freq:%s NO GET_PERIOD_DATA_DA!" %(str(security),str(freq))
+                return np.array([np.nan]),np.array([np.nan]),np.array([np.nan])
+            close = self.GET_CLOSE_DATA_SEASON_DA(context, security, True, data, d_close)
+            high = self.GET_HIGH_DATA_SEASON_DA(context, security, True, data, d_high)
+            low = self.GET_LOW_DATA_SEASON_DA(context, security, True, data, d_low)
+        elif freq == 'Y':
+            d_high, d_low, d_close = self.GET_PERIOD_DATA_DAY(self,context, security, data={}, dataCount*12*20)
+            if len(d_close) == 0 or np.isnan(d_close[-1]):
+                print "security:%s in freq:%s NO GET_PERIOD_DATA_DA!" %(str(security),str(freq))
+                return np.array([np.nan]),np.array([np.nan]),np.array([np.nan])
+            close = self.GET_CLOSE_DATA_YEAR_DA(context, security, True, data, d_close)
+            high = self.GET_HIGH_DATA_YEAR_DA(context, security, True, data, d_high)
+            low = self.GET_LOW_DATA_YEAR_DA(context, security, True, data, d_low)
+        else :
+            run_minutes = self.GET_RUN_MINUTES(context)
+            offset = run_minutes % freq
+            get_count = dataCount * freq + offset
+            m_high, m_low, m_close = self.GET_PERIOD_DATA_MIN(self,context, security, data={}, get_count)
+            if len(m_close) == 0 or np.isnan(m_close[-1]):
+                print "security:%s in freq:%s NO GET_PERIOD_DATA_DA!" %(str(security),str(freq))
+                return np.array([np.nan]),np.array([np.nan]),np.array([np.nan])
+            close = self.GET_CLOSE_DATA_INTRADAY_DA(context, security, data, freq, m_close)
+            high = self.GET_HIGH_DATA_INTRADAY_DA(context, security, data, freq, m_high)
+            low = self.GET_LOW_DATA_INTRADAY_DA(context, security, data, freq, m_low)
+        if len(close) == 0 or np.isnan(close[-1]):
+            return np.array([np.nan]),np.array([np.nan]),np.array([np.nan])
+        len1 = len(close)
+        len2 = len(high)
+        len3 = len(low)
+        #print "%s,freq:%s GET_PERIOD_DATA !!!:%s,%s,%s" %(str(security),str(freq),str(len1),str(len2),str(len3))
+        #print close
+        #print high
+        #print low
+        if len1 != len2 or len1 != len3:
+            print "%s,freq:%s GET_PERIOD_DATA len neq!!!:%s,%s,%s" %(str(security),str(freq),str(len1),str(len2),str(len3))
+            print close
+            print high
+            print low
+            lenmin = np.array([len1,len2,len3]).min()
+            close = close[len1-lenmin:]
+            high  =  high[len2-lenmin:]
+            low   =   low[len3-lenmin:]
+        return high, low ,close
+    
+    # 获取当前分时收盘价
+    def GET_CLOSE_DATA_INTRADAY(self, context, security, data={}, freq=5, dataCount=1):
+        run_minutes = self.GET_RUN_MINUTES(context)
+        offset = run_minutes % freq
+        get_count = dataCount * freq + offset
+        m_high, m_low, m_close = self.GET_PERIOD_DATA_MIN(self,context, security, data={}, get_count)
+        if len(m_close) == 0 or np.isnan(m_close[-1]):
+            return np.array([np.nan])
+        return self.GET_CLOSE_DATA_INTRADAY_DA(context, security, data, freq, m_close)
+    
+    # 获取当前分时最高价
+    def GET_HIGH_DATA_INTRADAY(self, context, security, data={}, freq=5, dataCount=1):
+        run_minutes = self.GET_RUN_MINUTES(context)
+        offset = run_minutes % freq
+        get_count = dataCount * freq + offset
+        m_high, m_low, m_close = self.GET_PERIOD_DATA_MIN(self,context, security, data={}, get_count)
+        if len(m_high) == 0 or np.isnan(m_high[-1]):
+            return np.array([np.nan])
+        return self.GET_HIGH_DATA_INTRADAY_DA(context, security, data, freq, m_close)
+    
+    # 获取当前分时最低价
+    def GET_LOW_DATA_INTRADAY(self, context, security, data={}, freq=5, dataCount=1):
+        run_minutes = self.GET_RUN_MINUTES(context)
+        offset = run_minutes % freq
+        get_count = dataCount * freq + offset
+        m_high, m_low, m_close = self.GET_PERIOD_DATA_MIN(self,context, security, data={}, get_count)
+        if len(m_low) == 0 or np.isnan(m_low[-1]):
+            return np.array([np.nan])
+        return self.GET_LOW_DATA_INTRADAY_DA(context, security, data, freq, m_close)
+    
+    # 获取周线历史数据
+    def GET_CLOSE_DATA_WEEK(self, context,security,isLastest=True,data={},dataCount=20):
+        d_close = self.GET_CLOSE_DATA_DAY(context, security, True, data, dataCount*5)
+        if len(d_close) == 0 or np.isnan(d_close[-1]):
+            return np.array([np.nan])
+        return self.GET_CLOSE_DATA_WEEK_DA(context, security, isLastest, data, d_close)
+    
+    # 获取周线历史数据最大值
+    def GET_HIGH_DATA_WEEK(self, context,security,isLastest=True,data={},dataCount=1):
+        d_high = self.GET_HIGH_DATA_DAY(context, security, True, data, dataCount*5)
+        if len(d_high) == 0 or np.isnan(d_high[-1]):
+            return np.array([np.nan])
+        return self.GET_HIGH_DATA_WEEK_DA(context, security, isLastest, data, d_high)
+    
+    # 获取周线历史数据最小值
+    def GET_LOW_DATA_WEEK(self, context,security,isLastest=True,data={},dataCount=1):
+        d_low = self.GET_LOW_DATA_DAY(context, security, True, data, dataCount*5)
+        if len(d_low) == 0 or np.isnan(d_low[-1]):
+            return np.array([np.nan])
+        return self.GET_LOW_DATA_WEEK_DA(context, security, isLastest, data, d_low)
+    
+    # 获取月线历史数据
+    def GET_CLOSE_DATA_MONTH(self, context,security,isLastest=True,data={},dataCount=1):
+        d_close = self.GET_CLOSE_DATA_DAY(context, security, True, data, dataCount*20)
+        if len(d_close) == 0 or np.isnan(d_close[-1]):
+            return np.array([np.nan])
+        return self.GET_CLOSE_DATA_MONTH_DA(context, security, isLastest, data, d_close)
+    
+    # 获取月线历史数据最大值
+    def GET_HIGH_DATA_MONTH(self, context,security,isLastest=True,data={},dataCount=1):
+        d_high = self.GET_HIGH_DATA_DAY(context, security, True, data, dataCount*20)
+        if len(d_high) == 0 or np.isnan(d_high[-1]):
+            return np.array([np.nan])
+        return self.GET_HIGH_DATA_MONTH_DA(context, security, isLastest, data, d_high)
+    
+    # 获取月线历史数据最小值
+    def GET_LOW_DATA_MONTH(self, context,security,isLastest=True,data={},dataCount=1):
+        d_low = self.GET_LOW_DATA_DAY(context, security, True, data, dataCount*20)
+        if len(d_low) == 0 or np.isnan(d_low[-1]):
+            return np.array([np.nan])
+        return self.GET_LOW_DATA_MONTH_DA(context, security, isLastest, data, d_low)
+    
+    # 获取季线历史数据
+    def GET_CLOSE_DATA_SEASON(self,context,security,isLastest=True,data={},dataCount=1):
+        d_close = self.GET_CLOSE_DATA_DAY(context, security, True, data, dataCount*3*20)
+        if len(d_close) == 0 or np.isnan(d_close[-1]):
+            return np.array([np.nan])
+        return self.GET_CLOSE_DATA_SEASON_DA(context, security, isLastest, data, d_close)
+    
+    # 获取季线历史数据最大值
+    def GET_HIGH_DATA_SEASON(self, context,security,isLastest=True,data={},dataCount=1):
+        d_high = self.GET_HIGH_DATA_DAY(context, security, True, data, dataCount*3*20)
+        if len(d_high) == 0 or np.isnan(d_high[-1]):
+            return np.array([np.nan])
+        return self.GET_HIGH_DATA_SEASON_DA(context, security, isLastest, data, d_high)
+    
+    # 获取季线历史数据最小值
+    def GET_LOW_DATA_SEASON(self, context,security,isLastest=True,data={},dataCount=1):
+        d_low = self.GET_LOW_DATA_DAY(context, security, True, data, dataCount*3*20)
+        if len(d_low) == 0 or np.isnan(d_low[-1]):
+            return np.array([np.nan])
+        return self.GET_LOW_DATA_SEASON_DA(context, security, isLastest, data, d_low)
+    
+    # 获取年线历史数据
+    def GET_CLOSE_DATA_YEAR(self,context,security,isLastest=True,data={},dataCount=20):
+        d_close = self.GET_CLOSE_DATA_DAY(context, security, True, data, dataCount*12*20)
+        if len(d_close) == 0 or np.isnan(d_close[-1]):
+            return np.array([np.nan])
+        return self.GET_CLOSE_DATA_YEAR_DA(context, security, isLastest, data, d_close)
+    
+    # 获取季线历史数据最大值
+    def GET_HIGH_DATA_YEAR(self, context,security,isLastest=True,data={},dataCount=1):
+        d_high = self.GET_HIGH_DATA_DAY(context, security, True, data, dataCount*12*20)
+        if len(d_high) == 0 or np.isnan(d_high[-1]):
+            return np.array([np.nan])
+        return self.GET_HIGH_DATA_YEAR_DA(context, security, isLastest, data, d_high)
+    
+    # 获取季线历史数据最小值
+    def GET_LOW_DATA_YEAR(self, context,security,isLastest=True,data={},dataCount=1):
+        d_low = self.GET_LOW_DATA_DAY(context, security, True, data, dataCount*12*20)
+        if len(d_low) == 0 or np.isnan(d_low[-1]):
+            return np.array([np.nan])
+        return self.GET_LOW_DATA_YEAR_DA(context, security, isLastest, data, d_low)
     
     def KDJ_DATA(self, context, security, freq = 'D', data={}, dataCount=1):
         #sma target round2
@@ -1273,22 +1783,22 @@ class SecurityDataSrcBase(object):
         pass
     
     # 获取当前分时收盘价
-    @abstractmethod
+    #@abstractmethod
     #context, security, data={}, freq=5, dataCount=1
-    def GET_CLOSE_DATA_INTRADAY(self):
-        pass
+    #def GET_CLOSE_DATA_INTRADAY(self):
+    #    pass
     
     # 获取当前分时最高价
-    @abstractmethod
+    #@abstractmethod
     #context, security, data={}, freq=5, dataCount=1
-    def GET_HIGH_DATA_INTRADAY(self):
-        pass
+    #def GET_HIGH_DATA_INTRADAY(self):
+    #    pass
     
     # 获取当前分时最低价
-    @abstractmethod
+    #@abstractmethod
     #context, security, data={}, freq=5, dataCount=1
-    def GET_LOW_DATA_INTRADAY(self):
-        pass
+    #def GET_LOW_DATA_INTRADAY(self):
+    #    pass
     
     # 获取当前分时成交量
     @abstractmethod
@@ -1324,28 +1834,28 @@ class SecurityDataSrcBase(object):
         pass
 
     # 获取周线历史数据最大值
-    @abstractmethod
+    #@abstractmethod
     #context,security,isLastest=True,data={},dataCount=1
-    def GET_HIGH_DATA_WEEK(self):
-        pass
+    #def GET_HIGH_DATA_WEEK(self):
+    #    pass
     
     # 获取周线历史数据最小值
-    @abstractmethod
+    #@abstractmethod
     #context,security,isLastest=True,data={},dataCount=1
-    def GET_LOW_DATA_WEEK(self):
-        pass
+    #def GET_LOW_DATA_WEEK(self):
+    #    pass
     
     # 获取月线历史数据最大值
-    @abstractmethod
+    #@abstractmethod
     #context,security,isLastest=True,data={},dataCount=1
-    def GET_HIGH_DATA_MONTH(self):
-        pass
+    #def GET_HIGH_DATA_MONTH(self):
+    #    pass
     
     # 获取月线历史数据最小值
-    @abstractmethod
+    #@abstractmethod
     #context,security,isLastest=True,data={},dataCount=1
-    def GET_LOW_DATA_MONTH(self):
-        pass
+    #def GET_LOW_DATA_MONTH(self):
+    #    pass
     
     # 获取当前日线或ref天前收盘价
     @abstractmethod
@@ -1359,53 +1869,53 @@ class SecurityDataSrcBase(object):
     def GET_CLOSE_DATA_DAY(self):
         pass
        
-    @abstractmethod
+    #@abstractmethod
     #security,isLastest=True,data={},dataCount=20
     # 获取周线历史数据
-    def GET_CLOSE_DATA_WEEK(self):
-        pass
+    #def GET_CLOSE_DATA_WEEK(self):
+    #    pass
     
-    @abstractmethod
+    #@abstractmethod
     #security,isLastest=True,data={},dataCount=20
     # 获取月线历史数据
-    def GET_CLOSE_DATA_MONTH(self):
-        pass
+    #def GET_CLOSE_DATA_MONTH(self):
+    #    pass
     
-    @abstractmethod
+    #@abstractmethod
     #context,security,isLastest=True,data={},dataCount=20
     # 获取季线历史数据
-    def GET_CLOSE_DATA_SEASON(self):
-        pass
+    #def GET_CLOSE_DATA_SEASON(self):
+    #    pass
     
-    @abstractmethod
+    #@abstractmethod
     #context,security,isLastest=True,data={},dataCount=20
     # 获取年线历史数据
-    def GET_CLOSE_DATA_YEAR(self):
-        pass
+    #def GET_CLOSE_DATA_YEAR(self):
+    #    pass
     
-    @abstractmethod
+    #@abstractmethod
     # 获取季线历史数据最大值
     #context,security,isLastest=True,data={},dataCount=20
-    def GET_HIGH_DATA_SEASON(self):
-        pass
+    #def GET_HIGH_DATA_SEASON(self):
+    #    pass
     
-    @abstractmethod
+    #@abstractmethod
     # 获取季线历史数据最小值
     #context,security,isLastest=True,data={},dataCount=20
-    def GET_LOW_DATA_SEASON(self):
-        pass
+    #def GET_LOW_DATA_SEASON(self):
+    #    pass
     
-    @abstractmethod
+    #@abstractmethod
     # 获取年线历史数据最大值
     #context,security,isLastest=True,data={},dataCount=20
-    def GET_HIGH_DATA_YEAR(self):
-        pass
+    #def GET_HIGH_DATA_YEAR(self):
+    #    pass
     
-    @abstractmethod
+    #@abstractmethod
     # 获取年线历史数据最小值
     #context,security,isLastest=True,data={},dataCount=20
-    def GET_LOW_DATA_YEAR(self):
-        pass
+    #def GET_LOW_DATA_YEAR(self):
+    #    pass
     
     # 获取日线周线月线收盘价历史数据
     @abstractmethod
