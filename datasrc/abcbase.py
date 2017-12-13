@@ -960,12 +960,12 @@ class SecurityDataSrcBase(object):
         high = np.array([np.nan])
         low = np.array([np.nan])
         if freq == 'D':
-            high, low, close = self.GET_PERIOD_DATA_DAY(self,context, security, data={}, dataCount)
+            high, low, close = self.GET_PERIOD_DATA_DAY(context, security, data, dataCount)
             if len(close) == 0 or np.isnan(close[-1]):
                 print "security:%s in freq:%s NO GET_PERIOD_DATA_DA!" %(str(security),str(freq))
                 return np.array([np.nan]),np.array([np.nan]),np.array([np.nan])
         elif freq == 'W':
-            d_high, d_low, d_close = self.GET_PERIOD_DATA_DAY(self,context, security, data={}, dataCount*5)
+            d_high, d_low, d_close = self.GET_PERIOD_DATA_DAY(context, security, data, dataCount*5)
             if len(d_close) == 0 or np.isnan(d_close[-1]):
                 print "security:%s in freq:%s NO GET_PERIOD_DATA_DA!" %(str(security),str(freq))
                 return np.array([np.nan]),np.array([np.nan]),np.array([np.nan])
@@ -973,7 +973,7 @@ class SecurityDataSrcBase(object):
             high = self.GET_HIGH_DATA_WEEK_DA(context, security, True, data, d_high)
             low = self.GET_LOW_DATA_WEEK_DA(context, security, True, data, d_low)
         elif freq == 'M':
-            d_high, d_low, d_close = self.GET_PERIOD_DATA_DAY(self,context, security, data={}, dataCount*20)
+            d_high, d_low, d_close = self.GET_PERIOD_DATA_DAY(context, security, data, dataCount*20)
             if len(d_close) == 0 or np.isnan(d_close[-1]):
                 print "security:%s in freq:%s NO GET_PERIOD_DATA_DA!" %(str(security),str(freq))
                 return np.array([np.nan]),np.array([np.nan]),np.array([np.nan])
@@ -981,7 +981,7 @@ class SecurityDataSrcBase(object):
             high = self.GET_HIGH_DATA_MONTH_DA(context, security, True, data, d_high)
             low = self.GET_LOW_DATA_MONTH_DA(context, security, True, data, d_low)
         elif freq == 'S':
-            d_high, d_low, d_close = self.GET_PERIOD_DATA_DAY(self,context, security, data={}, dataCount*3*20)
+            d_high, d_low, d_close = self.GET_PERIOD_DATA_DAY(context, security, data, dataCount*3*20)
             if len(d_close) == 0 or np.isnan(d_close[-1]):
                 print "security:%s in freq:%s NO GET_PERIOD_DATA_DA!" %(str(security),str(freq))
                 return np.array([np.nan]),np.array([np.nan]),np.array([np.nan])
@@ -989,7 +989,7 @@ class SecurityDataSrcBase(object):
             high = self.GET_HIGH_DATA_SEASON_DA(context, security, True, data, d_high)
             low = self.GET_LOW_DATA_SEASON_DA(context, security, True, data, d_low)
         elif freq == 'Y':
-            d_high, d_low, d_close = self.GET_PERIOD_DATA_DAY(self,context, security, data={}, dataCount*12*20)
+            d_high, d_low, d_close = self.GET_PERIOD_DATA_DAY(context, security, data, dataCount*12*20)
             if len(d_close) == 0 or np.isnan(d_close[-1]):
                 print "security:%s in freq:%s NO GET_PERIOD_DATA_DA!" %(str(security),str(freq))
                 return np.array([np.nan]),np.array([np.nan]),np.array([np.nan])
@@ -1000,7 +1000,7 @@ class SecurityDataSrcBase(object):
             run_minutes = self.GET_RUN_MINUTES(context)
             offset = run_minutes % freq
             get_count = dataCount * freq + offset
-            m_high, m_low, m_close = self.GET_PERIOD_DATA_MIN(self,context, security, data={}, get_count)
+            m_high, m_low, m_close = self.GET_PERIOD_DATA_MIN(context, security, data, get_count)
             if len(m_close) == 0 or np.isnan(m_close[-1]):
                 print "security:%s in freq:%s NO GET_PERIOD_DATA_DA!" %(str(security),str(freq))
                 return np.array([np.nan]),np.array([np.nan]),np.array([np.nan])
@@ -1032,7 +1032,7 @@ class SecurityDataSrcBase(object):
         run_minutes = self.GET_RUN_MINUTES(context)
         offset = run_minutes % freq
         get_count = dataCount * freq + offset
-        m_high, m_low, m_close = self.GET_PERIOD_DATA_MIN(self,context, security, data={}, get_count)
+        m_high, m_low, m_close = self.GET_PERIOD_DATA_MIN(context, security, data, get_count)
         if len(m_close) == 0 or np.isnan(m_close[-1]):
             return np.array([np.nan])
         return self.GET_CLOSE_DATA_INTRADAY_DA(context, security, data, freq, m_close)
@@ -1042,7 +1042,7 @@ class SecurityDataSrcBase(object):
         run_minutes = self.GET_RUN_MINUTES(context)
         offset = run_minutes % freq
         get_count = dataCount * freq + offset
-        m_high, m_low, m_close = self.GET_PERIOD_DATA_MIN(self,context, security, data={}, get_count)
+        m_high, m_low, m_close = self.GET_PERIOD_DATA_MIN(context, security, data, get_count)
         if len(m_high) == 0 or np.isnan(m_high[-1]):
             return np.array([np.nan])
         return self.GET_HIGH_DATA_INTRADAY_DA(context, security, data, freq, m_close)
@@ -1052,7 +1052,7 @@ class SecurityDataSrcBase(object):
         run_minutes = self.GET_RUN_MINUTES(context)
         offset = run_minutes % freq
         get_count = dataCount * freq + offset
-        m_high, m_low, m_close = self.GET_PERIOD_DATA_MIN(self,context, security, data={}, get_count)
+        m_high, m_low, m_close = self.GET_PERIOD_DATA_MIN(context, security, data, get_count)
         if len(m_low) == 0 or np.isnan(m_low[-1]):
             return np.array([np.nan])
         return self.GET_LOW_DATA_INTRADAY_DA(context, security, data, freq, m_close)
