@@ -713,7 +713,7 @@ class JqDatasrc(SecurityDataSrcBase):
         highLast = np.nan
         if len(highData) <= freq:
             highLast = self.SIMPLE_DATA_HIGH(highData,1,freq,0)[-1]
-            return array([highLast])
+            return np.array([highLast])
         month = context.current_dt.month
         season = (freq if month % freq == 0 else month % freq)
         highSeason = self.SIMPLE_DATA_HIGH(high,dataCount,freq,season-1)
@@ -804,6 +804,12 @@ class JqDatasrc(SecurityDataSrcBase):
             lowLast = self.SIMPLE_DATA_LOW(lowData,1,month,0)[-1]
         lowYear= np.append(lowYear,lowLast)
         return lowYear
+    
+    def GET_PERIOD_DATA_MIN(self,context, security, data={}, dataCount=1):
+        ar_data = attribute_history(security, get_count, unit='1m', fields=('close','high','low'), skip_paused=True, df=False)
+        if ar_data.get('close') is None or ar_data.get('high') is None or ar_data.get('low') is None:
+            return np.array([np.nan]),np.array([np.nan]),np.array([np.nan])
+        return ar_data['high'], ar_data['low'] ,ar_data['close']
     
     #overide
     def GET_PERIOD_DATA(self,context, security, freq = 'D', data={}, dataCount=1):
