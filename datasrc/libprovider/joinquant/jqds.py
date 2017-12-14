@@ -105,7 +105,7 @@ class JqDatasrc(SecurityDataSrcBase):
         super(JqDatasrc, self).__init__(name)
     
     def getVersionName(self):
-        return "1.12.13"
+        return "1.12.14"
     
     def getDataSrcName(self):
         return "joinquant"
@@ -184,23 +184,16 @@ class JqDatasrc(SecurityDataSrcBase):
         intra = (freq-1 if offset == 0 else offset-1)
         closeMin = ar_data['close']
         dataCount = len(closeMin)//freq
-        closeLast = 0
-        try:
-            closeLast = data[security].close
-        except Exception,e:
-            if run_minutes==240:
-                closeLast = get_current_data()[security].last_price
-            else:
-                closeLast = closeMin[-1]
-        if not np.isnan(closeLast) and closeLast != 0:
-            if run_minutes==0:
-                close_intraday = self.SIMPLE_DATA(closeMin, dataCount, freq, 0)
-                closeLast = self.GET_CLOSE_DAY(context, security, 0, data)
-            else:
-                close_intraday = self.SIMPLE_DATA(closeMin[:-1], dataCount, freq, intra)
-            close_intraday = np.append(close_intraday, closeLast)
-            return close_intraday
-        return self.SIMPLE_DATA(closeMin, dataCount, freq, offset)
+        closeLast = closeMin[-1]
+        if run_minutes==240:
+            closeLast = self.GET_CLOSE_DAY(context, security, 0, data)
+        if run_minutes==0:
+            close_intraday = self.SIMPLE_DATA(closeMin, dataCount, freq, 0)
+            closeLast = self.GET_CLOSE_DAY(context, security, 0, data)
+        else:
+            close_intraday = self.SIMPLE_DATA(closeMin[:-1], dataCount, freq, intra)
+        close_intraday = np.append(close_intraday, closeLast)
+        return close_intraday
 
     # 获取当前分时最高价
     def GET_HIGH_DATA_INTRADAY(self, context, security, data={}, freq=5, dataCount=1):
@@ -219,28 +212,24 @@ class JqDatasrc(SecurityDataSrcBase):
         intra = (freq-1 if offset == 0 else offset-1)
         highMin = ar_data['high']
         dataCount = len(highMin)//freq
-        highLast = 0
-        try:
-            highLast = data[security].high
-        except Exception,e:
-            highLast = highMin[-1]
-            if run_minutes==240:
-                curLast = get_current_data()[security].last_price
-                if not np.isnan(curLast) and curLast > highLast:
-                    highLast = curLast
-        if not np.isnan(highLast) and highLast != 0:
-            if run_minutes==0:
-                high_intraday = self.SIMPLE_DATA_HIGH(highMin, dataCount, freq, 0)
-                highLast = self.GET_CLOSE_DAY(context, security, 0, data)
-            else:
-                high_intraday = self.SIMPLE_DATA_HIGH(highMin[:-1], dataCount, freq, intra)
-                highLastPre = highMin[-intra-1:].max()
-                if not np.isnan(highLastPre):
-                    if highLastPre > highLast:
-                        highLast = highLastPre
-            high_intraday = np.append(high_intraday, highLast)
-            return high_intraday
-        return self.SIMPLE_DATA_HIGH(highMin, dataCount, freq, offset)
+        highLast = highMin[-1]
+        if np.isnan(highLast):
+            return np.array([np.nan])
+        if run_minutes==240:
+            curLast = self.GET_CLOSE_DAY(context, security, 0, data)
+            if not np.isnan(curLast) and curLast > highLast:
+                highLast = curLast
+        if run_minutes==0:
+            high_intraday = self.SIMPLE_DATA_HIGH(highMin, dataCount, freq, 0)
+            highLast = self.GET_CLOSE_DAY(context, security, 0, data)
+        else:
+            high_intraday = self.SIMPLE_DATA_HIGH(highMin[:-1], dataCount, freq, intra)
+            highLastPre = highMin[-intra-1:].max()
+            if not np.isnan(highLastPre):
+                if highLastPre > highLast:
+                    highLast = highLastPre
+        high_intraday = np.append(high_intraday, highLast)
+        return high_intraday
     
     # 获取当前分时最低价
     def GET_LOW_DATA_INTRADAY(self, context, security, data={}, freq=5, dataCount=1):
@@ -259,28 +248,25 @@ class JqDatasrc(SecurityDataSrcBase):
         intra = (freq-1 if offset == 0 else offset-1)
         lowMin = ar_data['low']
         dataCount = len(lowMin)//freq
-        lowLast = 0
-        try:
-            lowLast = data[security].low
-        except Exception,e:
+        lowLast = lowMin[-1]
+        if np.isnan(lowLast):
+            return np.array([np.nan])
             lowLast = lowMin[-1]
-            if run_minutes==240:
-                curLast = get_current_data()[security].last_price
-                if not np.isnan(curLast) and curLast < lowLast:
-                    lowLast = curLast
-        if not np.isnan(lowLast) and lowLast != 0:
-            if run_minutes==0:
-                low_intraday = self.SIMPLE_DATA_LOW(lowMin, dataCount, freq, 0)
-                lowLast = self.GET_CLOSE_DAY(context, security, 0, data)
-            else:
-                low_intraday = self.SIMPLE_DATA_LOW(lowMin[:-1], dataCount, freq, intra)
-                lowLastPre = lowMin[-intra-1:].min()
-                if not np.isnan(lowLastPre):
-                    if lowLastPre < lowLast:
-                        lowLast = lowLastPre
-            low_intraday = np.append(low_intraday, lowLast)
-            return low_intraday
-        return self.SIMPLE_DATA_LOW(lowMin, dataCount, freq, offset)
+        if run_minutes==240:
+            curLast = self.GET_CLOSE_DAY(context, security, 0, data)
+            if not np.isnan(curLast) and curLast < lowLast:
+                lowLast = curLast
+        if run_minutes==0:
+            low_intraday = self.SIMPLE_DATA_LOW(lowMin, dataCount, freq, 0)
+            lowLast = self.GET_CLOSE_DAY(context, security, 0, data)
+        else:
+            low_intraday = self.SIMPLE_DATA_LOW(lowMin[:-1], dataCount, freq, intra)
+            lowLastPre = lowMin[-intra-1:].min()
+            if not np.isnan(lowLastPre):
+                if lowLastPre < lowLast:
+                    lowLast = lowLastPre
+        low_intraday = np.append(low_intraday, lowLast)
+        return low_intraday
     
     # 获取当前分时成交量
     def GET_VOL_DATA_INTRADAY(self, context, security, data={}, freq=5, dataCount=1):
@@ -294,12 +280,9 @@ class JqDatasrc(SecurityDataSrcBase):
             if(run_minutes==0):
                 #TODO: no support 9:25 vol?
                 #volLast = 0.01*get_current_data()[security].volume
-                try:
-                    volLast = 0.01*data[security].volume
-                    amountLast = data[security].money
-                except Exception,e:
-                    volLast = 0
-                self.data[security]={'volume':volLast,'amount':amountLast} 
+                #amountLast = 0.01*get_current_data()[security].money
+                volLast = 0
+                #self.data[security]={'volume':volLast,'amount':amountLast} 
                 vol_intraday = np.append(vol_intraday, volLast)
             elif(offset!=0):
                 volLast = volMin[-offset:].sum()
@@ -378,8 +361,9 @@ class JqDatasrc(SecurityDataSrcBase):
                     curLast = get_current_data()[security].last_price
                     if not np.isnan(curLast) and curLast > highLast:
                         highLast = curLast
-            highDay = np.append(high,highLast)
-            return highDay
+            if not np.isnan(highLast):
+                high = np.append(high,highLast)
+            return high
     
     # 获取日线历史数据最小值
     def GET_LOW_DATA_DAY(self, context,security,isLastest=True,data={},dataCount=1):
@@ -406,8 +390,9 @@ class JqDatasrc(SecurityDataSrcBase):
                     curLast = get_current_data()[security].last_price
                     if not np.isnan(curLast) and curLast < lowLast:
                         lowLast = curLast
-            lowDay = np.append(low,lowLast)
-            return lowDay
+            if not np.isnan(lowLast):
+                low = np.append(low,lowLast)
+            return low
 
     
     # 获取当前日线或ref天前收盘价
@@ -464,10 +449,9 @@ class JqDatasrc(SecurityDataSrcBase):
         if not isLastest:
             return close
         else:
-            closeLast = 0
             closeDay = close
             closeLast = self.GET_CLOSE_DAY(context, security, 0, data)
-            if not np.isnan(closeLast) and closeLast != 0:
+            if not np.isnan(closeLast):
                 closeDay = np.append(close,closeLast)
             return closeDay
 
@@ -505,13 +489,11 @@ class JqDatasrc(SecurityDataSrcBase):
         if ref == 0:
             run_minutes = self.GET_RUN_MINUTES(context)
             if run_minutes == 0:
-                #TODO, get 9:25 vol
-                try:
-                    volumeLast = 0.01*data[security].volume
-                    amountLast = data[security].money
-                except Exception,e:
-                    volumeLast = 0
-                self.data[security]={'volume':volumeLast,'amount':amountLast} 
+                #TODO: no support 9:25 vol?
+                #volLast = 0.01*get_current_data()[security].volume
+                #amountLast = 0.01*get_current_data()[security].money
+                volumeLast = 0
+                #self.data[security]={'volume':volumeLast,'amount':amountLast} 
             else:
                 volumeMin =  0.01*attribute_history(security, run_minutes, unit='1m', fields=('volume'), skip_paused=True, df=False)['volume']
                 volumeLast = np.sum(volumeMin)
@@ -535,13 +517,11 @@ class JqDatasrc(SecurityDataSrcBase):
             volumeDay = volume
             run_minutes = self.GET_RUN_MINUTES(context)
             if run_minutes == 0:
-                #TODO, get 9:25 vol
-                try:
-                    volumeLast = 0.01*data[security].volume
-                    amountLast = data[security].money
-                except Exception,e:
-                    volumeLast = 0
-                self.data[security]={'volume':volumeLast,'amount':amountLast} 
+                #TODO: no support 9:25 vol?
+                #volLast = 0.01*get_current_data()[security].volume
+                #amountLast = 0.01*get_current_data()[security].money
+                volumeLast = 0
+                #self.data[security]={'volume':volumeLast,'amount':amountLast} 
             else:
                 volumeMin =  0.01*attribute_history(security, run_minutes, unit='1m', fields=('volume'), skip_paused=True, df=False)['volume']
                 volumeLast = np.sum(volumeMin)
@@ -564,13 +544,11 @@ class JqDatasrc(SecurityDataSrcBase):
             amountDay = amount
             run_minutes = self.GET_RUN_MINUTES(context)
             if run_minutes == 0:
-                #TODO, get 9:25 vol
-                try:
-                    volumeLast = 0.01*data[security].volume
-                    amountLast = data[security].money
-                except Exception,e:
-                    amountLast = 0
-                self.data[security]={'volume':volumeLast,'amount':amountLast} 
+                #TODO: no support 9:25 vol?
+                #volLast = 0.01*get_current_data()[security].volume
+                #amountLast = 0.01*get_current_data()[security].money
+                amountLast = 0
+                #self.data[security]={'volume':volumeLast,'amount':amountLast} 
             else:
                 amountMin = attribute_history(security, run_minutes, unit='1m', fields=('money'), skip_paused=True, df=False)['money']
                 amountLast = np.sum(amountMin)
