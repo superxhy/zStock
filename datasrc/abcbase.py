@@ -104,7 +104,10 @@ class SecurityDataSrcBase(object):
         #reset call auction for pretrade
         if hour == 9 and minute < 15:
             return -1
-        run_minutes = (hour-9)*60 + minute - 15
+        if hour < 13:
+            run_minutes = (hour-9)*60 + minute - 15
+        else:
+            run_minutes = (hour-13+2)*60 + minute + 15
         if run_minutes < 0:
             run_minutes = -1
         if run_minutes > 15+240:
@@ -1597,7 +1600,7 @@ class SecurityDataSrcBase(object):
     '''
     ['code','name','industry','close','per','wave','inert','vol']
     '''
-    def GET_BUNDLE(self, context, security, crypto=False, data={}):
+    def GET_BUNDLE(self, context, security, pulldata=False, data={}):
         per, close = self.PERCENT_DAY(context, security, data)
         code = security.split('.')[0]
         info = self.GET_SECURITY_INFO(security)
@@ -1611,15 +1614,24 @@ class SecurityDataSrcBase(object):
         'industry':industry,
         'close':close,
         'per':per}
-        if not crypto:
+        #TODO pulldata
+        #if not pulldata:
+        #    return bundle
+        auction_minutes = self.GET_CALLAUCTION_MINUTES(context)
+        #ignore crypto for pretrade
+        if auction_minutes < 15 or (not security in self.GET_ALL_INDEXES()):
             return bundle
         wave = [
         self.GET_WAVE_CRYPTO(context, security, 30),
         self.GET_WAVE_CRYPTO(context, security, 'D'), 
-        self.GET_WAVE_CRYPTO(context, security, 'W'), 
-        self.GET_WAVE_CRYPTO(context, security, 'M'),
-        self.GET_WAVE_CRYPTO(context, security, 'S'),
-        self.GET_WAVE_CRYPTO(context, security, 'Y')]
+        self.GET_WAVE_CRYPTO(context, security, 'W')]
+        #add wave more for aftertrade
+        if auction_minutes == 15+240:
+            wavemore = [
+            self.GET_WAVE_CRYPTO(context, security, 'M'),
+            self.GET_WAVE_CRYPTO(context, security, 'S'),
+            self.GET_WAVE_CRYPTO(context, security, 'Y')]
+            wave = wave + wavemore
         inert = [
         self.GET_INERT_CRYPTO(context, security, 30),
         self.GET_INERT_CRYPTO(context, security, 'D'),
@@ -1627,6 +1639,8 @@ class SecurityDataSrcBase(object):
         bundle['wave'] = wave
         bundle['inert'] = inert
         bundle['vol'] = self.GET_VOL_CRYPTO(context, security,'D',data)
+        #add idxopen first 3bar
+        #if auction_minutes <= 15+15:
         idx = self.GET_INDEXO_CRYPTO(context, security,'D',data)
         if idx :
             bundle['bidx'] =  idx
