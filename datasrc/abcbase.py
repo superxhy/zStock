@@ -1568,6 +1568,7 @@ class SecurityDataSrcBase(object):
         idxRateStr = decimal.Context(prec=3, rounding=decimal.ROUND_DOWN).create_decimal(idxRate)
         dataJj = self.data.get(security,None)
         if dataJj:
+            print "get idx dataJj:" %(str(dataJj['volume']))
             idxV[0] += dataJj['volume']
         idx1volStr = decimal.Context(prec=3, rounding=decimal.ROUND_DOWN).create_decimal(idxV[0])
         kArray = []
@@ -1644,6 +1645,7 @@ class SecurityDataSrcBase(object):
         idx = self.GET_INDEXO_CRYPTO(context, security,'D',data)
         if idx :
             bundle['bidx'] =  idx
+        print bundle
         return bundle
     
     def CCI_DAY(self, context, security, data={}, ref=0):
@@ -1758,8 +1760,8 @@ class SecurityDataSrcBase(object):
         for i in range(0, len(volData)):
             vol = volData[-1-i]
             amount = amountData[-1-i]
-            if np.isnan(vol) or vol == 0 or np.isnan(amount) or amount==0:
-                np.append(np.nan, avgData)
+            if np.isnan(amount) or amount==0:
+                avgData = np.append(np.nan, avgData)
             else:
                 avgData = np.append(0.01*amount/vol, avgData)
         return avgData
