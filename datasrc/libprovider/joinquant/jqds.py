@@ -272,24 +272,26 @@ class JqDatasrc(SecurityDataSrcBase):
     def GET_VOL_DATA_INTRADAY(self, context, security, data={}, freq=5, dataCount=1):
         run_minutes = self.GET_RUN_MINUTES(context)
         offset = run_minutes % freq
+        intra = (freq-1 if offset == 0 else offset-1)
         get_count = dataCount * freq + offset
         volMin = 0.01*attribute_history(security, get_count, unit='1m', fields=('volume'), skip_paused=True, df=False)['volume']
-        vol_intraday = self.SIMPLE_DATA_SUM(volMin, dataCount, freq, offset)
         volLast = volMin[-1]
-        if not np.isnan(volLast) and volLast != 0:
-            if(run_minutes==0):
-                #TODO: no support 9:25 vol?
-                #volLast = 0.01*get_current_data()[security].volume
-                #amountLast = 0.01*get_current_data()[security].money
-                volLast = 0
-                #self.data[security]={'volume':volLast,'amount':amountLast} 
-                vol_intraday = np.append(vol_intraday, volLast)
-            elif(offset!=0):
-                volLast = volMin[-offset:].sum()
-                vol_intraday = np.append(vol_intraday, volLast)
-            else:
-                #use cur data
-                pass
+        if np.isnan(volLast):
+            return np.array([np.nan])
+        if run_minutes==0:
+            #TODO: no support 9:25 vol?
+            #volLast = 0.01*get_current_data()[security].volume
+            #amountLast = 0.01*get_current_data()[security].money
+            volLast = 0
+            #self.data[security]={'volume':volLast,'amount':amountLast} 
+            vol_intraday = self.SIMPLE_DATA_SUM(volMin, dataCount, freq, offset)
+        else:
+            volMin = volMin[1:]
+            vol_intraday = self.SIMPLE_DATA_SUM(volMin[:-1], dataCount, freq, intra)
+            #TODO mock open data vol
+            volMin[0] = 2.7*volMin[0]
+            volLast += np.sum(volMin[-intra-1:])
+        vol_intraday = np.append(vol_intraday, volLast)
         return vol_intraday
     
     def GET_HIGH_DAY(self, context, security, ref=0):
@@ -523,7 +525,9 @@ class JqDatasrc(SecurityDataSrcBase):
                 volumeLast = 0
                 #self.data[security]={'volume':volumeLast,'amount':amountLast} 
             else:
-                volumeMin =  0.01*attribute_history(security, run_minutes, unit='1m', fields=('volume'), skip_paused=True, df=False)['volume']
+                volumeMin =  0.01*attribute_history(security, run_minutes-1, unit='1m', fields=('volume'), skip_paused=True, df=False)['volume']
+                #TODO mock open data vol
+                volumeMin[0] = 2.7*volumeMin[0]
                 volumeLast = np.sum(volumeMin)
                 dataJj = self.data.get(security,None)
                 if dataJj:
@@ -550,7 +554,9 @@ class JqDatasrc(SecurityDataSrcBase):
                 amountLast = 0
                 #self.data[security]={'volume':volumeLast,'amount':amountLast} 
             else:
-                amountMin = attribute_history(security, run_minutes, unit='1m', fields=('money'), skip_paused=True, df=False)['money']
+                amountMin = attribute_history(security, run_minutes-1, unit='1m', fields=('money'), skip_paused=True, df=False)['money']
+                #TODO mock open data vol
+                amountMin[0] = 2.7*amountMin[0]
                 amountLast = np.sum(amountMin)
                 dataJj = self.data.get(security,None)
                 if dataJj:
