@@ -1427,8 +1427,8 @@ class SecurityDataSrcBase(object):
         volDataPre = np.append(volData[:-1],volPre)
         volPre5 = volDataPre[-5-1:-5+DATACAL-1]
         volPre10 = volDataPre[-10-1:-10+DATACAL-1]
-        volPre5Rate = map(lambda x: calRate(volPre-x, x), volPre5)
-        volPre10Rate = map(lambda x: calRate(volPre-x, x), volPre10)
+        volPre5Rate = [calRate(volPre-s, s) for s in volPre5]
+        volPre10Rate =[calRate(volPre-s, s) for s in volPre10]
         volPreEx = chipExchange(volPre5Rate, volPre10Rate)
         volPreStable = chipExchangeStab(volPre5, volPre10)
         #max point
@@ -1455,7 +1455,7 @@ class SecurityDataSrcBase(object):
                 break
             volArray.insert(0, des)
             
-        cryptoindex = map(comp,volArray)
+        cryptoindex = [comp(s) for s in volArray]
         cryptomk = [trigrams421[x]['mark'] for x in cryptoindex]
         cryptoel = [trigrams421[x]['element'] for x in cryptoindex]
         #cryptomkMax = cryptomk[0] if volMaxOffset > len(cryptomk) else cryptomk[-1-volMaxOffset]
@@ -1599,8 +1599,10 @@ class SecurityDataSrcBase(object):
         for i in range(0, idxlen):
             kdata = [idxH[i],idxL[i],idxC[i],idxO[i]]
             kArray.append(kdata)
-        idxK = map(lambda x:float(decimal.Decimal(x[2]-x[3]).quantize(decimal.Decimal('0.00'))),kArray)
-        idxBody = map(lambda x:float(decimal.Decimal(x[0]-x[1]).quantize(decimal.Decimal('0.00'))),kArray)
+        funKinc = lambda x:float(decimal.Decimal(x[2]-x[3]).quantize(decimal.Decimal('0.00')))
+        funKvib = lambda x:float(decimal.Decimal(np.array(x).max()-np.array(x).min()).quantize(decimal.Decimal('0.00')))
+        idxK = [funKinc(s) for s in kArray]
+        idxBody = [funKvib(s) for s in kArray]
         yymk = [yinmark if(x < 0) else yangmark for x in idxK]
         idxid = compk(kArray)
         if idxid < 0:
