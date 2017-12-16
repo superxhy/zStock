@@ -509,7 +509,7 @@ class JqDatasrc(SecurityDataSrcBase):
                     #print volumeLast
                 else:
                     #TODO mock open data vol
-                    volumeLast += volumeMin[1]*1.5
+                    volumeLast += volumeMin[1]*2.0
                     if run_minutes == 240:
                         if context.run_params.type == 'simple_backtest' or context.run_params.type == 'full_backtest':
                             #backtest can get close data
