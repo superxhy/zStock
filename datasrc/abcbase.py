@@ -643,7 +643,7 @@ class SecurityDataSrcBase(object):
             close_intraday = self.SIMPLE_DATA(closeMin, dataCount, freq, 0)
             closeLast = self.GET_CLOSE_DAY(context, security, 0, data)
         else:
-            close_intraday = self.SIMPLE_DATA(closeMin[:-1], dataCount, freq, intra)
+            close_intraday = self.SIMPLE_DATA(closeMin, dataCount, freq, intra+1)
         close_intraday = np.append(close_intraday, closeLast)
         return close_intraday
     
@@ -664,7 +664,7 @@ class SecurityDataSrcBase(object):
             high_intraday = self.SIMPLE_DATA_HIGH(highMin, dataCount, freq, 0)
             highLast = self.GET_CLOSE_DAY(context, security, 0, data)
         else:
-            high_intraday = self.SIMPLE_DATA_HIGH(highMin[:-1], dataCount, freq, intra)
+            high_intraday = self.SIMPLE_DATA_HIGH(highMin, dataCount, freq, intra+1)
             highLastPre = highMin[-intra-1:].max()
             if not np.isnan(highLastPre):
                 if highLastPre > highLast:
@@ -690,13 +690,40 @@ class SecurityDataSrcBase(object):
             low_intraday = self.SIMPLE_DATA_LOW(lowMin, dataCount, freq, 0)
             lowLast = self.GET_CLOSE_DAY(context, security, 0, data)
         else:
-            low_intraday = self.SIMPLE_DATA_LOW(lowMin[:-1], dataCount, freq, intra)
+            low_intraday = self.SIMPLE_DATA_LOW(lowMin, dataCount, freq, intra+1)
             lowLastPre = lowMin[-intra-1:].min()
             if not np.isnan(lowLastPre):
                 if lowLastPre < lowLast:
                     lowLast = lowLastPre
         low_intraday = np.append(low_intraday, lowLast)
         return low_intraday
+    
+    def GET_VOL_DATA_INTRADAY_DA(self, context, security, data, freq, m_vol):
+        run_minutes = self.GET_RUN_MINUTES(context)
+        offset = run_minutes % freq
+        intra = (freq-1 if offset == 0 else offset-1)
+        volMin = m_vol
+        dataCount = len(volMin)//freq
+        volLast = volMin[-1]
+        if np.isnan(volLast):
+            return np.array([np.nan])
+        if run_minutes==240:
+            volLast = volLast*2.5
+        if run_minutes==0:
+            #TODO: no support 9:25 vol?
+            #volLast = 0.01*get_current_data()[security].volume
+            #amountLast = 0.01*get_current_data()[security].money
+            volLast = 0
+            #self.data[security]={'volume':volLast,'amount':amountLast} 
+            vol_intraday = self.SIMPLE_DATA_SUM(volMin, dataCount, freq, offset)
+        else:
+            #TODO mock open data vol
+            volMin[0] = 0
+            volMin[1] = volMin[1]*2.0
+            vol_intraday = self.SIMPLE_DATA_SUM(volMin, dataCount, freq, intra)
+            volLast += np.sum(volMin[-intra:])
+        vol_intraday = np.append(vol_intraday, volLast)
+        return vol_intraday
     
     def GET_CLOSE_DATA_WEEK_DA(self, context,security,isLastest,data,d_close):
         freq = 5
@@ -1438,10 +1465,7 @@ class SecurityDataSrcBase(object):
         avgData = self.GET_AVG_DATA_DAY(context, security, 1, data)
         avg = avgData[-1] if len(avgData) >0 else 0
         closeLast = close[-1] if len(close) >0 else 0
-        if  not security in self.GET_ALL_INDEXES():
-            avgRate = calRate(closeLast-avg, avg)
-        else:
-            avgRate = calRate(avg, closeLast)
+        avgRate = calRate(closeLast-avg, avg)
         #print avgRate
         kArray = []
         for i in range(0, len(close)):
@@ -1754,6 +1778,9 @@ class SecurityDataSrcBase(object):
     
     # 获取日线成交均价
     def GET_AVG_DATA_DAY(self, context, security, n=20, data={}):
+        #TODO calcate index avg
+        if security in self.GET_ALL_INDEXES():
+            return np.array([np.nan])
         volData = self.GET_VOL_DATA_DAY(context, security, True, data, n)
         amountData = self.GET_AMOUNT_DATA_DAY(context, security, True, data, n)
         avgData = np.array([])
