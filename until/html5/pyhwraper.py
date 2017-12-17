@@ -7,6 +7,7 @@ Created on 2017-5-26
 '''
 
 from .pyh import *
+#from pyh import *
 import datetime
 
 #protect html keyword convert
@@ -152,7 +153,7 @@ class HtmlPageMaker(object):
         else:
             title += '_'
         self.__title__ = title + datetime.datetime.now().strftime('%Y-%m-%d-%H%M%S')
-        print self.__title__
+        print (self.__title__)
         self.__page__ = PyH(self.__title__)
         self.__mainDiv__ = div(id='mainDiv')
         self.__stylecss__ = style(self.STYLE_MOBREM + self.STYLE_TABLE)
