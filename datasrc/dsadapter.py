@@ -348,7 +348,7 @@ class DSUtil(object):
         title += str(context.current_dt.strftime('%Y-%m-%d %H:%M'))
         ret = sendTable(title, bundleList, schema, configloader.getEmailConfig() if (configloader != None) else None, isSend, useAttach)
         if useAttach:
-            print "useAttach send"
+            print ("useAttach send")
         else:
-            print ret
+            print (str(ret))
         return bundleList 
