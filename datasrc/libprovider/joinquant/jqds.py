@@ -6,10 +6,13 @@ Created on 2017-3-8
 @author: yuql
 '''
 #import joinquant api
-from kuanke.user_space_api import *
-
-#from datasrc import * 
-#TODO jq not suport root path
+try:
+    from kuanke.user_space_api import *
+    #from datasrc import * 
+    #TODO jq not suport root path
+except Exception as e:
+    #may used in notebook!
+    print ("%s:%s" %(str(Exception),str(e)))
 from abcbase import *
 
 class JqDatasrc(SecurityDataSrcBase):
