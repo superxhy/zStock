@@ -6,9 +6,10 @@ Created on 2017-3-9
 @author: yuql
 '''
 
-from abcbase import DataSrcFactory, SecurityDataSrcBase
 import sys
+from abcbase import DataSrcFactory, SecurityDataSrcBase
 from until.tools import sendTable
+#from tools import sendTable
 #DS_CLASS_PATH = "jqds.JqDatasrc"
 #DS_CLASS_NAME = "joinquant"
 DS_CLASS_PATH = "datasrc.tsprovider.tushare69ds.TsDatasrc"
@@ -16,9 +17,9 @@ DS_CLASS_NAME = "tushare"
 
 dsfactory = DataSrcFactory.getFrom(DS_CLASS_PATH,DS_CLASS_NAME)
 dsobj = dsfactory.getDataSrc()
-print dsobj.getDataSrcName()
-print dsobj.getVersionName()
-print dir(dsobj)
+print (dsobj.getDataSrcName())
+print (dsobj.getVersionName())
+print (dir(dsobj))
 
 def MACD_CN(close, fastperiod=12, slowperiod=26, signalperiod=9) :
     return SecurityDataSrcBase.MACD_CN(close, fastperiod, slowperiod, signalperiod)
@@ -322,7 +323,7 @@ class DSUtil(object):
         def getBundleList(bundleList, stocks, mutiindex=-1):
             idx = 0
             for security in stocks:
-                print "%s bundle..." % (security)
+                #print ("%s bundle..." % (security))
                 bundle = GET_BUNDLE(context,security,cryptal,data)
                 if redStarCb :
                     redStarCb(security, idx, bundle, mutiindex)
@@ -344,7 +345,8 @@ class DSUtil(object):
         backtest = configloader != None and configloader.getRunConfig(context)['onbacktest']
         isSend = sendMail and (not backtest)
         title = DS_CLASS_NAME if useAttach else DS_CLASS_NAME + '_intraday'
-        ret = sendTable(title, bundleList, schema, configloader.getEmailConfig() if (configloader != None) else None, isSend, useAttach)
+        title += str(context.current_dt.strftime('%Y-%m-%d %H:M'))
+        ret = sendTable(title, bundleList, schema, configloader.getEmailConfig() if (configloader != None) else None, True, useAttach)
         if useAttach:
             print "useAttach send"
         else:
