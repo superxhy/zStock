@@ -345,7 +345,7 @@ class DSUtil(object):
         backtest = configloader != None and configloader.getRunConfig(context)['onbacktest']
         isSend = sendMail and (not backtest)
         title = DS_CLASS_NAME if useAttach else DS_CLASS_NAME + '_intraday'
-        title += str(context.current_dt.strftime('%Y-%m-%d %H:M'))
+        title += str(context.current_dt.strftime('%Y-%m-%d %H:%M'))
         ret = sendTable(title, bundleList, schema, configloader.getEmailConfig() if (configloader != None) else None, True, useAttach)
         if useAttach:
             print "useAttach send"
