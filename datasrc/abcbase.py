@@ -33,8 +33,9 @@ class SecurityDataSrcBase(object):
                 if atr.find('__')>=0 and atr.rfind('__')>=2:
                     continue
                 #<unbound method SecurityDataSrcBase.getVersionName>
-                if str(type(getattr(SecurityDataSrcBase, atr))).find('method') == -1:
-                    continue
+                #python3 has all methods in base class...
+                #if str(type(getattr(SecurityDataSrcBase, atr))).find('method') == -1:
+                #    continue
                 if str(atr) == 'getMethodNames':
                     #ignore self
                     continue
