@@ -51,7 +51,7 @@ class SecurityDataSrcBase(object):
         getcurrent funname :sys._getframe().f_code.co_name
         '''
         if name not in self.getMethodNames():
-            print "%s not in methods:%s" % (str(name),str(SecurityDataSrcBase.SINVOKEMETHODS))
+            print ("%s not in methods:%s" % (str(name),str(SecurityDataSrcBase.SINVOKEMETHODS)))
             return None
         return getattr(self, name)(*args)
     
@@ -209,7 +209,7 @@ class SecurityDataSrcBase(object):
         len2 = len(low)
         len3 = len(close)
         if len1 != len2 or len1 != len3:
-            print "KDJ_CN input invalid for len:%s %s %s " %(str(len1),str(len2),str(len3))
+            print ("KDJ_CN input invalid for len:%s %s %s " %(str(len1),str(len2),str(len3)))
             return np.array(np.nan),np.array(np.nan),np.array(np.nan)
         kValue, dValue = tl.STOCHF(high, low, close, fastk_period, fastd_period=fastd_period, fastd_matype=0)
         
@@ -308,7 +308,7 @@ class SecurityDataSrcBase(object):
         len2 = len(low)
         len3 = len(close)
         if len1 != len2 or len1 != len3:
-            print ("KDJ_COM input invalid for len:%s %s %s " %(str(len1),str(len2),str(len3)))
+            print (("KDJ_COM input invalid for len:%s %s %s " %(str(len1),str(len2),str(len3))))
             return np.array([np.nan]),np.array([np.nan]),np.array([np.nan])
         hValue = SecurityDataSrcBase.HHV_COM(high, fastk_period, fixpre)
         lValue = SecurityDataSrcBase.LLV_COM(low, fastk_period, fixpre)
@@ -342,7 +342,7 @@ class SecurityDataSrcBase(object):
         len2 = len(low)
         len3 = len(close)
         if len1 != len2 or len1 != len3:
-            print "CCI_CN input invalid for len:%s %s %s " %(str(len1),str(len2),str(len3))
+            print ("CCI_CN input invalid for len:%s %s %s " %(str(len1),str(len2),str(len3)))
             return np.array(np.nan)
         cci = tl.CCI(high, low, close, timeperiod=timeperiod)
         return cci
@@ -421,7 +421,7 @@ class SecurityDataSrcBase(object):
         if ref==1 and np.isnan(closeRef):
             #issue price higher 120% than openday
             closeRef = self.GET_OPEN_DAY(context, security, 0)*1.0/1.2
-            #print "security:%s no refclose, use issueprice:%s" %(str(security),str(closeRef))
+            #print ("security:%s no refclose, use issueprice:%s" %(str(security),str(closeRef)))
         return self.calRate(close-closeRef, closeRef), close
     
     def STD_DATA_DAY(self, context, security, data={}, dataCount=1):
@@ -600,7 +600,7 @@ class SecurityDataSrcBase(object):
         len2 = len(high)
         len3 = len(low)
         if len1 != len2 or len1 != len3:
-            print "%s, GET_PERIOD_DATA_MIN len neq!!!:%s,%s,%s" %(str(security),str(len1),str(len2),str(len3))
+            print ("%s, GET_PERIOD_DATA_MIN len neq!!!:%s,%s,%s" %(str(security),str(len1),str(len2),str(len3)))
             #print close
             #print high
             #print low
@@ -618,7 +618,7 @@ class SecurityDataSrcBase(object):
         len2 = len(high)
         len3 = len(low)
         if len1 != len2 or len1 != len3:
-            print "%s, GET_PERIOD_DATA_DAY len neq!!!:%s,%s,%s" %(str(security),str(len1),str(len2),str(len3))
+            print ("%s, GET_PERIOD_DATA_DAY len neq!!!:%s,%s,%s" %(str(security),str(len1),str(len2),str(len3)))
             #print close
             #print high
             #print low
@@ -975,7 +975,7 @@ class SecurityDataSrcBase(object):
         len2 = len(high)
         len3 = len(low)
         if len1 != len2 or len1 != len3:
-            print "%s,freq:%s GET_PERIOD_DATA len neq!!!:%s,%s,%s" %(str(security),str(freq),str(len1),str(len2),str(len3))
+            print ("%s,freq:%s GET_PERIOD_DATA len neq!!!:%s,%s,%s" %(str(security),str(freq),str(len1),str(len2),str(len3)))
             #print close
             #print high
             #print low
@@ -992,12 +992,12 @@ class SecurityDataSrcBase(object):
         if freq == 'D':
             high, low, close = self.GET_PERIOD_DATA_DAY(context, security, data, dataCount)
             if len(close) == 0 or np.isnan(close[-1]):
-                print "security:%s in freq:%s NO GET_PERIOD_DATA_DA!" %(str(security),str(freq))
+                print ("security:%s in freq:%s NO GET_PERIOD_DATA_DA!" %(str(security),str(freq)))
                 return np.array([np.nan]),np.array([np.nan]),np.array([np.nan])
         elif freq == 'W':
             d_high, d_low, d_close = self.GET_PERIOD_DATA_DAY(context, security, data, dataCount*5)
             if len(d_close) == 0 or np.isnan(d_close[-1]):
-                print "security:%s in freq:%s NO GET_PERIOD_DATA_DA!" %(str(security),str(freq))
+                print ("security:%s in freq:%s NO GET_PERIOD_DATA_DA!" %(str(security),str(freq)))
                 return np.array([np.nan]),np.array([np.nan]),np.array([np.nan])
             close = self.GET_CLOSE_DATA_WEEK_DA(context, security, True, data, d_close)
             high = self.GET_HIGH_DATA_WEEK_DA(context, security, True, data, d_high)
@@ -1005,7 +1005,7 @@ class SecurityDataSrcBase(object):
         elif freq == 'M':
             d_high, d_low, d_close = self.GET_PERIOD_DATA_DAY(context, security, data, dataCount*20)
             if len(d_close) == 0 or np.isnan(d_close[-1]):
-                print "security:%s in freq:%s NO GET_PERIOD_DATA_DA!" %(str(security),str(freq))
+                print ("security:%s in freq:%s NO GET_PERIOD_DATA_DA!" %(str(security),str(freq)))
                 return np.array([np.nan]),np.array([np.nan]),np.array([np.nan])
             close = self.GET_CLOSE_DATA_MONTH_DA(context, security, True, data, d_close)
             high = self.GET_HIGH_DATA_MONTH_DA(context, security, True, data, d_high)
@@ -1013,7 +1013,7 @@ class SecurityDataSrcBase(object):
         elif freq == 'S':
             d_high, d_low, d_close = self.GET_PERIOD_DATA_DAY(context, security, data, dataCount*3*20)
             if len(d_close) == 0 or np.isnan(d_close[-1]):
-                print "security:%s in freq:%s NO GET_PERIOD_DATA_DA!" %(str(security),str(freq))
+                print ("security:%s in freq:%s NO GET_PERIOD_DATA_DA!" %(str(security),str(freq)))
                 return np.array([np.nan]),np.array([np.nan]),np.array([np.nan])
             close = self.GET_CLOSE_DATA_SEASON_DA(context, security, True, data, d_close)
             high = self.GET_HIGH_DATA_SEASON_DA(context, security, True, data, d_high)
@@ -1021,7 +1021,7 @@ class SecurityDataSrcBase(object):
         elif freq == 'Y':
             d_high, d_low, d_close = self.GET_PERIOD_DATA_DAY(context, security, data, dataCount*12*20)
             if len(d_close) == 0 or np.isnan(d_close[-1]):
-                print "security:%s in freq:%s NO GET_PERIOD_DATA_DA!" %(str(security),str(freq))
+                print ("security:%s in freq:%s NO GET_PERIOD_DATA_DA!" %(str(security),str(freq)))
                 return np.array([np.nan]),np.array([np.nan]),np.array([np.nan])
             close = self.GET_CLOSE_DATA_YEAR_DA(context, security, True, data, d_close)
             high = self.GET_HIGH_DATA_YEAR_DA(context, security, True, data, d_high)
@@ -1032,7 +1032,7 @@ class SecurityDataSrcBase(object):
             get_count = dataCount * freq + offset
             m_high, m_low, m_close = self.GET_PERIOD_DATA_MIN(context, security, data, get_count)
             if len(m_close) == 0 or np.isnan(m_close[-1]):
-                print "security:%s in freq:%s NO GET_PERIOD_DATA_DA!" %(str(security),str(freq))
+                print ("security:%s in freq:%s NO GET_PERIOD_DATA_DA!" %(str(security),str(freq)))
                 return np.array([np.nan]),np.array([np.nan]),np.array([np.nan])
             close = self.GET_CLOSE_DATA_INTRADAY_DA(context, security, data, freq, m_close)
             high = self.GET_HIGH_DATA_INTRADAY_DA(context, security, data, freq, m_high)
@@ -1047,10 +1047,10 @@ class SecurityDataSrcBase(object):
         #print high
         #print low
         if len1 != len2 or len1 != len3:
-            print "%s,freq:%s GET_PERIOD_DATA len neq!!!:%s,%s,%s" %(str(security),str(freq),str(len1),str(len2),str(len3))
-            print close
-            print high
-            print low
+            print ("%s,freq:%s GET_PERIOD_DATA len neq!!!:%s,%s,%s" %(str(security),str(freq),str(len1),str(len2),str(len3)))
+            #print close
+            #print high
+            #print low
             lenmin = np.array([len1,len2,len3]).min()
             close = close[len1-lenmin:]
             high  =  high[len2-lenmin:]
@@ -1471,7 +1471,7 @@ class SecurityDataSrcBase(object):
         for i in range(0, len(close)):
             kdata = [high[i],low[i],close[i]]
             kArray.append(kdata)
-        yy = map(yinyang, kArray)
+        yy = [yinyang(s) for s in kArray]
         yymk = [yinmark if(x < 0) else yangmark for x in yy]
         yyel = [yinelement if(x < 0) else yangelement for x in yy]
         for i in range(0,len(cryptomk)):
@@ -1592,7 +1592,7 @@ class SecurityDataSrcBase(object):
         idxRateStr = decimal.Context(prec=3, rounding=decimal.ROUND_DOWN).create_decimal(idxRate)
         dataJj = self.data.get(security,None)
         if dataJj:
-            print "get idx dataJj:" %(str(dataJj['volume']))
+            print ("get idx dataJj:" %(str(dataJj['volume'])))
             idxV[0] += dataJj['volume']
         idx1volStr = decimal.Context(prec=3, rounding=decimal.ROUND_DOWN).create_decimal(idxV[0])
         kArray = []
@@ -1671,7 +1671,7 @@ class SecurityDataSrcBase(object):
         idx = self.GET_INDEXO_CRYPTO(context, security,'D',data)
         if idx :
             bundle['bidx'] =  idx
-        print bundle
+            print (str(bundle))
         return bundle
     
     def CCI_DAY(self, context, security, data={}, ref=0):
@@ -2016,22 +2016,22 @@ class DataSrcFactory(object):
         try:
             m = __import__(modulename,fromlist=True)
             clazz = getattr(m, clazzname)
-        except Exception,e:
-            print Exception,":",e
+        except Exception as e:
+            print ("%s:%s" %(str(Exception),str(e)))
             return None
         if str(type(clazz)).find('class') == -1:
             raise Exception("cannot get class type by clazzname:%s ,from module:%s" % (str(clazzname), str(modulename)))
         baseclazz = cls.inheritcheck(clazz)
         if baseclazz == None:
             raise Exception("class:%s not inherit baseclazz:%s" %(str(clazz), str(SecurityDataSrcBase)))
-        print "class:%s find inherit baseclazz:%s" %(str(clazz), str(SecurityDataSrcBase))
+        print ("class:%s find inherit baseclazz:%s" %(str(clazz), str(SecurityDataSrcBase)))
         return clazz(*args)
     
     @classmethod
     def inheritcheck(cls, clazz):
         "Look up name in cls and its base classes."
         if clazz.__name__.find(cls.__ABCCLASSNAME__) != -1 :
-            print "%s inherit find" %(clazz.__name__)
+            print ("%s inherit find" %(clazz.__name__))
             return clazz
         for base in clazz.__bases__:
             return cls.inheritcheck(base)
@@ -2043,6 +2043,6 @@ class DataSrcFactory(object):
             #new instance 
             DataSrcFactory.__FINSTANCE_ = DataSrcFactory(clazzpath, *args)
         if not DataSrcFactory.__FINSTANCE_.__fclazzpath__ == clazzpath:
-            print "reload for new clazzpath:" + clazzpath
+            print ("reload for new clazzpath:" + clazzpath)
             DataSrcFactory.__FINSTANCE_ = DataSrcFactory(clazzpath, *args)
         return DataSrcFactory.__FINSTANCE_
