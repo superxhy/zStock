@@ -62,8 +62,8 @@ class MailSender(object):
             import json
             configobj = json.load(f)
             self.__parseconfig__(configobj)
-        except Exception,e:
-            print Exception,":",e
+        except Exception as e:
+            print ("%s:%s" %(str(Exception),str(e)))
         finally:
             if f:f.close()
         
@@ -116,8 +116,8 @@ class MailSender(object):
                 att["Content-Type"] = 'application/octet-stream'    
                 att.add_header("Content-Disposition", "attachment", filename = os.path.basename(fname))
                 self.__attachment__ = att
-            except Exception,e:
-                print Exception,":",e
+            except Exception as e:
+                print ("%s:%s" %(str(Exception),str(e)))
             finally:
                 f.close()  
             
@@ -132,27 +132,27 @@ class MailSender(object):
             #else:
             #    smtp.connect(self.__servername__,port)
             smtp = smtplib.SMTP_SSL(self.__servername__)
-            print "login: %s:%s" %(self.__user__, "******")
+            print ("login: %s:%s" %(self.__user__, "******"))
             smtp.login(self.__user__, self.__passwd__) 
-            print "sending...: %s" %(self.__fromAddr__)
+            print ("sending...: %s" %(self.__fromAddr__))
             self.__msgalt__.attach(self.__msgrel__)
             self.__msg__.attach(self.__msgalt__)
             if self.__attachment__:
-                print "add  attachment"
+                print ("add  attachment")
                 self.__msgalt__.attach(self.__attachment__)
             #print self.__msg__
             smtp.sendmail(self.__fromAddr__, self.__toAddrs__, self.__msg__.as_string())
-            print "sendend"
+            print ("sendend")
             ret = True
-        except Exception,e:
-            print Exception,":",e
+        except Exception as e:
+            print ("%s:%s" %(str(Exception),str(e)))
         finally:
             try:
                 smtp.quit()
-            except Exception,e:
-                print Exception,":",e 
+            except Exception as e:
+                print ("%s:%s" %(str(Exception),str(e)))
                 smtp.close()
-        print "smtp end ret %s,retry %s" %(str(ret),str(self.__retry__))
+        print ("smtp end ret %s,retry %s" %(str(ret),str(self.__retry__)))
         if ret:
             self.__retry__ = 0
         else:
@@ -160,18 +160,18 @@ class MailSender(object):
             if self.__retry__ <= self.MAX_RETRY:
                 self.send()
             else:
-                print "smtp end retry !!" 
+                print ("smtp end retry !!")
                 self.__retry__ = 0
         return ret
     
     def send(self):
-        print "thread start begin:"
+        print ("thread start begin:")
         t = threading.Thread(target=MailSender.send_block, args=(self,))
         t.setDaemon(False)
         t.start()
         #no block
         t.join(300)
-        print "thread %s start end" %(str(t))
+        print ("thread %s start end" %(str(t)))
         
     @staticmethod
     def sendPlainMail(config, subject , contentText, attachments=[]):
@@ -180,8 +180,8 @@ class MailSender(object):
             sender.writePlain(subject, contentText)
             sender.addAttach(attachments)
             sender.send()
-        except Exception,e:
-            print Exception,":",e
+        except Exception as e:
+            print ("%s:%s" %(str(Exception),str(e)))
             
     @staticmethod
     def sendHtmlMail(config, subject , contentHtml, attachments=[]):
@@ -190,6 +190,6 @@ class MailSender(object):
             sender.writeHtml(subject, contentHtml)
             sender.addAttach(attachments)
             sender.send()
-        except Exception,e:
-            print Exception,":",e
+        except Exception as e:
+            print ("%s:%s" %(str(Exception),str(e)))
         
