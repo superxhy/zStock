@@ -121,18 +121,18 @@ class JqDatasrc(SecurityDataSrcBase):
         l_stocks03 = get_index_stocks(self.index_list[0])
         l_stocks04 = get_index_stocks(self.index_list[1])
         l_stocks = l_stocks03 + l_stocks04
-        print "l_stocks %s in all", len(l_stocks)
+        print ("l_stocks %s in all" % (str(len(l_stocks))))
         if filtPaused or filtSt:
             current_data = get_current_data()
             if filtPaused:
                 l_stocks = [s for s in l_stocks if not current_data[s].paused]
-                print "l_stocks %s after filtPaused", len(l_stocks)
+                print ("l_stocks %s after filtPaused" % (str(len(l_stocks))))
             if filtSt:
                 l_stocks = [s for s in l_stocks if not current_data[s].is_st 
                             and 'ST' not in current_data[s].name
                             and '*' not in current_data[s].name
                             and '退' not in current_data[s].name]
-                print "l_stocks %s after filtSt", len(l_stocks)
+                print ("l_stocks %s after filtSt" % (str(len(l_stocks))))
             if filtMarketcap>0:
                 #date=context.current_dt.strftime("%Y-%m-%d")
                 df = get_fundamentals(query(
@@ -148,7 +148,7 @@ class JqDatasrc(SecurityDataSrcBase):
                     ).dropna()
                 filtMarketPool = list(df['code'])
                 l_stocks = [s for s in l_stocks if not s in filtMarketPool]
-                print "l_stocks %s after filtMarketcap", len(l_stocks)
+                print ("l_stocks %s after filtMarketcap" % (str(len(l_stocks))))
         return l_stocks
     
     # 获取股票信息
@@ -174,7 +174,7 @@ class JqDatasrc(SecurityDataSrcBase):
         get_count = dataCount * freq + offset
         ar_data = attribute_history(security, get_count, unit='1m', fields=('close'), skip_paused=True, df=False)
         if ar_data.get('close') is None:
-            print "security:%s in freq:%s NO GET_CLOSE_DATA_INTRADAY!" %(str(security),str(freq))
+            print ("security:%s in freq:%s NO GET_CLOSE_DATA_INTRADAY!" %(str(security),str(freq)))
             return np.array([np.nan])
         return self.GET_CLOSE_DATA_INTRADAY_DF(context, security, data, freq, ar_data)
         
@@ -202,7 +202,7 @@ class JqDatasrc(SecurityDataSrcBase):
         get_count = dataCount * freq + offset
         ar_data = attribute_history(security, get_count, unit='1m', fields=('high'), skip_paused=True, df=False)
         if ar_data.get('high') is None:
-            print "security:%s in freq:%s NO GET_HIGH_DATA_INTRADAY!" %(str(security),str(freq))
+            print ("security:%s in freq:%s NO GET_HIGH_DATA_INTRADAY!" %(str(security),str(freq)))
             return np.array([np.nan])
         return self.GET_HIGH_DATA_INTRADAY_DF(context, security, data, freq, ar_data)
         
@@ -238,7 +238,7 @@ class JqDatasrc(SecurityDataSrcBase):
         get_count = dataCount * freq + offset
         ar_data = attribute_history(security, get_count, unit='1m', fields=('low'), skip_paused=True, df=False)
         if ar_data.get('low') is None:
-            print "security:%s in freq:%s NO GET_LOW_DATA_INTRADAY!" %(str(security),str(freq))
+            print ("security:%s in freq:%s NO GET_LOW_DATA_INTRADAY!" %(str(security),str(freq)))
             return np.array([np.nan])
         return self.GET_LOW_DATA_INTRADAY_DF(context, security, data, freq, ar_data)
         
@@ -344,7 +344,7 @@ class JqDatasrc(SecurityDataSrcBase):
     def GET_HIGH_DATA_DAY(self, context,security,isLastest=True,data={},dataCount=1):
         ar_data = attribute_history(security, dataCount, unit='1d', fields=('high'), skip_paused=True, df=False)
         if ar_data.get('high') is None:
-            print "security:%s in context:%s NO GET_HIGH_DATA_DAY!" %(str(security),str(context))
+            print ("security:%s in context:%s NO GET_HIGH_DATA_DAY!" %(str(security),str(context)))
             return np.array([np.nan])
         return self.GET_HIGH_DATA_DAY_DF(context, security, isLastest, data, ar_data)
     
@@ -373,7 +373,7 @@ class JqDatasrc(SecurityDataSrcBase):
     def GET_LOW_DATA_DAY(self, context,security,isLastest=True,data={},dataCount=1):
         ar_data = attribute_history(security, dataCount, unit='1d', fields=('low'), skip_paused=True, df=False)
         if ar_data.get('low') is None:
-            print "security:%s in context:%s NO GET_LOW_DATA_DAY!" %(str(security),str(context))
+            print ("security:%s in context:%s NO GET_LOW_DATA_DAY!" %(str(security),str(context)))
             return np.array([np.nan])
         return self.GET_LOW_DATA_DAY_DF(context, security, isLastest, data, ar_data)
     
@@ -423,7 +423,7 @@ class JqDatasrc(SecurityDataSrcBase):
             else:
                 try:
                     closeLast = data[security].close
-                except Exception,e:
+                except Exception as e:
                     closeLast = attribute_history(security, 1,'1m', ('close'), True)['close'][0]
             return closeLast
         #elif ref == 1:
@@ -431,7 +431,7 @@ class JqDatasrc(SecurityDataSrcBase):
         #    if run_minutes > 0:
         #        try:
         #            closeLast = data[security].pre_close
-        #        except Exception,e:
+        #        except Exception as e:
         #            closeLast = attribute_history(security, 1,'1d', ('close'), True)['close'][0]
         #    else:
         #        closeLast = attribute_history(security, 1,'1d', ('close'), True)['close'][0]
@@ -444,7 +444,7 @@ class JqDatasrc(SecurityDataSrcBase):
     def GET_CLOSE_DATA_DAY(self, context, security, isLastest=True,data={},dataCount=20):
         ar_data = attribute_history(security, dataCount, unit='1d', fields=('close'), skip_paused=True, df=False)
         if ar_data.get('close') is None:
-            print "security:%s NO GET_CLOSE_DATA_DAY!" %(str(security))
+            print ("security:%s NO GET_CLOSE_DATA_DAY!" %(str(security)))
             return np.array([np.nan])
         return self.GET_CLOSE_DATA_DAY_DF(context, security, isLastest, data, ar_data)
     
@@ -480,7 +480,7 @@ class JqDatasrc(SecurityDataSrcBase):
         else:
             try:
                 closeLast = data[security].close
-            except Exception,e:
+            except Exception as e:
                 closeLast = attribute_history(security, 1,'1m', ('close'), True)['close'][0]
             if not np.isnan(closeLast) and closeLast != 0:
                 closeDay = np.append(closeDay,closeLast)
@@ -603,8 +603,8 @@ class JqConfigLoader(object):
         try:
             config = read_file(self.__emailconfigf__)
             configobj = json.loads(config)
-        except Exception,e:
-            print Exception,":",e
+        except Exception as e:
+            print ("%s:%s" %(str(Exception),str(e)))
             configobj = {}
         finally:
             return configobj
@@ -613,8 +613,8 @@ class JqConfigLoader(object):
         try:
             config = read_file(self.__obsererconfigf__)
             configobj = json.loads(config)
-        except Exception,e:
-            print Exception,":",e
+        except Exception as e:
+            print ("%s:%s" %(str(Exception),str(e)))
             configobj = {}
         finally:
             return configobj
