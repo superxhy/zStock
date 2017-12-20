@@ -25,6 +25,10 @@ class JqDatasrc(SecurityDataSrcBase):
             '399106.XSHE',#[1]深证综指
             #'399006.XSHE',#[2]创业板指
             ]
+    index_dict = {
+            index_list[0]:'上证指数',
+            index_list[1]:'深证综指',
+            }
     industry_dict = {
         'A01':'农林牧渔',#'农业',
         'A02':'农林牧渔',#'林业',
@@ -248,9 +252,9 @@ class JqDatasrc(SecurityDataSrcBase):
             #print ("%s:%s" %(str(Exception),str(e)))
         if not hasCurrent:
             basedf = self.GET_SECURITY_INFO_BASE()
-            name  =  basedf.loc[security,'display_name']
             if security in self.index_list:
-                return {'name':name,'industry':'指数'}
+                return {'name':self.index_dict[security],'industry':'指数'}
+            name  =  basedf.loc[security,'display_name']
             sname =  basedf.loc[security,'name']
             #timeToMarket = basedf.loc[security,'start_date']
             sindustry = basedf.loc[security,'industry_code']
