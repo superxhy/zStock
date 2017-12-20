@@ -8,11 +8,11 @@ Created on 2017-3-8
 #import joinquant api
 try:
     from kuanke.user_space_api import *
-    #from datasrc import * 
-    #TODO jq not suport root path
 except Exception as e:
     #may used in notebook!
     print ("%s:%s" %(str(Exception),str(e)))
+#from datasrc import * 
+#TODO jq not suport root path
 from abcbase import *
 
 class JqDatasrc(SecurityDataSrcBase):
@@ -102,13 +102,62 @@ class JqDatasrc(SecurityDataSrcBase):
         'R87':'文化传媒',#,'文化艺术业',
         'S90':'综合',#'综合'
     }
-            
+    
+    def __GET_SECURITY_INFO_BASE__(self, date, filtPaused=False, filtSt=False, filtIndustry=False):
+        #today = datetime.date.today() if date==None else date
+        # base code,name,displayname
+        base = get_all_securities(['stock'])
+        mart = get_fundamentals(
+                query(valuation.code,          #代码(带后缀.XSHE/.XSHG)
+                #valuation.id,                      #
+                valuation.day,                     #日期
+                valuation.capitalization,          #总股本(万股)
+                valuation.circulating_cap,         #流通股本(万股)
+                valuation.circulating_market_cap,  #流通市值(亿)
+                valuation.market_cap,              #总市值(亿元)
+                valuation.pb_ratio,                #市净率
+                valuation.pcf_ratio,               #市现率
+                valuation.pe_ratio,                #动态市盈率
+                valuation.ps_ratio,                #市销率
+                valuation.turnover_ratio,          #换手率(%)
+                ),date).dropna().set_index('code')
+        # join mart in base
+        grid = pd.concat([base, mart], axis=1, join='inner')
+        # query crew info
+        if not filtPaused:
+            crew = get_price(list(mart.index), start_date=date, end_date=date, fields=['paused'])
+            crew = crew.paused.T
+            crew.rename(columns={crew.columns[0]:'paused'}, inplace=True)
+            grid = pd.concat([grid, crew], axis=1, join='inner')
+        # query pack info
+        if not filtSt:
+            pack = get_extras('is_st', list(mart.index), start_date=date, end_date=date, df=True)
+            pack = pack.T
+            pack.rename(columns={pack.columns[0]:'is_st'}, inplace=True)
+            grid = pd.concat([grid, pack], axis=1, join='inner')
+        # query industry code
+        if not filtIndustry:
+            grid.loc[:,'industry_code'] = 'None'
+            for code in self.industry_dict.keys():
+                codepool = get_industry_stocks(code,date)
+                for security in codepool:
+                    grid.at[security,'industry_code'] = code
+        return grid
 
+    def GET_SECURITY_INFO_BASE(self, date=None):
+        if self.__securitybaseinfo__ == None:
+            context = self.GET_CONTEXT()
+            date = context.current_dt
+            print("%s GET_SECURITY_INFO_BASE" %(str(date.strftime('%Y-%m-%d-%H%M%S'))))
+            self.__securitybaseinfo__ = self.__GET_SECURITY_INFO_BASE__(date)
+        return self.__securitybaseinfo__
+    
     def __init__(self, name):
         super(JqDatasrc, self).__init__(name)
-    
+        self.__securitybaseinfo__ = None
+        
     def getVersionName(self):
-        return "1.12.14"
+        return "1.12.20"
     
     def getDataSrcName(self):
         return "joinquant"
@@ -126,7 +175,29 @@ class JqDatasrc(SecurityDataSrcBase):
         l_stocks = l_stocks03 + l_stocks04
         print ("l_stocks %s in all" % (str(len(l_stocks))))
         if filtPaused or filtSt:
-            current_data = get_current_data()
+            hasCurrent = True
+            try:
+                #TODO jq not suport root path
+                current_data = get_current_data()
+            except Exception as e:
+                #may used in notebook!
+                hasCurrent = False
+                #print ("%s:%s" %(str(Exception),str(e)))
+            if not hasCurrent:
+                basedf = self.GET_SECURITY_INFO_BASE()
+                if filtPaused:
+                    listpaused = list(basedf[basedf['paused']>0].index)
+                    l_stocks = [s for s in l_stocks if not s in listpaused]
+                    print ("l_stocks %s after filtPaused" % (str(len(l_stocks))))
+                if filtSt:
+                    listst = list(basedf[basedf['is_st']==True].index)
+                    l_stocks = [s for s in l_stocks if not s in listst]
+                    print ("l_stocks %s after filtSt" % (str(len(l_stocks))))
+                if filtMarketcap>0:
+                    listcap = list(basedf[basedf['circulating_market_cap']>filtMarketcap].index)
+                    l_stocks = [s for s in l_stocks if not s in listcap]
+                    print ("l_stocks %s after filtMarketcap" % (str(len(l_stocks))))
+                return l_stocks
             if filtPaused:
                 l_stocks = [s for s in l_stocks if not current_data[s].paused]
                 print ("l_stocks %s after filtPaused" % (str(len(l_stocks))))
