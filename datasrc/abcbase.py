@@ -5,13 +5,71 @@ Created on 2017-3-8
 
 @author: yuql
 '''
-
+import datetime
 import math
 import decimal
 import talib as tl
 import numpy as np
 from abc import ABCMeta, abstractmethod
 
+class BRunparams(object):
+    def __init__(self):
+        self.start_date = None
+        self.end_date = None
+        self.type = 'notebook'
+        self.frequency = 'day'
+        
+class BContext(object):
+    @classmethod
+    def datetime2str(cls, dt):
+        return dt.strftime("%Y-%m-%d")
+    
+    @classmethod
+    def str2datetime(cls, dtstr):
+        return datetime.datetime.strptime(dtstr, "%Y-%m-%d")
+    
+    @classmethod
+    def deltatimeday(cls, dt, offsetday):
+        return dt + + datetime.timedelta(days = offsetday)
+    #default return today date
+    def __init__(self, date=None, count=0):
+        self.universe = []
+        self.current_dt = None
+        self.run_params = BRunparams()
+        self.__init_time_range__(date, count)
+        #self.portfolio = None
+        
+    def __init_time_range__(self, date, count):
+        self.setdaterange(date, count)
+        self.run_params.start_date = self.__start_date__
+        self.run_params.end_date = self.__end_date__
+        self.current_dt = self.__end_date__
+        
+    def setdaterange(self, date, count):
+        self.count = count
+        if date == None:
+            self.__end_date__ = datetime.datetime.today()
+        else:
+            if isinstance(date, datetime.datetime):
+                self.__end_date__ = date
+            else:
+                self.__end_date__ = self.str2datetime(date)
+        if count<=0:
+            self.__start_date__ = self.__end_date__
+        else:
+            self.__start_date__ = self.deltatimeday(self.__end_date__, -count)
+            
+    def getstartdate(self, isStr=False):
+        if isStr:
+            return self.datetime2str(self.__start_date__)
+        return self.__start_date__
+    
+    def getenddate(self, isStr=False):
+        if isStr:
+            return self.datetime2str(self.__end_date__)
+        return self.__end_date__
+    
+    
 class SecurityDataSrcBase(object):
     '''
     classdocs
@@ -59,6 +117,9 @@ class SecurityDataSrcBase(object):
     '''
     index function begin ------------------------------------
     '''
+    def GET_CONTEXT(self, date=None, count=0):
+        return BContext(date, count)
+        
     @staticmethod
     def GET_RUN_MINUTES(context):
         if context == None:
