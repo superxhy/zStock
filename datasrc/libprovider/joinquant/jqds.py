@@ -11,6 +11,9 @@ try:
 except Exception as e:
     #may used in notebook!
     print ("%s:%s" %(str(Exception),str(e)))
+import numpy as np
+import pandas as pd
+
 #from datasrc import * 
 #TODO jq not suport root path
 from abcbase import *
@@ -139,13 +142,19 @@ class JqDatasrc(SecurityDataSrcBase):
         if not filtIndustry:
             grid.loc[:,'industry_code'] = 'None'
             for code in self.industry_dict.keys():
-                codepool = get_industry_stocks(code,date)
+                codepool = []
+                try:
+                    codepool = get_industry_stocks(code,date)
+                except Exception as e:
+                    print ("%s:%s" %(str(Exception),str(e)))
+                if len(codepool) == 0:
+                    continue
                 for security in codepool:
                     grid.at[security,'industry_code'] = code
         return grid
 
     def GET_SECURITY_INFO_BASE(self, date=None):
-        if self.__securitybaseinfo__ == None:
+        if self.__securitybaseinfo__.empty == True:
             context = self.GET_CONTEXT()
             date = context.current_dt
             print("%s GET_SECURITY_INFO_BASE" %(str(date.strftime('%Y-%m-%d-%H%M%S'))))
@@ -154,7 +163,7 @@ class JqDatasrc(SecurityDataSrcBase):
     
     def __init__(self, name):
         super(JqDatasrc, self).__init__(name)
-        self.__securitybaseinfo__ = None
+        self.__securitybaseinfo__ = pd.DataFrame(columns=['code'])
         
     def getVersionName(self):
         return "1.12.20"
