@@ -30,7 +30,8 @@ class BContext(object):
     
     @classmethod
     def deltatimeday(cls, dt, offsetday):
-        return dt + + datetime.timedelta(days = offsetday)
+        return dt + datetime.timedelta(days = offsetday)
+    
     #default return today date
     def __init__(self, date=None, count=0):
         self.universe = []
