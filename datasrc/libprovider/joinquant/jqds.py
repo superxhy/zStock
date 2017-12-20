@@ -237,17 +237,38 @@ class JqDatasrc(SecurityDataSrcBase):
     # 获取股票信息
     #security
     def GET_SECURITY_INFO(self, security):
-        info =  get_security_info(security)
-        if security in self.index_list:
-            return {'name':info.display_name,'industry':'指数'}
-        #TODO industry_code
-        cur = get_current_data()[security]
+        hasCurrent = True
+        try:
+            #TODO jq not suport root path
+            current_data = get_current_data()
+        except Exception as e:
+            #may used in notebook!
+            hasCurrent = False
+            current_data = []
+            #print ("%s:%s" %(str(Exception),str(e)))
+        if not hasCurrent:
+            basedf = self.GET_SECURITY_INFO_BASE()
+            name  =  basedf.loc[security,'display_name']
+            if security in self.index_list:
+                return {'name':name,'industry':'指数'}
+            sname =  basedf.loc[security,'name']
+            #timeToMarket = basedf.loc[security,'start_date']
+            sindustry = basedf.loc[security,'industry_code']
+        else:
+            info =  get_security_info(security)
+            name  = info.display_name
+            if security in self.index_list:
+                return {'name':name,'industry':'指数'}
+            cur = current_data[security]
+            sname =  info.name
+            #timeToMarket = info.start_date
+            sindustry = cur.industry_code
         securityInfo = {
-        'name': info.display_name,
-        'sname': info.name,
-        'timeToMarket':info.start_date,
-        'industry':self.industry_dict.get(cur.industry_code,'行业'+str(cur.industry_code)),
-        'sindustry':cur.industry_code}
+        'name': name,
+        'sname': sname,
+        #'timeToMarket':datetime.datetime.fromtimestamp(timeToMarket).strftime("%Y-%m-%d"),
+        'industry':self.industry_dict.get(sindustry,'行业'+str(sindustry)),
+        'sindustry':sindustry}
         return securityInfo
     
     # 获取当前分时收盘价
