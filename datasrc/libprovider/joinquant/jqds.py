@@ -165,12 +165,20 @@ class JqDatasrc(SecurityDataSrcBase):
             self.__securitybaseinfo__ = self.__GET_SECURITY_INFO_BASE__(date)
         return self.__securitybaseinfo__
     
+    def GET_SECURITY_DATA_DAY(self, code, date, dataCount, fields=None):
+        security = normalize_code(code)
+        return get_price(security, count=dataCount, end_date=date,fields=fields,frequency='1d',skip_paused=True,fq='pre')
+        
+    def GET_SECURITY_DATA_MIN(self, code, date, dataCount, fields=None):
+        security = normalize_code(code)
+        return get_price(security, count=dataCount, end_date=date,fields=fields,frequency='1m',skip_paused=True,fq='pre')
+        
     def __init__(self, name):
         super(JqDatasrc, self).__init__(name)
         self.__securitybaseinfo__ = pd.DataFrame(columns=['code'])
         
     def getVersionName(self):
-        return "1.12.20"
+        return "1.12.21"
     
     def getDataSrcName(self):
         return "joinquant"
@@ -404,7 +412,10 @@ class JqDatasrc(SecurityDataSrcBase):
         vol_intraday = np.append(vol_intraday, volLast)
         return vol_intraday
     
-    def GET_HIGH_DAY(self, context, security, ref=0):
+    def GET_HIGH_DAY(self, context, security, ref=0, data={}):
+        bcontext = self.IS_INNER_CONTEXT(context)
+        if bcontext:
+            return super(JqDatasrc, self).GET_HIGH_DAY(context, security, ref, data)
         if ref==0:
             run_minutes = self.GET_RUN_MINUTES(context)
             if run_minutes == 0:
@@ -421,7 +432,10 @@ class JqDatasrc(SecurityDataSrcBase):
             #df True 倒序
             return attribute_history(security, ref, '1d', ('high'), True)['high'][0]
             
-    def GET_LOW_DAY(self, context, security, ref=0):
+    def GET_LOW_DAY(self, context, security, ref=0, data={}):
+        bcontext = self.IS_INNER_CONTEXT(context)
+        if bcontext:
+            return super(JqDatasrc, self).GET_LOW_DAY(context, security, ref, data)
         if ref==0:
             run_minutes = self.GET_RUN_MINUTES(context)
             if run_minutes == 0:
@@ -439,6 +453,21 @@ class JqDatasrc(SecurityDataSrcBase):
             return attribute_history(security, ref, '1d', ('low'), True)['low'][0]
             
     def GET_OPEN_DAY(self, context, security, ref=0):
+        bcontext = self.IS_INNER_CONTEXT(context)
+        if bcontext:
+            dataCount =  ref + 1
+            df_data = self.GET_SECURITY_DATA_DAY(security, bcontext.getenddate(), dataCount, ('open'))
+            if df_data.empty == True:
+                print ("security:%s NO GET_OPEN_DAY!" %(str(security)))
+                return np.array([np.nan])
+            daylist = list(df_data.index)
+            bcontext.setcurrent_dt(daylist[-1])
+            d_open = list(df_data['open'])
+            if len(d_open) == 0 or np.isnan(d_open[-1]):
+                return np.nan
+            if len(d_open) < ref + 1:
+                return np.nan
+            return d_open[-ref]
         if ref==0:
             run_minutes = self.GET_RUN_MINUTES(context)
             if run_minutes == 0:
@@ -452,11 +481,11 @@ class JqDatasrc(SecurityDataSrcBase):
     def GET_HIGH_DATA_DAY(self, context,security,isLastest=True,data={},dataCount=1):
         bcontext = self.IS_INNER_CONTEXT(context)
         if bcontext:
-            df_data = get_price(security, count=dataCount, end_date=bcontext.getenddate(),fields=('high'),frequency='1d',skip_paused=True,fq='pre')
+            df_data = self.GET_SECURITY_DATA_DAY(security, bcontext.getenddate(), dataCount, ('high'))
             if df_data.empty == True:
                 print ("security:%s NO GET_HIGH_DATA_DAY!" %(str(security)))
                 return np.array([np.nan])
-            daylist = list(df_data['day'])
+            daylist = list(df_data.index)
             bcontext.setcurrent_dt(daylist[-1])
             return list(df_data['high'])
         ar_data = attribute_history(security, dataCount, unit='1d', fields=('high'), skip_paused=True, df=False)
@@ -490,11 +519,11 @@ class JqDatasrc(SecurityDataSrcBase):
     def GET_LOW_DATA_DAY(self, context,security,isLastest=True,data={},dataCount=1):
         bcontext = self.IS_INNER_CONTEXT(context)
         if bcontext:
-            df_data = get_price(security, count=dataCount, end_date=bcontext.getenddate(),fields=('low'),frequency='1d',skip_paused=True,fq='pre')
+            df_data = self.GET_SECURITY_DATA_DAY(security, bcontext.getenddate(), dataCount, ('low'))
             if df_data.empty == True:
                 print ("security:%s NO GET_LOW_DATA_DAY!" %(str(security)))
                 return np.array([np.nan])
-            daylist = list(df_data['day'])
+            daylist = list(df_data.index)
             bcontext.setcurrent_dt(daylist[-1])
             return list(df_data['low'])
         ar_data = attribute_history(security, dataCount, unit='1d', fields=('low'), skip_paused=True, df=False)
@@ -527,6 +556,9 @@ class JqDatasrc(SecurityDataSrcBase):
     
     # 获取当前日线或ref天前收盘价
     def GET_CLOSE_DAY(self, context, security, ref=0 ,data={}):
+        bcontext = self.IS_INNER_CONTEXT(context)
+        if bcontext:
+            return super(JqDatasrc, self).GET_CLOSE_DAY(context, security, ref, data)
         if ref == 0:
             run_minutes = self.GET_RUN_MINUTES(context)
             if run_minutes==0:
@@ -569,11 +601,11 @@ class JqDatasrc(SecurityDataSrcBase):
     def GET_PERIOD_DATA_DAY(self,context, security, data={}, dataCount=1):
         bcontext = self.IS_INNER_CONTEXT(context)
         if bcontext:
-            df_data = get_price(security, count=dataCount, end_date=bcontext.getenddate(),frequency='1d',skip_paused=True,fq='pre')
+            df_data = self.GET_SECURITY_DATA_DAY(security, bcontext.getenddate(), dataCount, None)
             if df_data.empty == True:
                 print ("security:%s NO GET_PERIOD_DATA_DAY!" %(str(security)))
                 return np.array([np.nan])
-            daylist = list(df_data['day'])
+            daylist = list(df_data.index)
             bcontext.setcurrent_dt(daylist[-1])
             return list(df_data['high']), list(df_data['low']) ,list(df_data['close'])
         return super(JqDatasrc, self).GET_PERIOD_DATA_DAY(context, security, data, dataCount)
@@ -582,11 +614,11 @@ class JqDatasrc(SecurityDataSrcBase):
     def GET_CLOSE_DATA_DAY(self, context, security, isLastest=True,data={},dataCount=20):
         bcontext = self.IS_INNER_CONTEXT(context)
         if bcontext:
-            df_data = get_price(security, count=dataCount, end_date=bcontext.getenddate(),fields=('close'),frequency='1d',skip_paused=True,fq='pre')
+            df_data = self.GET_SECURITY_DATA_DAY(security, bcontext.getenddate(), dataCount, ('close'))
             if df_data.empty == True:
                 print ("security:%s NO GET_PERIOD_DATA_DAY!" %(str(security)))
                 return np.array([np.nan])
-            daylist = list(df_data['day'])
+            daylist = list(df_data.index)
             bcontext.setcurrent_dt(daylist[-1])
             return list(df_data['close'])
         ar_data = attribute_history(security, dataCount, unit='1d', fields=('close'), skip_paused=True, df=False)
@@ -605,9 +637,20 @@ class JqDatasrc(SecurityDataSrcBase):
             if not np.isnan(closeLast):
                 closeDay = np.append(close,closeLast)
             return closeDay
-
     
-    def GET_PERIOD_DATA_MIN(self,context, security, data={}, dataCount=1):
+    def GET_PERIOD_DATA_MIN(self,context, security, data={}, dataCount=1, hasVol=False):
+        bcontext = self.IS_INNER_CONTEXT(context)
+        if bcontext:
+            df_data = self.GET_SECURITY_DATA_MIN(security, bcontext.getenddate(), dataCount, None)
+            if df_data.empty == True:
+                print ("security:%s NO GET_PERIOD_DATA_DAY!" %(str(security)))
+                return np.array([np.nan])
+            daylist = list(df_data.index)
+            bcontext.setcurrent_dt(daylist[-1])
+            if hasVol:
+                return list(df_data['high']), list(df_data['low']) ,list(df_data['close']), list(df_data['volume'])
+            else:
+                return list(df_data['high']), list(df_data['low']) ,list(df_data['close'])
         ar_data = attribute_history(security, dataCount, unit='1m', fields=('close','high','low'), skip_paused=True, df=False)
         if ar_data.get('close') is None or ar_data.get('high') is None or ar_data.get('low') is None:
             return np.array([np.nan]),np.array([np.nan]),np.array([np.nan])
@@ -637,6 +680,9 @@ class JqDatasrc(SecurityDataSrcBase):
 
     # 获取当前日线或ref天前成交量
     def GET_VOL_DAY(self, context, security, ref=0 ,data={}):
+        bcontext = self.IS_INNER_CONTEXT(context)
+        if bcontext:
+            return super(JqDatasrc, self).GET_VOL_DAY(context, security, ref, data)
         if ref == 0:
             run_minutes = self.GET_RUN_MINUTES(context)
             if run_minutes == 0:
@@ -672,11 +718,11 @@ class JqDatasrc(SecurityDataSrcBase):
     def GET_VOL_DATA_DAY(self, context, security,isLastest=True,data={},dataCount=20):
         bcontext = self.IS_INNER_CONTEXT(context)
         if bcontext:
-            df_data = get_price(security, count=dataCount, end_date=bcontext.getenddate(),fields=('volume'),frequency='1d',skip_paused=True,fq='pre')
+            df_data = self.GET_SECURITY_DATA_DAY(security, bcontext.getenddate(), dataCount, ('volume'))
             if df_data.empty == True:
-                print ("security:%s NO GET_HIGH_DATA_DAY!" %(str(security)))
+                print ("security:%s NO GET_VOL_DATA_DAY!" %(str(security)))
                 return np.array([np.nan])
-            daylist = list(df_data['day'])
+            daylist = list(df_data.index)
             bcontext.setcurrent_dt(daylist[-1])
             return list(df_data['volume'])
         volume = 0.01*attribute_history(security, dataCount, unit='1d', fields=('volume'), skip_paused=True, df=False)['volume']
@@ -714,11 +760,11 @@ class JqDatasrc(SecurityDataSrcBase):
     def GET_AMOUNT_DATA_DAY(self, context, security,isLastest=True,data={},dataCount=20):
         bcontext = self.IS_INNER_CONTEXT(context)
         if bcontext:
-            df_data = get_price(security, count=dataCount, end_date=bcontext.getenddate(),fields=('money'),frequency='1d',skip_paused=True,fq='pre')
+            df_data = self.GET_SECURITY_DATA_DAY(security, bcontext.getenddate(), dataCount, ('money'))
             if df_data.empty == True:
                 print ("security:%s NO GET_HIGH_DATA_DAY!" %(str(security)))
                 return np.array([np.nan])
-            daylist = list(df_data['day'])
+            daylist = list(df_data.index)
             bcontext.setcurrent_dt(daylist[-1])
             return list(df_data['money'])
         amount = attribute_history(security, dataCount, unit='1d', fields=('money'), skip_paused=True, df=False)['money']
