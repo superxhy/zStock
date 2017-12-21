@@ -450,6 +450,15 @@ class JqDatasrc(SecurityDataSrcBase):
         
     # 获取日线历史数据最大值
     def GET_HIGH_DATA_DAY(self, context,security,isLastest=True,data={},dataCount=1):
+        bcontext = self.IS_INNER_CONTEXT(context)
+        if bcontext:
+            df_data = get_price(security, count=dataCount, end_date=bcontext.getenddate(),fields=('high'),frequency='1d',skip_paused=True,fq='pre')
+            if df_data.empty == True:
+                print ("security:%s NO GET_HIGH_DATA_DAY!" %(str(security)))
+                return np.array([np.nan])
+            daylist = list(df_data['day'])
+            bcontext.setcurrent_dt(daylist[-1])
+            return list(df_data['high'])
         ar_data = attribute_history(security, dataCount, unit='1d', fields=('high'), skip_paused=True, df=False)
         if ar_data.get('high') is None:
             print ("security:%s in context:%s NO GET_HIGH_DATA_DAY!" %(str(security),str(context)))
@@ -479,6 +488,15 @@ class JqDatasrc(SecurityDataSrcBase):
     
     # 获取日线历史数据最小值
     def GET_LOW_DATA_DAY(self, context,security,isLastest=True,data={},dataCount=1):
+        bcontext = self.IS_INNER_CONTEXT(context)
+        if bcontext:
+            df_data = get_price(security, count=dataCount, end_date=bcontext.getenddate(),fields=('low'),frequency='1d',skip_paused=True,fq='pre')
+            if df_data.empty == True:
+                print ("security:%s NO GET_LOW_DATA_DAY!" %(str(security)))
+                return np.array([np.nan])
+            daylist = list(df_data['day'])
+            bcontext.setcurrent_dt(daylist[-1])
+            return list(df_data['low'])
         ar_data = attribute_history(security, dataCount, unit='1d', fields=('low'), skip_paused=True, df=False)
         if ar_data.get('low') is None:
             print ("security:%s in context:%s NO GET_LOW_DATA_DAY!" %(str(security),str(context)))
@@ -548,8 +566,29 @@ class JqDatasrc(SecurityDataSrcBase):
             #df True 倒序
             return attribute_history(security, ref, '1d', ('close'), True)['close'][0]
     
+    def GET_PERIOD_DATA_DAY(self,context, security, data={}, dataCount=1):
+        bcontext = self.IS_INNER_CONTEXT(context)
+        if bcontext:
+            df_data = get_price(security, count=dataCount, end_date=bcontext.getenddate(),frequency='1d',skip_paused=True,fq='pre')
+            if df_data.empty == True:
+                print ("security:%s NO GET_PERIOD_DATA_DAY!" %(str(security)))
+                return np.array([np.nan])
+            daylist = list(df_data['day'])
+            bcontext.setcurrent_dt(daylist[-1])
+            return list(df_data['high']), list(df_data['low']) ,list(df_data['close'])
+        return super(JqDatasrc, self).GET_PERIOD_DATA_DAY(context, security, data, dataCount)
+    
     # 获取日线历史数据
     def GET_CLOSE_DATA_DAY(self, context, security, isLastest=True,data={},dataCount=20):
+        bcontext = self.IS_INNER_CONTEXT(context)
+        if bcontext:
+            df_data = get_price(security, count=dataCount, end_date=bcontext.getenddate(),fields=('close'),frequency='1d',skip_paused=True,fq='pre')
+            if df_data.empty == True:
+                print ("security:%s NO GET_PERIOD_DATA_DAY!" %(str(security)))
+                return np.array([np.nan])
+            daylist = list(df_data['day'])
+            bcontext.setcurrent_dt(daylist[-1])
+            return list(df_data['close'])
         ar_data = attribute_history(security, dataCount, unit='1d', fields=('close'), skip_paused=True, df=False)
         if ar_data.get('close') is None:
             print ("security:%s NO GET_CLOSE_DATA_DAY!" %(str(security)))
@@ -631,6 +670,15 @@ class JqDatasrc(SecurityDataSrcBase):
 
     # 获取日线历史成交量
     def GET_VOL_DATA_DAY(self, context, security,isLastest=True,data={},dataCount=20):
+        bcontext = self.IS_INNER_CONTEXT(context)
+        if bcontext:
+            df_data = get_price(security, count=dataCount, end_date=bcontext.getenddate(),fields=('volume'),frequency='1d',skip_paused=True,fq='pre')
+            if df_data.empty == True:
+                print ("security:%s NO GET_HIGH_DATA_DAY!" %(str(security)))
+                return np.array([np.nan])
+            daylist = list(df_data['day'])
+            bcontext.setcurrent_dt(daylist[-1])
+            return list(df_data['volume'])
         volume = 0.01*attribute_history(security, dataCount, unit='1d', fields=('volume'), skip_paused=True, df=False)['volume']
         if not isLastest:
             return volume
@@ -664,6 +712,15 @@ class JqDatasrc(SecurityDataSrcBase):
 
     # 获取日线历史成交额
     def GET_AMOUNT_DATA_DAY(self, context, security,isLastest=True,data={},dataCount=20):
+        bcontext = self.IS_INNER_CONTEXT(context)
+        if bcontext:
+            df_data = get_price(security, count=dataCount, end_date=bcontext.getenddate(),fields=('money'),frequency='1d',skip_paused=True,fq='pre')
+            if df_data.empty == True:
+                print ("security:%s NO GET_HIGH_DATA_DAY!" %(str(security)))
+                return np.array([np.nan])
+            daylist = list(df_data['day'])
+            bcontext.setcurrent_dt(daylist[-1])
+            return list(df_data['money'])
         amount = attribute_history(security, dataCount, unit='1d', fields=('money'), skip_paused=True, df=False)['money']
         if not isLastest:
             return amount
