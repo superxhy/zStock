@@ -676,6 +676,7 @@ class SecurityDataSrcBase(object):
     def KDJ_DATA_DAY(self, context, security, data={}, dataCount=1):
         return self.KDJ_DATA(context, security, 'D',data, dataCount)
     
+    #should override to has in row
     def GET_PERIOD_DATA_MIN(self,context, security, data={}, dataCount=1):
         close = self.GET_CLOSE_DATA_MIN(context,security, data, dataCount)
         high = self.GET_HIGH_DATA_MIN(context, security, data, dataCount)
@@ -696,6 +697,7 @@ class SecurityDataSrcBase(object):
             low   =   low[len3-lenmin:]
         return high, low ,close
     
+    #should override to has in row
     def GET_PERIOD_DATA_DAY(self,context, security, data={}, dataCount=1):
         close = self.GET_CLOSE_DATA_DAY(context, security, True, data, dataCount)
         high = self.GET_HIGH_DATA_DAY(context, security, True, {}, dataCount)
@@ -794,18 +796,10 @@ class SecurityDataSrcBase(object):
         if np.isnan(volLast):
             return np.array([np.nan])
         if run_minutes==240:
-            volLast = volLast*2.5
+            return self.GET_VOL_DAY(context, security, 0, data)
         if run_minutes==0:
-            #TODO: no support 9:25 vol?
-            #volLast = 0.01*get_current_data()[security].volume
-            #amountLast = 0.01*get_current_data()[security].money
-            volLast = 0
-            #self.data[security]={'volume':volLast,'amount':amountLast} 
             vol_intraday = self.SIMPLE_DATA_SUM(volMin, dataCount, freq, offset)
         else:
-            #TODO mock open data vol
-            volMin[0] = 0
-            volMin[1] = volMin[1]*2.0
             vol_intraday = self.SIMPLE_DATA_SUM(volMin, dataCount, freq, intra)
             volLast += np.sum(volMin[-intra:])
         vol_intraday = np.append(vol_intraday, volLast)
@@ -1115,9 +1109,12 @@ class SecurityDataSrcBase(object):
             high = self.GET_HIGH_DATA_YEAR_DA(context, security, True, data, d_high)
             low = self.GET_LOW_DATA_YEAR_DA(context, security, True, data, d_low)
         else :
-            run_minutes = self.GET_RUN_MINUTES(context)
-            offset = run_minutes % freq
-            get_count = dataCount * freq + offset
+            if self.IS_INNER_CONTEXT(context):
+                get_count = dataCount * (freq + 1)
+            else:
+                run_minutes = self.GET_RUN_MINUTES(context)
+                offset = run_minutes % freq
+                get_count = dataCount * freq + offset
             m_high, m_low, m_close = self.GET_PERIOD_DATA_MIN(context, security, data, get_count)
             if len(m_close) == 0 or np.isnan(m_close[-1]):
                 print ("security:%s in freq:%s NO GET_PERIOD_DATA_DA!" %(str(security),str(freq)))
@@ -1174,6 +1171,16 @@ class SecurityDataSrcBase(object):
         if len(m_low) == 0 or np.isnan(m_low[-1]):
             return np.array([np.nan])
         return self.GET_LOW_DATA_INTRADAY_DA(context, security, data, freq, m_close)
+    
+    # 获取当前分时成交量
+    def GET_VOL_DATA_INTRADAY(self, context, security, data={}, freq=5, dataCount=1):
+        run_minutes = self.GET_RUN_MINUTES(context)
+        offset = run_minutes % freq
+        get_count = dataCount * freq + offset
+        m_high, m_low, m_close, m_vol = self.GET_PERIOD_DATA_MIN(context, security, data, get_count, True)
+        if len(m_vol) == 0 or np.isnan(m_vol[-1]):
+            return np.array([np.nan])
+        return self.GET_VOL_DATA_INTRADAY_DA(context, security, data, freq, m_close)
     
     # 获取周线历史数据
     def GET_CLOSE_DATA_WEEK(self, context,security,isLastest=True,data={},dataCount=20):
@@ -1258,6 +1265,43 @@ class SecurityDataSrcBase(object):
         if len(d_low) == 0 or np.isnan(d_low[-1]):
             return np.array([np.nan])
         return self.GET_LOW_DATA_YEAR_DA(context, security, isLastest, data, d_low)
+    
+    # 获取当前日线或ref天前收盘价
+    def GET_CLOSE_DAY(self, context, security, ref=0 ,data={}):
+        dataCount =  ref + 1
+        d_close = self.GET_CLOSE_DATA_DAY(context, security, True, data, dataCount)
+        if len(d_close) == 0 or np.isnan(d_close[-1]):
+            return np.nan
+        if len(d_close) < ref + 1:
+            return np.nan
+        return d_close[-ref]
+    
+    def GET_HIGH_DAY(self, context, security, ref=0, data={}):
+        dataCount =  ref + 1
+        d_high = self.GET_HIGH_DATA_DAY(context, security, True, data, dataCount)
+        if len(d_high) == 0 or np.isnan(d_high[-1]):
+            return np.nan
+        if len(d_high) < ref + 1:
+            return np.nan
+        return d_high[-ref]
+    
+    def GET_LOW_DAY(self, context, security, ref=0, data={}):
+        dataCount =  ref + 1
+        d_low = self.GET_LOW_DATA_DAY(context, security, True, data, dataCount)
+        if len(d_low) == 0 or np.isnan(d_low[-1]):
+            return np.nan
+        if len(d_low) < ref + 1:
+            return np.nan
+        return d_low[-ref]
+    
+    def GET_VOL_DAY(self, context, security, ref=0, data={}):
+        dataCount =  ref + 1
+        d_vol = self.GET_VOL_DATA_DAY(context, security, True, data, dataCount)
+        if len(d_vol) == 0 or np.isnan(d_vol[-1]):
+            return np.nan
+        if len(d_vol) < ref + 1:
+            return np.nan
+        return d_vol[-ref]
     
     def KDJ_DATA(self, context, security, freq = 'D', data={}, dataCount=1):
         #sma target round2
@@ -1934,20 +1978,20 @@ class SecurityDataSrcBase(object):
     #    pass
     
     # 获取当前分时成交量
-    @abstractmethod
+    #@abstractmethod
     #context, security, data={}, freq=5, dataCount=1
-    def GET_VOL_DATA_INTRADAY(self):
-        pass
+    #def GET_VOL_DATA_INTRADAY(self):
+    #    pass
     
-    @abstractmethod
+    #@abstractmethod
     #context, security, ref=0
-    def GET_HIGH_DAY(self):
-        pass
+    #def GET_HIGH_DAY(self):
+    #    pass
             
-    @abstractmethod
+    #@abstractmethod
     #context, security, ref=0
-    def GET_LOW_DAY(self):
-        pass
+    #def GET_LOW_DAY(self):
+    #    pass
             
     @abstractmethod
     #context, security, ref=0
@@ -1991,10 +2035,10 @@ class SecurityDataSrcBase(object):
     #    pass
     
     # 获取当前日线或ref天前收盘价
-    @abstractmethod
+    #@abstractmethod
     #context,security, ref=0 ,data={}
-    def GET_CLOSE_DAY(self):
-        pass
+    #def GET_CLOSE_DAY(self):
+    #    pass
     
     @abstractmethod
     #context,security,isLastest=True,data={},dataCount=20
@@ -2057,11 +2101,11 @@ class SecurityDataSrcBase(object):
     def GET_CLOSE_DATA(self):
         pass
     
-    @abstractmethod
+    #@abstractmethod
     # 获取当前日线或ref天前成交量
     #context, security, ref=0 ,data={}
-    def GET_VOL_DAY(self):
-        pass
+    #def GET_VOL_DAY(self):
+    #    pass
     
     @abstractmethod
     # 获取日线历史成交量
