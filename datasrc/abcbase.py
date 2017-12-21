@@ -13,11 +13,13 @@ import numpy as np
 from abc import ABCMeta, abstractmethod
 
 class BRunparams(object):
+    runtype = 'notebook'
+    runfrequency = 'day'
     def __init__(self):
         self.start_date = None
         self.end_date = None
-        self.type = 'notebook'
-        self.frequency = 'day'
+        self.type = self.runtype
+        self.frequency = self.runfrequency
         
 class BContext(object):
     @classmethod
@@ -28,6 +30,17 @@ class BContext(object):
     def str2datetime(cls, dtstr):
         return datetime.datetime.strptime(dtstr, "%Y-%m-%d")
     
+    @classmethod
+    def obj2datatime(cls, dtobj):
+        if isinstance(dtobj, datetime.datetime):
+            return dtobj
+        elif isinstance(dtobj, str):
+            return cls.str2datetime(dtobj)
+        elif isinstance(dtobj,(int, long, float)):
+            return datetime.datetime.fromtimestamp(dtobj)
+        else:
+            return dtobj.to_datetime()
+        
     @classmethod
     def deltatimeday(cls, dt, offsetday):
         return dt + datetime.timedelta(days = offsetday)
@@ -46,20 +59,23 @@ class BContext(object):
         self.run_params.end_date = self.__end_date__
         self.current_dt = self.__end_date__
         
-    def setdaterange(self, date, count):
+    def setcurrent_dt(self, date):
+        self.current_dt = self.obj2datatime(date)
+        
+    def setdaterange(self, date, count, datastart=None):
         self.count = count
         if date == None:
             self.__end_date__ = datetime.datetime.today()
         else:
-            if isinstance(date, datetime.datetime):
-                self.__end_date__ = date
+            self.__end_date__ = self.obj2datatime(date)
+        if datastart==None:
+            if count<=0:
+                self.__start_date__ = self.__end_date__
             else:
-                self.__end_date__ = self.str2datetime(date)
-        if count<=0:
-            self.__start_date__ = self.__end_date__
+                self.__start_date__ = self.deltatimeday(self.__end_date__, -count)
         else:
-            self.__start_date__ = self.deltatimeday(self.__end_date__, -count)
-            
+            self.__start_date__ = self.obj2datatime(datastart)
+                
     def getstartdate(self, isStr=False):
         if isStr:
             return self.datetime2str(self.__start_date__)
@@ -121,6 +137,13 @@ class SecurityDataSrcBase(object):
     def GET_CONTEXT(self, date=None, count=0):
         return BContext(date, count)
         
+    def IS_INNER_CONTEXT(self, context):
+        if context == None:
+            return self.GET_CONTEXT()
+        if context.run_params.type == BRunparams.runtype:
+            return context
+        return False
+    
     @staticmethod
     def GET_RUN_MINUTES(context):
         if context == None:
@@ -1052,6 +1075,8 @@ class SecurityDataSrcBase(object):
         close = np.array([np.nan])
         high = np.array([np.nan])
         low = np.array([np.nan])
+        if context == None:
+            context = self.GET_CONTEXT()
         if freq == 'D':
             high, low, close = self.GET_PERIOD_DATA_DAY(context, security, data, dataCount)
             if len(close) == 0 or np.isnan(close[-1]):
