@@ -499,6 +499,7 @@ class JqDatasrc(SecurityDataSrcBase):
         if not isLastest:
             return high
         else:
+            highDay = high[1:]
             run_minutes = self.GET_RUN_MINUTES(context)
             if run_minutes == 0:
                 #highLast = attribute_history(security, 1, unit='1m', fields=('high'), skip_paused=True, df=False)['high']
@@ -512,8 +513,8 @@ class JqDatasrc(SecurityDataSrcBase):
                     if not np.isnan(curLast) and curLast > highLast:
                         highLast = curLast
             if not np.isnan(highLast):
-                high = np.append(high,highLast)
-            return high
+                highDay = np.append(highDay,highLast)
+            return highDay
     
     # 获取日线历史数据最小值
     def GET_LOW_DATA_DAY(self, context,security,isLastest=True,data={},dataCount=1):
@@ -537,6 +538,7 @@ class JqDatasrc(SecurityDataSrcBase):
         if not isLastest:
             return low
         else:
+            lowDay = low[1:]
             run_minutes = self.GET_RUN_MINUTES(context)
             if run_minutes == 0:
                 #lowLast = attribute_history(security, 1, unit='1m', fields=('low'), skip_paused=True, df=False)['low']
@@ -550,8 +552,8 @@ class JqDatasrc(SecurityDataSrcBase):
                     if not np.isnan(curLast) and curLast < lowLast:
                         lowLast = curLast
             if not np.isnan(lowLast):
-                low = np.append(low,lowLast)
-            return low
+                lowDay = np.append(lowDay,lowLast)
+            return lowDay
 
     
     # 获取当前日线或ref天前收盘价
@@ -632,10 +634,10 @@ class JqDatasrc(SecurityDataSrcBase):
         if not isLastest:
             return close
         else:
-            closeDay = close
+            closeDay = close[1:]
             closeLast = self.GET_CLOSE_DAY(context, security, 0, data)
             if not np.isnan(closeLast):
-                closeDay = np.append(close,closeLast)
+                closeDay = np.append(closeDay,closeLast)
             return closeDay
     
     def GET_PERIOD_DATA_MIN(self,context, security, data={}, dataCount=1, hasVol=False):
