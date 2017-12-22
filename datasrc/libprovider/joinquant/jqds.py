@@ -165,11 +165,11 @@ class JqDatasrc(SecurityDataSrcBase):
             self.__securitybaseinfo__ = self.__GET_SECURITY_INFO_BASE__(date)
         return self.__securitybaseinfo__
     
-    def GET_SECURITY_DATA_DAY(self, code, date, dataCount, fields=None):
+    def GET_SECURITY_DATA_DAY(self, code, date, dataCount=1, fields=None):
         security = normalize_code(code)
         return get_price(security, count=dataCount, end_date=date,fields=fields,frequency='1d',skip_paused=True,fq='pre')
         
-    def GET_SECURITY_DATA_MIN(self, code, date, dataCount, fields=None):
+    def GET_SECURITY_DATA_MIN(self, code, date, dataCount=1, fields=None):
         security = normalize_code(code)
         return get_price(security, count=dataCount, end_date=date,fields=fields,frequency='1m',skip_paused=True,fq='pre')
         
@@ -487,7 +487,7 @@ class JqDatasrc(SecurityDataSrcBase):
                 return np.array([np.nan])
             daylist = list(df_data.index)
             bcontext.setcurrent_dt(daylist[-1])
-            return list(df_data['high'])
+            return np.array(list(df_data['high']))
         ar_data = attribute_history(security, dataCount, unit='1d', fields=('high'), skip_paused=True, df=False)
         if ar_data.get('high') is None:
             print ("security:%s in context:%s NO GET_HIGH_DATA_DAY!" %(str(security),str(context)))
@@ -525,7 +525,7 @@ class JqDatasrc(SecurityDataSrcBase):
                 return np.array([np.nan])
             daylist = list(df_data.index)
             bcontext.setcurrent_dt(daylist[-1])
-            return list(df_data['low'])
+            return np.array(list(df_data['low']))
         ar_data = attribute_history(security, dataCount, unit='1d', fields=('low'), skip_paused=True, df=False)
         if ar_data.get('low') is None:
             print ("security:%s in context:%s NO GET_LOW_DATA_DAY!" %(str(security),str(context)))
@@ -607,7 +607,7 @@ class JqDatasrc(SecurityDataSrcBase):
                 return np.array([np.nan])
             daylist = list(df_data.index)
             bcontext.setcurrent_dt(daylist[-1])
-            return list(df_data['high']), list(df_data['low']) ,list(df_data['close'])
+            return np.array(list(df_data['high'])), np.array(list(df_data['low'])) ,np.array(list(df_data['close']))
         return super(JqDatasrc, self).GET_PERIOD_DATA_DAY(context, security, data, dataCount)
     
     # 获取日线历史数据
@@ -620,7 +620,7 @@ class JqDatasrc(SecurityDataSrcBase):
                 return np.array([np.nan])
             daylist = list(df_data.index)
             bcontext.setcurrent_dt(daylist[-1])
-            return list(df_data['close'])
+            return np.array(list(df_data['close']))
         ar_data = attribute_history(security, dataCount, unit='1d', fields=('close'), skip_paused=True, df=False)
         if ar_data.get('close') is None:
             print ("security:%s NO GET_CLOSE_DATA_DAY!" %(str(security)))
@@ -648,9 +648,9 @@ class JqDatasrc(SecurityDataSrcBase):
             daylist = list(df_data.index)
             bcontext.setcurrent_dt(daylist[-1])
             if hasVol:
-                return list(df_data['high']), list(df_data['low']) ,list(df_data['close']), list(df_data['volume'])
+                return np.array(list(df_data['high'])), np.array(list(df_data['low'])) ,np.array(list(df_data['close'])), np.array(list(df_data['volume']))
             else:
-                return list(df_data['high']), list(df_data['low']) ,list(df_data['close'])
+                return np.array(list(df_data['high'])), np.array(list(df_data['low'])) ,np.array(list(df_data['close']))
         ar_data = attribute_history(security, dataCount, unit='1m', fields=('close','high','low'), skip_paused=True, df=False)
         if ar_data.get('close') is None or ar_data.get('high') is None or ar_data.get('low') is None:
             return np.array([np.nan]),np.array([np.nan]),np.array([np.nan])
@@ -724,7 +724,7 @@ class JqDatasrc(SecurityDataSrcBase):
                 return np.array([np.nan])
             daylist = list(df_data.index)
             bcontext.setcurrent_dt(daylist[-1])
-            return list(df_data['volume'])
+            return np.array(list(df_data['volume']))
         volume = 0.01*attribute_history(security, dataCount, unit='1d', fields=('volume'), skip_paused=True, df=False)['volume']
         if not isLastest:
             return volume
@@ -766,7 +766,7 @@ class JqDatasrc(SecurityDataSrcBase):
                 return np.array([np.nan])
             daylist = list(df_data.index)
             bcontext.setcurrent_dt(daylist[-1])
-            return list(df_data['money'])
+            return np.array(list(df_data['money']))
         amount = attribute_history(security, dataCount, unit='1d', fields=('money'), skip_paused=True, df=False)['money']
         if not isLastest:
             return amount
