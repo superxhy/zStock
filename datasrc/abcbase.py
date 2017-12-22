@@ -861,7 +861,7 @@ class SecurityDataSrcBase(object):
             return np.array([lowLast])
         low = lowData[:-1]
         weekday = context.current_dt.isoweekday()
-        lowWeek = self.SIMPLE_DATA_LOW(low,dataCount,freq,weekday-1)
+        lowWeek = self.SIMPLE_DATA_LOW(low,dataCount-1,freq,weekday-1)
         lowLast = lowData[-weekday:].min()
         if np.isnan(lowLast):
             lowLast = self.SIMPLE_DATA_LOW(lowData,1,weekday,0)[-1]
