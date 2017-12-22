@@ -45,6 +45,10 @@ class BContext(object):
     def deltatimeday(cls, dt, offsetday):
         return dt + datetime.timedelta(days = offsetday)
     
+    def __repr__(self):
+        return "current_dt:%s,start_date:%s,end_date%s,type:%s" %(str(self.current_dt),str(self.run_params.start_date),
+            str(self.run_params.end_date),str(self.run_params.type))
+    
     #default return today date
     def __init__(self, date=None, count=0):
         self.universe = []
@@ -728,10 +732,10 @@ class SecurityDataSrcBase(object):
         if run_minutes==240:
             closeLast = self.GET_CLOSE_DAY(context, security, 0, data)
         if run_minutes==0:
-            close_intraday = self.SIMPLE_DATA(closeMin, dataCount, freq, 0)
+            close_intraday = self.SIMPLE_DATA(closeMin, dataCount-1, freq, 0)
             closeLast = self.GET_CLOSE_DAY(context, security, 0, data)
         else:
-            close_intraday = self.SIMPLE_DATA(closeMin, dataCount, freq, intra+1)
+            close_intraday = self.SIMPLE_DATA(closeMin, dataCount-1, freq, intra+1)
         close_intraday = np.append(close_intraday, closeLast)
         return close_intraday
     
@@ -749,10 +753,10 @@ class SecurityDataSrcBase(object):
             if not np.isnan(curLast) and curLast > highLast:
                 highLast = curLast
         if run_minutes==0:
-            high_intraday = self.SIMPLE_DATA_HIGH(highMin, dataCount, freq, 0)
+            high_intraday = self.SIMPLE_DATA_HIGH(highMin, dataCount-1, freq, 0)
             highLast = self.GET_CLOSE_DAY(context, security, 0, data)
         else:
-            high_intraday = self.SIMPLE_DATA_HIGH(highMin, dataCount, freq, intra+1)
+            high_intraday = self.SIMPLE_DATA_HIGH(highMin, dataCount-1, freq, intra+1)
             highLastPre = highMin[-intra-1:].max()
             if not np.isnan(highLastPre):
                 if highLastPre > highLast:
@@ -775,10 +779,10 @@ class SecurityDataSrcBase(object):
             if not np.isnan(curLast) and curLast < lowLast:
                 lowLast = curLast
         if run_minutes==0:
-            low_intraday = self.SIMPLE_DATA_LOW(lowMin, dataCount, freq, 0)
+            low_intraday = self.SIMPLE_DATA_LOW(lowMin, dataCount-1, freq, 0)
             lowLast = self.GET_CLOSE_DAY(context, security, 0, data)
         else:
-            low_intraday = self.SIMPLE_DATA_LOW(lowMin, dataCount, freq, intra+1)
+            low_intraday = self.SIMPLE_DATA_LOW(lowMin, dataCount-1, freq, intra+1)
             lowLastPre = lowMin[-intra-1:].min()
             if not np.isnan(lowLastPre):
                 if lowLastPre < lowLast:
@@ -807,18 +811,19 @@ class SecurityDataSrcBase(object):
     
     def GET_CLOSE_DATA_WEEK_DA(self, context,security,isLastest,data,d_close):
         freq = 5
-        close = d_close
-        dataCount = len(close)//freq
+        closeData = d_close
+        dataCount = len(closeData)//freq
         closeWeek = np.array([np.nan])
-        if np.isnan(close[-1]):
+        closeLast = closeData[-1]
+        if np.isnan(closeLast):
             return closeWeek
+        if len(closeData) <= freq:
+            return np.array([closeLast])
+        close = closeData[:-1]
         weekday = context.current_dt.isoweekday()
-        closeWeek = self.SIMPLE_DATA(close,dataCount,freq,weekday-1)
+        closeWeek = self.SIMPLE_DATA(close,dataCount-1,freq,weekday-1)
         if not isLastest:
             return closeWeek
-        closeLast = self.GET_CLOSE_DAY(context, security, 0, data)
-        if len(close) <= freq:
-            return np.array([closeLast])
         if not np.isnan(closeLast) and closeLast != 0:
             closeWeek= np.append(closeWeek,closeLast)
         return closeWeek
@@ -836,7 +841,7 @@ class SecurityDataSrcBase(object):
             return np.array([highLast])
         high = highData[:-1]
         weekday = context.current_dt.isoweekday()
-        highWeek = self.SIMPLE_DATA_HIGH(high,dataCount,freq,weekday-1)
+        highWeek = self.SIMPLE_DATA_HIGH(high,dataCount-1,freq,weekday-1)
         highLast = highData[-weekday:].max()
         if np.isnan(highLast):
             highLast = self.SIMPLE_DATA_HIGH(highData,1,weekday,0)[-1]
@@ -865,18 +870,19 @@ class SecurityDataSrcBase(object):
     
     def GET_CLOSE_DATA_MONTH_DA(self, context,security,isLastest,data,d_close):
         freq = 20
-        close = d_close
-        dataCount = len(close)//freq
+        closeData = d_close
+        dataCount = len(closeData)//freq
         closeMonth = np.array([np.nan])
-        if np.isnan(close[-1]):
+        closeLast = closeData[-1]
+        if np.isnan(closeLast):
             return closeMonth
+        if len(closeData) <= freq:
+            return np.array([closeLast])
+        close = closeData[:-1]
         day = context.current_dt.day
-        closeMonth = self.SIMPLE_DATA(close,dataCount,freq,day-1)
+        closeMonth = self.SIMPLE_DATA(close,dataCount-1,freq,day-1)
         if not isLastest:
             return closeMonth
-        closeLast = self.GET_CLOSE_DAY(context, security, 0, data)
-        if len(close) <= freq:
-            return np.array([closeLast])
         if not np.isnan(closeLast) and closeLast != 0:
             closeMonth = np.append(closeMonth,closeLast)
         return closeMonth
@@ -1109,13 +1115,9 @@ class SecurityDataSrcBase(object):
             high = self.GET_HIGH_DATA_YEAR_DA(context, security, True, data, d_high)
             low = self.GET_LOW_DATA_YEAR_DA(context, security, True, data, d_low)
         else :
-            if self.IS_INNER_CONTEXT(context):
-                get_count = dataCount * (freq + 1)
-            else:
-                run_minutes = self.GET_RUN_MINUTES(context)
-                offset = run_minutes % freq
-                get_count = dataCount * freq + offset
+            get_count = dataCount * freq
             m_high, m_low, m_close = self.GET_PERIOD_DATA_MIN(context, security, data, get_count)
+            #print (context)
             if len(m_close) == 0 or np.isnan(m_close[-1]):
                 print ("security:%s in freq:%s NO GET_PERIOD_DATA_DA!" %(str(security),str(freq)))
                 return np.array([np.nan]),np.array([np.nan]),np.array([np.nan])
@@ -1140,6 +1142,11 @@ class SecurityDataSrcBase(object):
             close = close[len1-lenmin:]
             high  =  high[len2-lenmin:]
             low   =   low[len3-lenmin:]
+        if len1 > dataCount:
+            print (len1)
+            close = close[len1-dataCount:]
+            high  =  high[len2-dataCount:]
+            low   =   low[len3-dataCount:]
         return high, low ,close
     
     # 获取当前分时收盘价
