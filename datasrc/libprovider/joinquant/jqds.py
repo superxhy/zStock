@@ -304,10 +304,10 @@ class JqDatasrc(SecurityDataSrcBase):
         if run_minutes==240:
             closeLast = self.GET_CLOSE_DAY(context, security, 0, data)
         if run_minutes==0:
-            close_intraday = self.SIMPLE_DATA(closeMin, dataCount, freq, 0)
+            close_intraday = self.SIMPLE_DATA(closeMin, dataCount-1, freq, 0)
             closeLast = self.GET_CLOSE_DAY(context, security, 0, data)
         else:
-            close_intraday = self.SIMPLE_DATA(closeMin, dataCount, freq, intra+1)
+            close_intraday = self.SIMPLE_DATA(closeMin, dataCount-1, freq, intra+1)
         close_intraday = np.append(close_intraday, closeLast)
         return close_intraday
 
@@ -336,10 +336,10 @@ class JqDatasrc(SecurityDataSrcBase):
             if not np.isnan(curLast) and curLast > highLast:
                 highLast = curLast
         if run_minutes==0:
-            high_intraday = self.SIMPLE_DATA_HIGH(highMin, dataCount, freq, 0)
+            high_intraday = self.SIMPLE_DATA_HIGH(highMin, dataCount-1, freq, 0)
             highLast = self.GET_CLOSE_DAY(context, security, 0, data)
         else:
-            high_intraday = self.SIMPLE_DATA_HIGH(highMin, dataCount, freq, intra+1)
+            high_intraday = self.SIMPLE_DATA_HIGH(highMin, dataCount-1, freq, intra+1)
             highLastPre = highMin[-intra-1:].max()
             if not np.isnan(highLastPre):
                 if highLastPre > highLast:
@@ -373,10 +373,10 @@ class JqDatasrc(SecurityDataSrcBase):
             if not np.isnan(curLast) and curLast < lowLast:
                 lowLast = curLast
         if run_minutes==0:
-            low_intraday = self.SIMPLE_DATA_LOW(lowMin, dataCount, freq, 0)
+            low_intraday = self.SIMPLE_DATA_LOW(lowMin, dataCount-1, freq, 0)
             lowLast = self.GET_CLOSE_DAY(context, security, 0, data)
         else:
-            low_intraday = self.SIMPLE_DATA_LOW(lowMin, dataCount, freq, intra+1)
+            low_intraday = self.SIMPLE_DATA_LOW(lowMin, dataCount-1, freq, intra+1)
             lowLastPre = lowMin[-intra-1:].min()
             if not np.isnan(lowLastPre):
                 if lowLastPre < lowLast:
