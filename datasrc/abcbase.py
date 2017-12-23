@@ -900,7 +900,7 @@ class SecurityDataSrcBase(object):
             return np.array([highLast])
         high = highData[:-1]
         day = context.current_dt.day
-        highMonth = self.SIMPLE_DATA_HIGH(high,dataCount,freq,day-1)
+        highMonth = self.SIMPLE_DATA_HIGH(high,dataCount-1,freq,day-1)
         highLast = highData[-day:].max()
         if np.isnan(highLast):
             highLast = self.SIMPLE_DATA_HIGH(highData,1,day,0)[-1]
@@ -920,7 +920,7 @@ class SecurityDataSrcBase(object):
             return np.array([lowLast])
         low = lowData[:-1]
         day = context.current_dt.day
-        lowMonth = self.SIMPLE_DATA_LOW(low,dataCount,freq,day-1)
+        lowMonth = self.SIMPLE_DATA_LOW(low,dataCount-1,freq,day-1)
         lowLast = lowData[-day:].min()
         if np.isnan(lowLast):
             lowLast = self.SIMPLE_DATA_LOW(lowData,1,day,0)[-1]
@@ -939,7 +939,7 @@ class SecurityDataSrcBase(object):
             closeLast = closeData[-1]
         month = context.current_dt.month
         season = (freq if month % freq == 0 else month % freq)
-        closeSeason = self.SIMPLE_DATA(close,dataCount,freq,season-1)
+        closeSeason = self.SIMPLE_DATA(close,dataCount-1,freq,season-1)
         if not np.isnan(closeLast) and closeLast != 0:
             closeSeason = np.append(closeSeason,closeLast)
         return  closeSeason
@@ -955,7 +955,7 @@ class SecurityDataSrcBase(object):
             return np.array([highLast])
         month = context.current_dt.month
         season = (freq if month % freq == 0 else month % freq)
-        highSeason = self.SIMPLE_DATA_HIGH(high,dataCount,freq,season-1)
+        highSeason = self.SIMPLE_DATA_HIGH(high,dataCount-1,freq,season-1)
         highLast = highData[-season:].max()
         if np.isnan(highLast):
             highLast = self.SIMPLE_DATA_HIGH(highData,1,season,0)[-1]
@@ -973,7 +973,7 @@ class SecurityDataSrcBase(object):
             return np.array([lowLast])
         month = context.current_dt.month
         season = (freq if month % freq == 0 else month % freq)
-        lowSeason = self.SIMPLE_DATA_LOW(low,dataCount,freq,season-1)
+        lowSeason = self.SIMPLE_DATA_LOW(low,dataCount-1,freq,season-1)
         lowLast = lowData[-season:].min()
         if np.isnan(lowLast):
             lowLast = self.SIMPLE_DATA_LOW(lowData,1,season,0)[-1]
@@ -991,7 +991,7 @@ class SecurityDataSrcBase(object):
         else: 
             closeLast = closeData[-1]
         month = context.current_dt.month
-        closeYear = self.SIMPLE_DATA(close,dataCount,freq,month-1)
+        closeYear = self.SIMPLE_DATA(close,dataCount-1,freq,month-1)
         if not np.isnan(closeLast) and closeLast != 0:
             closeYear = np.append(closeYear,closeLast)
         return  closeYear
@@ -1006,7 +1006,7 @@ class SecurityDataSrcBase(object):
             highLast = self.SIMPLE_DATA_HIGH(highData,1,freq,0)[-1]
             return np.array([highLast])
         month = context.current_dt.month
-        highYear = self.SIMPLE_DATA_HIGH(high,dataCount,freq,month-1)
+        highYear = self.SIMPLE_DATA_HIGH(high,dataCount-1,freq,month-1)
         highLast = highData[-month:].max()
         if np.isnan(highLast):
             highLast = self.SIMPLE_DATA_HIGH(highData,1,month,0)[-1]
@@ -1023,7 +1023,7 @@ class SecurityDataSrcBase(object):
             lowLast = self.SIMPLE_DATA_LOW(lowData,1,freq,0)[-1]
             return np.array([lowLast])
         month = context.current_dt.month
-        lowYear = self.SIMPLE_DATA_LOW(low,dataCount,freq,month-1)
+        lowYear = self.SIMPLE_DATA_LOW(low,dataCount-1,freq,month-1)
         lowLast = lowData[-month:].min()
         if np.isnan(lowLast):
             lowLast = self.SIMPLE_DATA_LOW(lowData,1,month,0)[-1]
