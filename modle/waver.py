@@ -86,6 +86,21 @@ class Waver(object):
     def __cmp__(self, other):
         return Waver.cmpitem(self, other)
     
+    def __lt__(self, other):
+        return Waver.cmpitem(self, other) < 0
+    
+    def __gt__(self, other):
+        return Waver.cmpitem(self, other) > 0
+    
+    def __le__(self, other):
+        return Waver.cmpitem(self, other) <= 0
+    
+    def __ge__(self, other):
+        return Waver.cmpitem(self, other) >= 0
+    
+    def __ne__(self, other):
+        return Waver.cmpitem(self, other) != 0
+    
     @classmethod
     def cmpitem(cls, my, other, aftertrade=False):
         if not isinstance(other, Waver):
@@ -617,7 +632,7 @@ class Waver(object):
             waverslist = poollist[:] if cls.indexPos == 0 else poollist[0:cls.indexPos]
         else:
             waverslist = poollist[:]
-        waverslist.sort(cmp=lambda a,b: cls.cmpScoreRaise(a, b, cmpindex, pretrade))
+        waverslist.sort(key=cmp_to_key(lambda a,b: cls.cmpScoreRaise(a, b, cmpindex, pretrade)))
         return waverslist
     
     @classmethod
@@ -630,7 +645,7 @@ class Waver(object):
             bbilist = poollist[:] if cls.indexPos == 0 else poollist[0:cls.indexPos]
         else:
             bbilist = poollist[:]
-        bbilist.sort(cmp=lambda a,b: cls.cmpBbi(a, b, cmpindex))
+        bbilist.sort(key=cmp_to_key(lambda a,b: cls.cmpBbi(a, b, cmpindex)))
         return bbilist
     
     @classmethod
@@ -639,7 +654,7 @@ class Waver(object):
             wavemarslist = poollist[:] if cls.indexPos == 0 else poollist[0:cls.indexPos]
         else:
             wavemarslist = poollist[:]
-        wavemarslist.sort(cmp=lambda a,b: cls.cmpScoreMaRaise(a, b, cmpindex))
+        wavemarslist.sort(key=cmp_to_key(lambda a,b: cls.cmpScoreMaRaise(a, b, cmpindex)))
         return wavemarslist
     
     @classmethod
@@ -653,7 +668,7 @@ class Waver(object):
     
     @classmethod
     def updateWaverPoolOrder(cls, poollist, dt, aftertrade=False):
-        poollist.sort(cmp=lambda a,b: Waver.cmpitem(a, b, True))
+        poollist.sort(key=cmp_to_key(lambda a,b: Waver.cmpitem(a, b, True)))
         poollen = len(poollist)
         cls.logd("updateWaverPoolOrder poollen:%s" %(str(poollen)))
         if poollen <= 1:
@@ -693,23 +708,20 @@ class Waver(object):
         Waver.logd("%s refreshWaverPool" %(str(datetime.datetime.now().strftime('%Y-%m-%d-%H%M%S'))))
         if pretrade:
             if len(stocklist) == 0:
-                Waver.logd("empty stocklist, stop pool")
-                return Waver.getIndexScore()
+                Waver.logd("empty stocklist, pretrade!")
+                #return Waver.getIndexScore()
             if len(poollist) == 0:
                 Waver.logd("empty poollist! begin to init pool")
             else:
                 Waver.logd("poollist has been inited before, begin to refresh")
         callauction = False
+        if context == None:
+            context = dsobj.GET_CONTEXT()
+            Waver.logd("refreshWaverPool for context:%s" %(str(context)))
         runTimeCA = GET_CALLAUCTION_MINUTES(context)
         if runTimeCA >= 0 and runTimeCA < 15:
             Waver.logd("%s refreshWaverPool for callauction" %(str(runTimeCA)))
             callauction = True
-        if context and context.current_dt:
-            dt = context.current_dt
-        else:
-            dt = dsobj.__context__.current_dt
-        #for test
-        #dt = None
         d_count = len(stocklist)
         #init index for avg compare
         if not callauction:
@@ -757,6 +769,7 @@ class Waver(object):
                 poollist.append(wave)
             Waver.logd("end count:%s" % len(poollist))
         if not callauction:
+            dt = context.current_dt
             Waver.updateWaverPoolOrder(poollist, dt, aftertrade)
             Waver.updateWaverOtherOrder(poollist, Waver.index, dt, aftertrade)
             Waver.logd("shindex:%s,indexPos:%s\n" %(str(Waver.index), str(Waver.indexPos)))
@@ -767,10 +780,12 @@ class Waver(object):
         if pretrade:
             wavefirstlist = [Waver.index] + poollist[0:Waver.MAX_SEND_COUNT]
             wavelastlist = Waver.getWaveSubnewList(poollist)
-            Waver.sendWaverPool(context, data, [wavefirstlist,wavelastlist], False, True)
+            sendlist = [wavefirstlist,wavelastlist]
+            return Waver.sendWaverPool(context, data, sendlist, False, notmain)
         if aftertrade:
-            Waver.sendWaverPool(context, data, [Waver.index]+poollist, True, notmain)
-        return Waver.getIndexScore()
+            sendlist = [Waver.index]+poollist
+            Waver.sendWaverPool(context, data, sendlist, True, notmain)
+            return Waver.getIndexScore()
         
     @staticmethod
     def handleWaverPoolBegin(context, data, poollist, stocklist):
@@ -799,9 +814,9 @@ class Waver(object):
             #ma3 raise order list
             #wavemarslist = Waver.getWaveMaRaiseList(poollist, True)[0:Waver.MAX_SEND_COUNT]
             #bbi order list
-            bbilist = Waver.getBbiList(poollist, True)[0:Waver.MAX_SEND_COUNT]
+            bbilist = [Waver.index] +Waver.getBbiList(poollist, True)[0:Waver.MAX_SEND_COUNT]
             #current all list 
-            wavealllist = [Waver.index] +poollist
+            wavealllist = poollist
             #push order list in once
             Waver.sendWaverPool(context, data, [waverslist, bbilist, wavealllist], False, True)
             
@@ -818,9 +833,9 @@ class Waver(object):
             #ma3 raise order list
             #wavemarslist = Waver.getWaveMaRaiseList(poollist, True)[0:Waver.MAX_SEND_COUNT]
             #bbi order list
-            bbilist = Waver.getBbiList(poollist, True)[0:Waver.MAX_SEND_COUNT]
+            bbilist = [Waver.index] +Waver.getBbiList(poollist, True)[0:Waver.MAX_SEND_COUNT]
             #current order list head
-            wavefirstlist = [Waver.index] +poollist[0:Waver.MAX_SEND_COUNT*2]
+            wavefirstlist = poollist[0:Waver.MAX_SEND_COUNT*2]
             #current order list tail
             wavelastlist = Waver.getWaveSubnewList(poollist)
             #push order list in once
@@ -850,7 +865,28 @@ class Waver(object):
                 sendlist.append(mutilist)
         else:
             sendlist = [s.security() for s in poollist]
-        DSUtil.sendSecurities(context, data, sendlist, False, sendMail, aftertrade, redStar)
+        return DSUtil.sendSecurities(context, data, sendlist, False, sendMail, aftertrade, redStar)
+
+def cmp_to_key(mycmp):
+    """Convert a cmp= function into a key= function"""
+    class K(object):
+        __slots__ = ['obj']
+        def __init__(self, obj):
+            self.obj = obj
+        def __lt__(self, other):
+            return mycmp(self.obj, other.obj) < 0
+        def __gt__(self, other):
+            return mycmp(self.obj, other.obj) > 0
+        def __eq__(self, other):
+            return mycmp(self.obj, other.obj) == 0
+        def __le__(self, other):
+            return mycmp(self.obj, other.obj) <= 0
+        def __ge__(self, other):
+            return mycmp(self.obj, other.obj) >= 0
+        def __ne__(self, other):
+            return mycmp(self.obj, other.obj) != 0
+        __hash__ = None
+    return K
 
 if __name__ == '__main__':
     Waver.logd("run in main");
@@ -865,6 +901,8 @@ if __name__ == '__main__':
     Waver.handleWaverPoolBegin(context, data, poollist, stocklist)
     #intrade
     Waver.handleWaverPool(context, data, poollist, None, None)
+    #end trade
+    Waver.handleWaverPoolEnd(context, data, poollist)
     #after trade
     Waver.refreshWaverPool(context, data, poollist, stocklist, False, True, False)
     #pre trade next day
