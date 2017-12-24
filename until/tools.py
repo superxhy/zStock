@@ -162,6 +162,7 @@ def sendTable(subject, dictList, schema, config=None, isSend=True, useAttach=Tru
     #use jqka data center href
     indexhref = 'http://data.10jqka.com.cn/market/lhbgg/code/'
     maker = getHtmlTable(dictList, schema, indexhref)
+    htmlog = maker.getHtml()
     #fname = maker.getTitle() + '.html'
     fname = 'curattach.html'
     if len(dictList) > 0 and isinstance(dictList[0], list):
@@ -177,6 +178,5 @@ def sendTable(subject, dictList, schema, config=None, isSend=True, useAttach=Tru
             sendHtmlMail(subject, quoteHtml(mdblog) , [maker.saveFile(fname)], config)
         #ONLY use htmlcontent for content 
         else:
-            sendHtmlMail(subject, maker.getHtml() , None, config)
-    return mdblog
-
+            sendHtmlMail(subject, htmlog , None, config)
+    return mdblog, htmlog
