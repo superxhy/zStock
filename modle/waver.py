@@ -16,7 +16,7 @@ import datetime
 class Waver(object):
     """wave model"""
     MODULE = 'Waver'
-    VERSION = '1.0.1'
+    VERSION = '1.12.24'
     MDEBUG = True
     #max calculate wave item count
     MAX_WAVE_COUNT = 20
@@ -866,7 +866,28 @@ class Waver(object):
         else:
             sendlist = [s.security() for s in poollist]
         return DSUtil.sendSecurities(context, data, sendlist, False, sendMail, aftertrade, redStar)
-
+    
+    # for local handle
+    gstocks = []
+    gpoolfd = []
+    
+    @staticmethod
+    def handle(context=None, stocklist=None):
+        data = {}
+        if stocklist:
+            Waver.gstocks = stocklist
+        if len(Waver.gstocks) == 0:
+            Waver.gstocks = GET_ALL_SECURITIES()
+            return Waver.refreshWaverPool(context, data, Waver.gpoolfd, Waver.gstocks, True)
+        Waver.refreshWaverPool(context, data, Waver.gpoolfd, [])
+        waverslist = Waver.getWaveRaiseList(Waver.gpoolfd, True)[0:Waver.MAX_SEND_COUNT]
+        #ignore bbilist for notebook!
+        wavefirstlist = [Waver.index] + Waver.gpoolfd[0:Waver.MAX_SEND_COUNT*2]
+        #current order list tail
+        wavelastlist = Waver.getWaveSubnewList(Waver.gpoolfd)
+        #push order list in once
+        return Waver.sendWaverPool(context, data, [waverslist, wavelastlist, wavefirstlist], False, False)
+    
 def cmp_to_key(mycmp):
     """Convert a cmp= function into a key= function"""
     class K(object):
