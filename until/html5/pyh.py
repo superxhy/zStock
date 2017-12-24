@@ -58,7 +58,10 @@ class Tag(list):
     def addObj(self, obj):
         if not isinstance(obj, Tag):
             # obj = str(obj)
-            obj=unicode(obj)
+            try:
+                obj=unicode(obj)
+            except Exception as e:
+                obj = str(obj)
         id = self.setID(obj)
         setattr(self, id, obj)
         self.append(obj)
@@ -115,7 +118,9 @@ class Tag(list):
 
     def renderAtt(self):
         result = ''
-        for n, v in self.attributes.iteritems():
+        #for n, v in self.attributes.iteritems():
+        for n in self.attributes.keys():
+            v = self.attributes[n]
             if n != 'txt' and n != 'open':
                 if n == 'cl':
                     n = 'class'
