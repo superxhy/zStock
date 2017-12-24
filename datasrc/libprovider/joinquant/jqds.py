@@ -281,8 +281,6 @@ class JqDatasrc(SecurityDataSrcBase):
             sname =  info.name
             #timeToMarket = info.start_date
             sindustry = cur.industry_code
-        if np.isnan(name):
-            name = sname
         securityInfo = {
         'name': str(name),
         'sname': str(sname),
