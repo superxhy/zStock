@@ -134,13 +134,19 @@ class JqDatasrc(SecurityDataSrcBase):
         if not filtPaused:
             crew = get_price(list(mart.index), start_date=date, end_date=date, fields=['paused'])
             crew = crew.paused.T
-            crew.rename(columns={crew.columns[0]:'paused'}, inplace=True)
+            if len(crew.columns) > 0:
+                crew.rename(columns={crew.columns[0]:'paused'}, inplace=True)
+            else:
+                crew.loc[:,'paused'] = 0
             grid = pd.concat([grid, crew], axis=1, join='inner')
         # query pack info
         if not filtSt:
             pack = get_extras('is_st', list(mart.index), start_date=date, end_date=date, df=True)
             pack = pack.T
-            pack.rename(columns={pack.columns[0]:'is_st'}, inplace=True)
+            if len(pack.columns) > 0:
+                pack.rename(columns={pack.columns[0]:'is_st'}, inplace=True)
+            else:
+                pack.loc[:,'is_st'] = False
             grid = pd.concat([grid, pack], axis=1, join='inner')
         # query industry code
         if not filtIndustry:
@@ -488,18 +494,17 @@ class JqDatasrc(SecurityDataSrcBase):
             daylist = list(df_data.index)
             bcontext.setcurrent_dt(daylist[-1])
             return np.array(list(df_data['high']))
-        ar_data = attribute_history(security, dataCount, unit='1d', fields=('high'), skip_paused=True, df=False)
+        ar_data = attribute_history(security, dataCount-1, unit='1d', fields=('high'), skip_paused=True, df=False)
         if ar_data.get('high') is None:
             print ("security:%s in context:%s NO GET_HIGH_DATA_DAY!" %(str(security),str(context)))
             return np.array([np.nan])
         return self.GET_HIGH_DATA_DAY_DF(context, security, isLastest, data, ar_data)
     
     def GET_HIGH_DATA_DAY_DF(self, context,security,isLastest,data,ar_data):
-        high = ar_data['high']
+        highDay = ar_data['high']
         if not isLastest:
-            return high
+            return highDay
         else:
-            highDay = high[1:]
             run_minutes = self.GET_RUN_MINUTES(context)
             if run_minutes == 0:
                 #highLast = attribute_history(security, 1, unit='1m', fields=('high'), skip_paused=True, df=False)['high']
@@ -527,18 +532,17 @@ class JqDatasrc(SecurityDataSrcBase):
             daylist = list(df_data.index)
             bcontext.setcurrent_dt(daylist[-1])
             return np.array(list(df_data['low']))
-        ar_data = attribute_history(security, dataCount, unit='1d', fields=('low'), skip_paused=True, df=False)
+        ar_data = attribute_history(security, dataCount-1, unit='1d', fields=('low'), skip_paused=True, df=False)
         if ar_data.get('low') is None:
             print ("security:%s in context:%s NO GET_LOW_DATA_DAY!" %(str(security),str(context)))
             return np.array([np.nan])
         return self.GET_LOW_DATA_DAY_DF(context, security, isLastest, data, ar_data)
     
     def GET_LOW_DATA_DAY_DF(self, context,security,isLastest,data,ar_data):
-        low = ar_data['low']
+        lowDay = ar_data['low']
         if not isLastest:
-            return low
+            return lowDay
         else:
-            lowDay = low[1:]
             run_minutes = self.GET_RUN_MINUTES(context)
             if run_minutes == 0:
                 #lowLast = attribute_history(security, 1, unit='1m', fields=('low'), skip_paused=True, df=False)['low']
@@ -623,18 +627,17 @@ class JqDatasrc(SecurityDataSrcBase):
             daylist = list(df_data.index)
             bcontext.setcurrent_dt(daylist[-1])
             return np.array(list(df_data['close']))
-        ar_data = attribute_history(security, dataCount, unit='1d', fields=('close'), skip_paused=True, df=False)
+        ar_data = attribute_history(security, dataCount-1, unit='1d', fields=('close'), skip_paused=True, df=False)
         if ar_data.get('close') is None:
             print ("security:%s NO GET_CLOSE_DATA_DAY!" %(str(security)))
             return np.array([np.nan])
         return self.GET_CLOSE_DATA_DAY_DF(context, security, isLastest, data, ar_data)
     
     def GET_CLOSE_DATA_DAY_DF(self, context, security, isLastest,data,ar_data):
-        close = ar_data['close']
+        closeDay = ar_data['close']
         if not isLastest:
-            return close
+            return closeDay
         else:
-            closeDay = close[1:]
             closeLast = self.GET_CLOSE_DAY(context, security, 0, data)
             if not np.isnan(closeLast):
                 closeDay = np.append(closeDay,closeLast)
@@ -839,7 +842,7 @@ class JqConfigLoader(object):
             'end_date' : params.end_date,  #回测/模拟结束日期, datetime.date对象
             'type' :params.type, #simple_backtest’: 回测, 通过点击’编译运行’运行 full_backtest’: 回测, 通过点击’运行回测’运行 sim_trade’: 模拟交易
             'frequency':params.frequency, #运行频率
-            'onbacktest': params.type == 'simple_backtest' or params.type == 'full_backtest'
+            'onbacktest': params.type in ['simple_backtest','full_backtest','notebook']
         }
         return config
     #def getXXConfig():
