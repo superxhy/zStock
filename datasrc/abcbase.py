@@ -1279,36 +1279,36 @@ class SecurityDataSrcBase(object):
         d_close = self.GET_CLOSE_DATA_DAY(context, security, True, data, dataCount)
         if len(d_close) == 0 or np.isnan(d_close[-1]):
             return np.nan
-        if len(d_close) < ref + 1:
+        if len(d_close) < dataCount:
             return np.nan
-        return d_close[-ref]
+        return d_close[-1-ref]
     
     def GET_HIGH_DAY(self, context, security, ref=0, data={}):
         dataCount =  ref + 1
         d_high = self.GET_HIGH_DATA_DAY(context, security, True, data, dataCount)
         if len(d_high) == 0 or np.isnan(d_high[-1]):
             return np.nan
-        if len(d_high) < ref + 1:
+        if len(d_high) < dataCount:
             return np.nan
-        return d_high[-ref]
+        return d_high[-1-ref]
     
     def GET_LOW_DAY(self, context, security, ref=0, data={}):
         dataCount =  ref + 1
         d_low = self.GET_LOW_DATA_DAY(context, security, True, data, dataCount)
         if len(d_low) == 0 or np.isnan(d_low[-1]):
             return np.nan
-        if len(d_low) < ref + 1:
+        if len(d_low) < dataCount:
             return np.nan
-        return d_low[-ref]
+        return d_low[-1-ref]
     
     def GET_VOL_DAY(self, context, security, ref=0, data={}):
         dataCount =  ref + 1
         d_vol = self.GET_VOL_DATA_DAY(context, security, True, data, dataCount)
         if len(d_vol) == 0 or np.isnan(d_vol[-1]):
             return np.nan
-        if len(d_vol) < ref + 1:
+        if len(d_vol) < dataCount:
             return np.nan
-        return d_vol[-ref]
+        return d_vol[-1-ref]
     
     def KDJ_DATA(self, context, security, freq = 'D', data={}, dataCount=1):
         #sma target round2
