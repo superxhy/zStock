@@ -1,6 +1,7 @@
 # zStock
 * 0719 add code struct base
 * 0721 add main code except testcase
+* 1224 wave crypto note book (support py3) DONE !
 
 # Lib Require
 ```
