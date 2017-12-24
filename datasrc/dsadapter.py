@@ -341,14 +341,27 @@ class DSUtil(object):
             getBundleList(bundleList, stocks)
         #schema = ['code','name','industry','close','wave','inert']
         schema = ['code','name','industry','close','per']
+        if context == None:
+            context = dsobj.GET_CONTEXT()
         configloader = DSUtil.getConfigLoader()
         backtest = configloader != None and configloader.getRunConfig(context)['onbacktest']
         isSend = sendMail and (not backtest)
         title = DS_CLASS_NAME if useAttach else DS_CLASS_NAME + '_intraday'
         title += str(context.current_dt.strftime('%Y-%m-%d %H:%M'))
-        ret = sendTable(title, bundleList, schema, configloader.getEmailConfig() if (configloader != None) else None, isSend, useAttach)
+        mdstr,htmstr = sendTable(title, bundleList, schema, configloader.getEmailConfig() if (configloader != None) else None, isSend, useAttach)
         if useAttach:
             print ("useAttach send")
         else:
-            print (str(ret))
-        return bundleList 
+            # display for notebook
+            if context.run_params.type == 'notebook':
+                print('notebook')
+                #TODO:<class 'Exception'>:the JSON object must be str, not 'bytes'
+                #try:
+                #    from IPython.display import HTML
+                #    HTML(htmstr)
+                #except Exception as e:
+                #    #may used in notebook!
+                #    print ("%s:%s" %(str(Exception),str(e)))
+            else:
+                print (str(mdstr))
+        return mdstr,htmstr 
