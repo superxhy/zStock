@@ -184,7 +184,7 @@ class JqDatasrc(SecurityDataSrcBase):
         self.__securitybaseinfo__ = pd.DataFrame(columns=['code'])
         
     def getVersionName(self):
-        return "1.12.21"
+        return "1.12.24"
     
     def getDataSrcName(self):
         return "joinquant"
@@ -281,12 +281,14 @@ class JqDatasrc(SecurityDataSrcBase):
             sname =  info.name
             #timeToMarket = info.start_date
             sindustry = cur.industry_code
+        if np.isnan(name):
+            name = sname
         securityInfo = {
-        'name': name,
-        'sname': sname,
+        'name': str(name),
+        'sname': str(sname),
         #'timeToMarket':datetime.datetime.fromtimestamp(timeToMarket).strftime("%Y-%m-%d"),
         'industry':self.industry_dict.get(sindustry,'行业'+str(sindustry)),
-        'sindustry':sindustry}
+        'sindustry':str(sindustry)}
         return securityInfo
     
     # 获取当前分时收盘价
