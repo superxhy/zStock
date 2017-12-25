@@ -22,13 +22,18 @@ class BRunparams(object):
         self.frequency = self.runfrequency
         
 class BContext(object):
-    @classmethod
-    def datetime2str(cls, dt):
-        return dt.strftime("%Y-%m-%d")
+    timeformat = {
+        'd': '%Y-%m-%d',
+        'm': '%Y-%m-%d %h:%m:%s'
+    }
     
     @classmethod
-    def str2datetime(cls, dtstr):
-        return datetime.datetime.strptime(dtstr, "%Y-%m-%d")
+    def datetime2str(cls, dt, tf='d'):
+        return dt.strftime(BContext.timeformat[tf])
+    
+    @classmethod
+    def str2datetime(cls, dtstr, tf='d'):
+        return datetime.datetime.strptime(dtstr, BContext.timeformat[tf])
     
     @classmethod
     def obj2datatime(cls, dtobj):
@@ -56,6 +61,7 @@ class BContext(object):
         self.run_params = BRunparams()
         self.__init_time_range__(date, count)
         #self.portfolio = None
+        self.__timeformat__ = ''
         
     def __init_time_range__(self, date, count):
         self.setdaterange(date, count)
@@ -63,9 +69,12 @@ class BContext(object):
         self.run_params.end_date = self.__end_date__
         self.current_dt = self.__end_date__
         
-    def setcurrent_dt(self, date):
-        self.current_dt = self.obj2datatime(date)
-        
+    def setcurrent_dt(self, date, tf='d'):
+        if self.__timeformat__ == '' or self.__timeformat__ == 'd' and tf != 'd':
+            self.current_dt = self.obj2datatime(date)
+            self.__timeformat__ = tf
+            #print (self.current_dt, tf)
+                
     def setdaterange(self, date, count, datastart=None):
         self.count = count
         if date == None:
