@@ -165,9 +165,8 @@ class JqDatasrc(SecurityDataSrcBase):
 
     def GET_SECURITY_INFO_BASE(self, date=None):
         if self.__securitybaseinfo__.empty == True:
-            context = self.GET_CONTEXT()
-            date = context.current_dt
-            print("%s GET_SECURITY_INFO_BASE" %(str(date.strftime('%Y-%m-%d-%H%M%S'))))
+            date = self.GET_CONTEXT().getenddate()
+            print("%s GET_SECURITY_INFO_BASE" %(str(date)))
             self.__securitybaseinfo__ = self.__GET_SECURITY_INFO_BASE__(date)
         return self.__securitybaseinfo__
     
@@ -650,10 +649,10 @@ class JqDatasrc(SecurityDataSrcBase):
             if df_data.empty == True:
                 print ("security:%s NO GET_PERIOD_DATA_DAY!" %(str(security)))
                 return np.array([np.nan])
-            daylist = list(df_data.index)
-            bcontext.setcurrent_dt(daylist[-1])
+            minlist = list(df_data.index)
+            bcontext.setcurrent_dt(minlist[-1],'m')
             if hasVol:
-                return np.array(list(df_data['high'])), np.array(list(df_data['low'])) ,np.array(list(df_data['close'])), np.array(list(df_data['volume']))
+                return np.array(list(df_data['high'])), np.array(list(df_data['low'])) ,np.array(list(df_data['close'])), 0.01*np.array(list(df_data['volume']))
             else:
                 return np.array(list(df_data['high'])), np.array(list(df_data['low'])) ,np.array(list(df_data['close']))
         ar_data = attribute_history(security, dataCount, unit='1m', fields=('close','high','low'), skip_paused=True, df=False)
@@ -729,7 +728,7 @@ class JqDatasrc(SecurityDataSrcBase):
                 return np.array([np.nan])
             daylist = list(df_data.index)
             bcontext.setcurrent_dt(daylist[-1])
-            return np.array(list(df_data['volume']))
+            return 0.01*np.array(list(df_data['volume']))
         volume = 0.01*attribute_history(security, dataCount, unit='1d', fields=('volume'), skip_paused=True, df=False)['volume']
         if not isLastest:
             return volume
