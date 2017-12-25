@@ -873,6 +873,9 @@ class Waver(object):
     
     @staticmethod
     def handle(context=None, stocklist=None):
+        if context == None:
+            context = dsobj.GET_CONTEXT()
+            Waver.logd("Waver handle for context:%s" %(str(context)))
         data = {}
         if stocklist:
             Waver.gstocks = stocklist
