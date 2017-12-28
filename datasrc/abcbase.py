@@ -1778,7 +1778,7 @@ class SecurityDataSrcBase(object):
     def GET_BUNDLE(self, context, security, pulldata=False, data={}):
         per, close = self.PERCENT_DAY(context, security, data)
         code = security.split('.')[0]
-        info = self.GET_SECURITY_INFO(security)
+        info = self.GET_SECURITY_INFO(security, context)
         name = info['name']
         if per >= 20:
             name = 'N'+ str(name)
@@ -1971,7 +1971,7 @@ class SecurityDataSrcBase(object):
     
     # 获取股票信息
     @abstractmethod
-    #security
+    #security, context=None
     def GET_SECURITY_INFO(self):
         pass
     
