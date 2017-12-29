@@ -70,15 +70,21 @@ class BContext(object):
         self.current_dt = self.__end_date__
         
     def setcurrent_dt(self, date, tf='d'):
-        if self.__timeformat__ == '' or self.__timeformat__ == 'd' and tf != 'd':
+        if self.__timeformat__ == '':
             self.current_dt = self.obj2datatime(date)
             self.__timeformat__ = tf
             #print (self.current_dt, tf)
-                
+            return self.current_dt
+        last_dt = self.obj2datatime(date)
+        if self.current_dt < last_dt:
+            self.current_dt = last_dt
+            self.__timeformat__ = tf
+        return self.current_dt
+    
     def setdaterange(self, date, count, datastart=None):
         self.count = count
         if date == None:
-            self.__end_date__ = datetime.datetime.today()
+            self.__end_date__ = datetime.datetime.now()
         else:
             self.__end_date__ = self.obj2datatime(date)
         if datastart==None:
@@ -389,7 +395,19 @@ class SecurityDataSrcBase(object):
             resl = np.append(resl, llv)
             #resl = np.append(resl, fmin(fdropnan(val[i+1:period+i+1])))
         return resl
-
+    
+    @staticmethod
+    def EMA_COM(val, period=20):
+        a = 1.0/(period+1)
+        res = np.array([])
+        last = np.nan
+        for i in range(0, len(val)):
+            x = val[i]
+            ema = x if np.isnan(last) else (a*x + (1 - a) * last)
+            last = x if np.isnan(ema) else ema
+            res = np.append(res, ema)
+        return res
+    
     @staticmethod
     def SMA_COM(val, period=3, weight=1):
         res = np.array([])
