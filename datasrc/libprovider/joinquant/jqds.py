@@ -598,7 +598,7 @@ class JqDatasrc(SecurityDataSrcBase):
                     closeLast = get_current_data()[security].day_open
                 #use ontrade data to pull day_open
                 else:
-                    closeLast = self.GET_OPEN_DAY(self.GET_CONTEXT(context.current_dt), security, 0, data)
+                    closeLast = get_current_data()[security].day_open
                     if np.isnan(closeLast):
                         closeLast = get_current_data()[security].last_price
                 if np.isnan(closeLast):
