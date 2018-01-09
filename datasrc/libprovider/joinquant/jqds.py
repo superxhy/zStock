@@ -286,10 +286,16 @@ class JqDatasrc(SecurityDataSrcBase):
             basedf = self.GET_SECURITY_INFO_BASE(dt)
             if security in self.index_list:
                 return {'name':self.index_dict[security],'industry':'指数'}
-            name  =  basedf.loc[security,'display_name']
-            sname =  basedf.loc[security,'name']
-            #timeToMarket = basedf.loc[security,'start_date']
-            sindustry = basedf.loc[security,'industry_code']
+            if security in list(basedf.index):
+                name  =  basedf.loc[security,'display_name']
+                sname =  basedf.loc[security,'name']
+                #timeToMarket = basedf.loc[security,'start_date']
+                sindustry = basedf.loc[security,'industry_code']
+            else:
+                name  =  'None'
+                sname =  'None'
+                #timeToMarket = 'None'
+                sindustry = 'None'
         else:
             info =  get_security_info(security)
             name  = info.display_name
