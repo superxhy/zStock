@@ -13,7 +13,7 @@ import datetime
 #protect html keyword convert
 def quote(s):
     return str(s).replace('&','&amp;').replace('<', '&lt;').replace('>', '&gt;').replace(' ','&nbsp;').replace('\n', '<br/>').replace(
-'≡','&equiv;').replace('±', '&plusmn;').replace('⌈', '&lceil;').replace('⌊','&lfloor;').replace('§', '&sect;').replace('ψ', '&psi;').replace('⌉', '&rceil;').replace('⌋', '&rfloor;')
+'≡','&equiv;').replace('±', '&plusmn;').replace('⌈', '&lceil;').replace('⌊','&lfloor;').replace('§', '&sect;').replace('ψ', '&psi;').replace('⌉', '&rceil;').replace('⌋', '&rfloor;').replace('¥','&yen;')
 
 class HtmlPageMaker(object):
     
@@ -100,6 +100,7 @@ class HtmlPageMaker(object):
     '.table > thead > tr > td,',
     '.table > tbody > tr > td,',
     '.table > tfoot > tr > td {',
+      'text-align:left;',
       'padding: 8px;',
       'line-height: 1.42857143;',
       'vertical-align: top;',
@@ -177,7 +178,7 @@ class HtmlPageMaker(object):
         tab = table(cl='table table-striped',style="table-layout: fixed; overflow:hidden")
         hdtr = tab << tr()
         for headitem in schema:
-            hdtr << th(headitem,style='text-align:left')
+            hdtr << th(headitem)
         if type(dictList) != list:
             return curDom << tab
         if len(dictList) == 0:
