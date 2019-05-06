@@ -16,7 +16,7 @@ import datetime
 class Waver(object):
     """wave model"""
     MODULE = 'Waver'
-    VERSION = '1.12.24'
+    VERSION = '1.5.6'
     MDEBUG = True
     #max calculate wave item count
     MAX_WAVE_COUNT = 20
@@ -132,19 +132,12 @@ class Waver(object):
             return 1
         elif my.waverangeflag != cls.FLAG_WAVE_NOENOUGH and other.waverangeflag == cls.FLAG_WAVE_NOENOUGH:
             return -1
-        #strong inactive first 
-        elif my.waverangeflag == cls.FLAG_WAVE_STRONG and other.waverangeflag != cls.FLAG_WAVE_STRONG:
-            return -1
-        elif my.waverangeflag != cls.FLAG_WAVE_STRONG and other.waverangeflag == cls.FLAG_WAVE_STRONG:
-            return 1
-        #weak inactive last
-        elif my.waverangeflag == cls.FLAG_WAVE_WEAK and other.waverangeflag != cls.FLAG_WAVE_WEAK:
-            return 1
-        elif my.waverangeflag != cls.FLAG_WAVE_WEAK and other.waverangeflag == cls.FLAG_WAVE_WEAK:
-            return -1
-        #middle wave state use kma
         else:
-            pass
+            #waverangeflag strong first
+            if my.waverangeflag > other.waverangeflag:
+                return -1
+            if my.waverangeflag < other.waverangeflag:
+                return 1
         #gold cross first
         if my.kd >= 0 and other.kd < 0:
             return -1
@@ -573,8 +566,12 @@ class Waver(object):
         elif self.waverangeflag == self.FLAG_WAVE_NOENOUGH:
             scoremk += '*'
             return scoremk
-        else:
+        elif self.waverangeflag == self.FLAG_WAVE_MIDSTR:
+            scoremk += '+'
+        elif self.waverangeflag == self.FLAG_WAVE_MIDWEAK:
             scoremk += '='
+        else:
+            pass
         #gold cross
         if self.kd >= 0:
             scoremk +='$'
