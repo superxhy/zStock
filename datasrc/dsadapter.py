@@ -354,7 +354,7 @@ class DSUtil(object):
         title = DS_CLASS_NAME if useAttach else DS_CLASS_NAME + '_intraday'
         title += str(context.current_dt.strftime('%Y-%m-%d %H:%M'))
         print ("sendSecurities,subject:%s" %(str(title)))
-        mdstr,htmstr = sendTable(title, bundleList, schema, configloader.getEmailConfig() if (configloader != None) else None, isSend, useAttach)
+        mdstr,htmstr,msghtm = sendTable(title, bundleList, schema, configloader.getEmailConfig() if (configloader != None) else None, isSend, useAttach)
         if useAttach:
             print ("useAttach send")
         else:
@@ -370,4 +370,4 @@ class DSUtil(object):
                 #    print ("%s:%s" %(str(Exception),str(e)))
             else:
                 print (str(mdstr))
-        return mdstr,htmstr 
+        return mdstr,htmstr,msghtm 
