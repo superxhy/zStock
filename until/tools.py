@@ -137,6 +137,19 @@ def getBlogMd(title,category,comments,tab,tabname=''):
     else:
         mdblog += getMarkDownTableFromPretty(tab)
     return mdblog
+
+def getMsgHtm(title,tab,compress=True):
+    result = '<p>' + title + '</p>'
+    result += '\n'
+    if isinstance(tab, list):
+        for muti in tab:
+            result += muti.get_html_string()
+            result += '\n'
+    else:
+        result += tab.get_html_string()
+    if compress:
+        result = "".join(result.split())
+    return result
     
 def quoteHtml(s):
     return quote(s)
@@ -150,6 +163,25 @@ def getHtmlTable(dictList, schema, indexhref):
         maker.addTable(dictList,schema,indexhref)
     return maker
 
+def getHtmlTableMini(dictList, schema, limit=0):
+    if len(dictList) > 0 and isinstance(dictList[0], list):
+        tab = [getPrettyTable(t, schema) for t in dictList]
+    else:
+        tab = getPrettyTable(dictList, schema)
+    htmlstring=''
+    if isinstance(tab, list):
+        for t in tab:
+            htmlstring += t.get_html_string()
+            htmlstring += '\n'
+    else:
+        htmlstring += tab.get_html_string()
+    if limit == 0:
+        return htmlstring
+    htmlstring = "".join(htmlstring.split())
+    if len(htmlstring) > limit:
+        htmlstring = htmlstring[0, limit-1]
+    return htmlstring
+        
 def sendHtmlMail(subject , contentHtml, attachments, config=None):
     if config == None:
         config = "emailconfig.json"
@@ -172,6 +204,7 @@ def sendTable(subject, dictList, schema, config=None, isSend=True, useAttach=Tru
     title = maker.getTitle()
     comments = 'false'
     mdblog = getBlogMd(title, 'stock', comments, tab)
+    msghtm = getMsgHtm(title, tab)
     if isSend:
         #use attachment which contains htmlcontent AND simple markdowntext for content
         if useAttach:
@@ -179,4 +212,4 @@ def sendTable(subject, dictList, schema, config=None, isSend=True, useAttach=Tru
         #ONLY use htmlcontent for content 
         else:
             sendHtmlMail(subject, htmlog , None, config)
-    return mdblog, htmlog
+    return mdblog, htmlog, msghtm
