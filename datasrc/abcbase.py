@@ -429,7 +429,9 @@ class SecurityDataSrcBase(object):
             return np.array([np.nan]),np.array([np.nan]),np.array([np.nan])
         hValue = SecurityDataSrcBase.HHV_COM(high, fastk_period, fixpre)
         lValue = SecurityDataSrcBase.LLV_COM(low, fastk_period, fixpre)
-        rsValue = (close - lValue) / (hValue - lValue) * 100
+        a = close - lValue
+        b = hValue - lValue
+        rsValue = 100* np.divide(a, b, out=np.zeros_like(a), where=b!=0)
         kValue = SecurityDataSrcBase.SMA_COM(rsValue, slowk_period)
         dValue = SecurityDataSrcBase.SMA_COM(kValue,  slowd_period)
         jValue = 3 * kValue - 2 * dValue
