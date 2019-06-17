@@ -16,7 +16,7 @@ import datetime
 class Waver(object):
     """wave model"""
     MODULE = 'Waver'
-    VERSION = '1.5.6'
+    VERSION = '1.6.17'
     MDEBUG = True
     #max calculate wave item count
     MAX_WAVE_COUNT = 20
@@ -293,6 +293,7 @@ class Waver(object):
         '''
         #flag to wave data not enough for new security
         self.waveenough = False
+        self.wavetangentflag = 0
         self.waveboundflag = 0
         self.waverangeflag = 0
         self.wavedirectflag = 0
@@ -449,6 +450,11 @@ class Waver(object):
                 self.wavedirectflag = 0
             else:
                 self.wavedirectflag = int(bcdstr, 2)
+        #calculate tangent flag    
+        if self.k > 50 and self.kd > self.k-60:
+            self.wavetangentflag = 1
+        else:
+            self.wavetangentflag = 0
         #calculate strong range
         if np.isnan(self.k) or self.k == 100:
             #no daily data enough
@@ -461,7 +467,6 @@ class Waver(object):
             self.waverangeflag = self.FLAG_WAVE_MIDWEAK
         else:
             self.waverangeflag = self.FLAG_WAVE_WEAK
-            
         if np.isnan(self.cciw) :
             #no weekly data enough
             self.waveboundflag = self.FLAG_WAVE_NOENOUGH
@@ -567,9 +572,12 @@ class Waver(object):
             scoremk += '*'
             return scoremk
         elif self.waverangeflag == self.FLAG_WAVE_MIDSTR:
-            scoremk += '+'
+            if self.wavetangentflag > 0:
+                scoremk += '='
+            else:
+                scoremk += '+'
         elif self.waverangeflag == self.FLAG_WAVE_MIDWEAK:
-            scoremk += '='
+            scoremk += '-'
         else:
             pass
         #gold cross
