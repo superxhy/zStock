@@ -166,7 +166,7 @@ class JqDatasrc(SecurityDataSrcBase):
                 pack = pd.DataFrame([[False]], columns=['is_st'])
                 grid.loc[:,'is_st'] = False
         # query industry code
-        if not filtIndustry:
+        if filtIndustry:
             grid.loc[:,'industry_code'] = 'None'
             for code in self.industry_dict.keys():
                 codepool = []
@@ -178,6 +178,29 @@ class JqDatasrc(SecurityDataSrcBase):
                     continue
                 for security in codepool:
                     grid.at[security,'industry_code'] = code
+        else:
+            grid.loc[:,'industry_info'] = 'None'
+            grid.loc[:,'industry_code'] = 'None'
+            grid.loc[:,'industry_name'] = 'None'
+            industrydic = None
+            try:
+                print("%s get_industry" %(str(date)))
+                industrydic = get_industry(gridindex,date)
+            except Exception as e:
+                print("%s:%s" %(str(Exception),str(e)))
+            for security in industrydic.keys():
+                if industrydic is None:
+                    print("get_industry exception")
+                    continue
+                industryinfo = industrydic[security]
+                industryinfostr = repr(industryinfo).decode("unicode-escape")
+                industryzjw = industryinfo.get('zjw',None)
+                if industryzjw is None:
+                    print(industryinfostr)
+                    continue
+                grid.at[security,'industry_info'] = industryinfostr   
+                grid.at[security,'industry_code'] = industryzjw['industry_code']
+                grid.at[security,'industry_name'] = industryzjw['industry_name']
         return grid
 
     def GET_SECURITY_INFO_BASE(self, date=None, refresh=False):
