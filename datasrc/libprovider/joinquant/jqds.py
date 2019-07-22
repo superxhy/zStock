@@ -121,6 +121,7 @@ class JqDatasrc(SecurityDataSrcBase):
     def __GET_SECURITY_INFO_BASE__(self, date, filtPaused=False, filtSt=False, filtIndustry=False):
         #today = datetime.date.today() if date==None else date
         # base code,name,displayname
+        today = None
         base = get_all_securities(['stock'])
         mart = get_fundamentals(
                 query(valuation.code,          #代码(带后缀.XSHE/.XSHG)
@@ -135,27 +136,35 @@ class JqDatasrc(SecurityDataSrcBase):
                 valuation.pe_ratio,                #动态市盈率
                 valuation.ps_ratio,                #市销率
                 valuation.turnover_ratio,          #换手率(%)
-                ),date).dropna().set_index('code')
+                ),today).dropna().set_index('code')
         # join mart in base
-        grid = pd.concat([base, mart], axis=1, join='inner')
+        if mart.empty:
+            print ("get_fundamentals empty!")
+            grid = base
+            gridindex = list(base.index)
+        else:
+            grid = pd.concat([base, mart], axis=1, join='inner')
+            gridindex = list(mart.index)
         # query crew info
         if not filtPaused:
-            crew = get_price(list(mart.index), start_date=date, end_date=date, fields=['paused'])
+            crew = get_price(gridindex, start_date=date, end_date=date, fields=['paused'])
             crew = crew.paused.T
             if len(crew.columns) > 0:
                 crew.rename(columns={crew.columns[0]:'paused'}, inplace=True)
+                grid = pd.concat([grid, crew], axis=1, join='inner')
             else:
-                crew.loc[:,'paused'] = 0
-            grid = pd.concat([grid, crew], axis=1, join='inner')
+                crew = pd.DataFrame([[0]], columns=['paused'])
+                grid.loc[:,'paused'] = 0
         # query pack info
         if not filtSt:
-            pack = get_extras('is_st', list(mart.index), start_date=date, end_date=date, df=True)
+            pack = get_extras('is_st', gridindex, start_date=date, end_date=date, df=True)
             pack = pack.T
             if len(pack.columns) > 0:
                 pack.rename(columns={pack.columns[0]:'is_st'}, inplace=True)
+                grid = pd.concat([grid, pack], axis=1, join='inner')
             else:
-                pack.loc[:,'is_st'] = False
-            grid = pd.concat([grid, pack], axis=1, join='inner')
+                pack = pd.DataFrame([[False]], columns=['is_st'])
+                grid.loc[:,'is_st'] = False
         # query industry code
         if not filtIndustry:
             grid.loc[:,'industry_code'] = 'None'
@@ -196,7 +205,7 @@ class JqDatasrc(SecurityDataSrcBase):
         self.__securitybaseinfo__ = pd.DataFrame(columns=['code'])
         
     def getVersionName(self):
-        return "1.12.28"
+        return "2.7.22"
     
     def getDataSrcName(self):
         return "joinquant"
