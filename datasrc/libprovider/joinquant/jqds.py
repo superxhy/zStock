@@ -20,16 +20,59 @@ from abcbase import *
 
 class JqDatasrc(SecurityDataSrcBase):
 
+    index_arr = [
+        {
+            'type':'MAIN',#主板上海
+            'code':'000001.XSHG',
+            'cpre':['600','601','603'],
+            'name':'上证指数',
+        },
+        {
+            'type':'MAIN',#主板深圳
+            'cpre':['000','002','300'],
+            'code':'399106.XSHE',
+            'name':'深证综指',
+        },
+        {
+            'type':'SUB',#主板深圳成分
+            'cpre':['000','002','300'],
+            'code':'399001.XSHE',
+            'name':'深证成指',
+        },
+        {
+            'type':'SUB',#创业板
+            'cpre':['300'],
+            'code':'399006.XSHE',
+            'name':'创业板指',
+        },
+        {
+            'type':'TOP',
+            'code':'000016.XSHG',
+            'name':'上证50',
+        },
+        {
+            'type':'TOP',
+            'code':'000300.XSHG',
+            'name':'沪深300',
+        },
+        {
+            'type':'STAR',#科创板
+            'cpre':['688'],
+            'code':None,
+            'name':None,
+        },
+    ]
+    
     index_list = [
-            '000001.XSHG',#[0]上证指数
-            '399106.XSHE',#[1]深证综指
-            #'399006.XSHE',#[2]创业板指
-            ]
+        index_arr[0]['code'],#[0]上证指数
+        index_arr[1]['code'],#[1]深证综指
+    ]
     index_dict = {
-            index_list[0]:'上证指数',
-            index_list[1]:'深证综指',
-            }
+        index_arr[0]['code']:index_arr[0]['name'],
+        index_arr[1]['code']:index_arr[0]['name'],
+    }
     industry_dict = {
+        #证监会行业zjw
         'A01':'农林牧渔',#'农业',
         'A02':'农林牧渔',#'林业',
         'A03':'农林牧渔',#'畜牧业',
@@ -116,6 +159,18 @@ class JqDatasrc(SecurityDataSrcBase):
         'R88':'文化传媒',#,'体育',
         'R89':'文化传媒',#,'娱乐',
         'S90':'综合',#'综合'
+        #聚宽一级行业jq_l1
+        'HY001':'能源',
+        'HY002':'材料',
+        'HY003':'工业',
+        'HY004':'可选消费',
+        'HY005':'日常消费',
+        'HY006':'医疗保健',
+        'HY007':'金融',
+        'HY008':'信息技术',
+        'HY009':'电信服务',
+        'HY010':'公用事业',
+        'HY011':'房地产',
     }
     
     def __GET_SECURITY_INFO_BASE__(self, date, filtPaused=False, filtSt=False, filtIndustry=False):
@@ -193,16 +248,48 @@ class JqDatasrc(SecurityDataSrcBase):
                     print("get_industry exception")
                     continue
                 industryinfo = industrydic[security]
-                industryinfostr = repr(industryinfo).decode("unicode-escape")
-                industryzjw = industryinfo.get('zjw',None)
-                if industryzjw is None:
-                    print(industryinfostr)
+                industryinfore = repr(industryinfo)
+                industryinfostr = industryinfore if isinstance(industryinfore, str) else industryinfore.decode("unicode-escape")
+                industrydis = industryinfo.get('zjw',None)
+                if industrydis is None:
+                    industrydis = industryinfo.get('jq_l1',None)
+                if industrydis is None:
+                    print("%s:%s" %(str(security),str(industryinfo)))
                     continue
                 grid.at[security,'industry_info'] = industryinfostr   
-                grid.at[security,'industry_code'] = industryzjw['industry_code']
-                grid.at[security,'industry_name'] = industryzjw['industry_name']
+                grid.at[security,'industry_code'] = industrydis['industry_code']
+                grid.at[security,'industry_name'] = industrydis['industry_name']
         return grid
 
+    def GET_SECURITY_DF(self, cpre=None, date=None):
+        if not date:
+            date = self.GET_CONTEXT().getnowdate() 
+        print("%s GET_SECURITY_DF" %(str(date)))
+        base = self.__GET_SECURITY_INFO_BASE__(date, True, True)
+        if base.empty:
+            return base
+        basedt = base[base['start_date']<=date]
+        if not cpre:
+            return basedt
+        basedtlist = basedt.index.tolist()
+        slist = []
+        if isinstance(cpre, list):
+            for pindex in cpre:
+                slist += [s for s in basedtlist if s.startswith(pindex)]
+        else:
+            slist = [s for s in basedtlist if s.startswith(cpre)]
+        if len(slist) > 0:
+            return basedt.loc[slist,:]
+        return basedt
+   
+    #获取科创板标的列表
+    def GET_SECURITY_STARS(self, context=None):
+        dt = context.current_dt if context else None
+        curdate = self.GET_CONTEXT().strpdate(dt) if context else None
+        precodeStar = self.index_arr[-1]['cpre']
+        basedt = self.GET_SECURITY_DF(precodeStar, curdate)
+        return basedt.index.tolist()
+        
     def GET_SECURITY_INFO_BASE(self, date=None, refresh=False):
         if self.__securitybaseinfo__.empty == True or refresh:
             if not date:
@@ -214,7 +301,7 @@ class JqDatasrc(SecurityDataSrcBase):
     def GET_SECURITY_DATA_DAY(self, code, dataCount=20, date=None, fields=None):
         security = normalize_code(code)
         if not date:
-            date = self.GET_CONTEXT().getenddate() 
+            date = self.GET_CONTEXT().getnowdate() 
         return get_price(security, count=dataCount, end_date=date,fields=fields,frequency='1d',skip_paused=True,fq='pre')
         
     def GET_SECURITY_DATA_MIN(self, code, dataCount=20, date=None, fields=None):
@@ -228,7 +315,7 @@ class JqDatasrc(SecurityDataSrcBase):
         self.__securitybaseinfo__ = pd.DataFrame(columns=['code'])
         
     def getVersionName(self):
-        return "2.7.22"
+        return "2.7.29"
     
     def getDataSrcName(self):
         return "joinquant"
@@ -244,6 +331,11 @@ class JqDatasrc(SecurityDataSrcBase):
         l_stocks03 = get_index_stocks(self.index_list[0])
         l_stocks04 = get_index_stocks(self.index_list[1])
         l_stocks = l_stocks03 + l_stocks04
+        print ("l_stocks %s in index" % (str(len(l_stocks))))
+        l_stocksstars = self.GET_SECURITY_STARS(context)
+        l_stocks68 = [s for s in l_stocksstars if not s in l_stocks]
+        print ("add stars %s" % (str(len(l_stocks68))))
+        l_stocks = l_stocks + l_stocks68
         print ("l_stocks %s in all" % (str(len(l_stocks))))
         if filtPaused or filtSt:
             hasCurrent = True
