@@ -49,6 +49,10 @@ class BContext(object):
     @classmethod
     def deltatimeday(cls, dt, offsetday):
         return dt + datetime.timedelta(days = offsetday)
+  
+    @classmethod
+    def strpdate(cls, y, m, d):
+        return datetime.date(y, m, d)
     
     def __repr__(self):
         return "current_dt:%s,start_date:%s,end_date%s,type:%s" %(str(self.current_dt),str(self.run_params.start_date),
@@ -87,6 +91,7 @@ class BContext(object):
             self.__end_date__ = datetime.datetime.now()
         else:
             self.__end_date__ = self.obj2datatime(date)
+        self.__cur_date__ = self.strpdate(self.__end_date__.year, self.__end_date__.month, self.__end_date__.day)
         if datastart==None:
             if count<=0:
                 self.__start_date__ = self.__end_date__
@@ -105,6 +110,10 @@ class BContext(object):
             return self.datetime2str(self.__end_date__)
         return self.__end_date__
     
+    def getnowdate(self, isStr=False):
+        if isStr:
+            return self.datetime2str(self.__cur_date__)
+        return self.__cur_date__    
     
 class SecurityDataSrcBase(object):
     '''
@@ -395,7 +404,7 @@ class SecurityDataSrcBase(object):
             resl = np.append(resl, llv)
             #resl = np.append(resl, fmin(fdropnan(val[i+1:period+i+1])))
         return resl
-    
+
     @staticmethod
     def EMA_COM(val, period=20):
         a = 1.0/(period+1)
