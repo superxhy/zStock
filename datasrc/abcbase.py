@@ -50,9 +50,9 @@ class BContext(object):
     def deltatimeday(cls, dt, offsetday):
         return dt + datetime.timedelta(days = offsetday)
   
-    @classmethod
-    def strpdate(cls, y, m, d):
-        return datetime.date(y, m, d)
+    @staticmethod
+    def strpdate(dt):
+        return datetime.date(dt.year, dt.month, dt.day)
     
     def __repr__(self):
         return "current_dt:%s,start_date:%s,end_date%s,type:%s" %(str(self.current_dt),str(self.run_params.start_date),
@@ -91,7 +91,7 @@ class BContext(object):
             self.__end_date__ = datetime.datetime.now()
         else:
             self.__end_date__ = self.obj2datatime(date)
-        self.__cur_date__ = self.strpdate(self.__end_date__.year, self.__end_date__.month, self.__end_date__.day)
+        self.__cur_date__ = self.strpdate(self.__end_date__)
         if datastart==None:
             if count<=0:
                 self.__start_date__ = self.__end_date__
