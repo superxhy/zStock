@@ -234,7 +234,6 @@ class JqDatasrc(SecurityDataSrcBase):
                 for security in codepool:
                     grid.at[security,'industry_code'] = code
         else:
-            grid.loc[:,'industry_info'] = 'None'
             grid.loc[:,'industry_code'] = 'None'
             grid.loc[:,'industry_name'] = 'None'
             industrydic = None
@@ -248,15 +247,14 @@ class JqDatasrc(SecurityDataSrcBase):
                     print("get_industry exception")
                     continue
                 industryinfo = industrydic[security]
-                industryinfore = repr(industryinfo)
-                industryinfostr = industryinfore if isinstance(industryinfore, str) else industryinfore.decode("unicode-escape")
                 industrydis = industryinfo.get('zjw',None)
                 if industrydis is None:
                     industrydis = industryinfo.get('jq_l1',None)
                 if industrydis is None:
-                    print("%s:%s" %(str(security),str(industryinfo)))
-                    continue
-                grid.at[security,'industry_info'] = industryinfostr   
+                    industryinfore = repr(industryinfo)
+                    industryinfostr = industryinfore if isinstance(industryinfore, str) else industryinfore.decode("unicode-escape")
+                    print("%s:%s" %(str(security),str(industryinfostr)))
+                    continue  
                 grid.at[security,'industry_code'] = industrydis['industry_code']
                 grid.at[security,'industry_name'] = industrydis['industry_name']
         return grid
@@ -285,17 +283,22 @@ class JqDatasrc(SecurityDataSrcBase):
     #获取科创板标的列表
     def GET_SECURITY_STARS(self, context=None):
         dt = context.current_dt if context else None
-        curdate = self.GET_CONTEXT().strpdate(dt) if context else None
+        curdate = BContext.strpdate(dt) if context else None
         precodeStar = self.index_arr[-1]['cpre']
         basedt = self.GET_SECURITY_DF(precodeStar, curdate)
         return basedt.index.tolist()
         
     def GET_SECURITY_INFO_BASE(self, date=None, refresh=False):
-        if self.__securitybaseinfo__.empty == True or refresh:
-            if not date:
-                date = self.GET_CONTEXT().getenddate() 
+        if not date:
+            bcontext = self.GET_CONTEXT()
+            date = bcontext.getenddate()
+            datenow = bcontext.getnowdate() 
+        else:
+            datenow = BContext.strpdate(date)
+        if self.__securitybaseinfo__.empty == True or datenow != self.__securitybasedate__:
             print("%s GET_SECURITY_INFO_BASE" %(str(date)))
             self.__securitybaseinfo__ = self.__GET_SECURITY_INFO_BASE__(date)
+            self.__securitybasedate__ = datenow
         return self.__securitybaseinfo__
     
     def GET_SECURITY_DATA_DAY(self, code, dataCount=20, date=None, fields=None):
@@ -313,9 +316,10 @@ class JqDatasrc(SecurityDataSrcBase):
     def __init__(self, name):
         super(JqDatasrc, self).__init__(name)
         self.__securitybaseinfo__ = pd.DataFrame(columns=['code'])
+        self.__securitybasedate__ = None
         
     def getVersionName(self):
-        return "2.7.29"
+        return "2.7.30"
     
     def getDataSrcName(self):
         return "joinquant"
