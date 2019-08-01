@@ -197,9 +197,9 @@ def GET_ALL_INDEXES():
 
 # 获取所有股票代码
 #return list
-def GET_ALL_SECURITIES(filtPaused=True, filtSt=True, filtMarketcap=0, context=None):
+def GET_ALL_SECURITIES(context=None):
     curname = sys._getframe().f_code.co_name
-    ret = dsobj.invokeMethod(curname,filtPaused,filtSt,filtMarketcap, context)
+    ret = dsobj.invokeMethod(curname,True,True,0,context)
     return ret
 
 # 获取股票信息
