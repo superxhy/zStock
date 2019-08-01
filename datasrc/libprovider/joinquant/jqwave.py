@@ -66,7 +66,7 @@ def before_trading_start(context):
     g.fire_fd_now = 0
     g.fire_fd_value_day = context.portfolio.total_value
     g.fire_fd_value = g.fire_fd_value_day
-    g.stocks = GET_ALL_SECURITIES()
+    g.stocks = GET_ALL_SECURITIES(context)
     Waver.refreshWaverPool(context, {}, g.l_pool_fd, g.stocks, True)
     
 def after_trading_end(context):
@@ -81,7 +81,7 @@ def handle_data(context, data):
     #log.info("==> handle_data @ %s", str(context.current_dt))
     runTime = GET_RUN_MINUTES(context)
     if runTime == 0 and len(g.stocks) == 0:
-        g.stocks = GET_ALL_SECURITIES()
+        g.stocks = GET_ALL_SECURITIES(context)
         Waver.refreshWaverPool(context, {}, g.l_pool_fd, g.stocks, True)
     def sell(context, security):
         print "sell#################:"+security
