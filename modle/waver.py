@@ -885,7 +885,7 @@ class Waver(object):
         if stocklist:
             Waver.gstocks = stocklist
         if len(Waver.gstocks) == 0:
-            Waver.gstocks = GET_ALL_SECURITIES()
+            Waver.gstocks = GET_ALL_SECURITIES(context)
             return Waver.refreshWaverPool(context, data, Waver.gpoolfd, Waver.gstocks, True)
         Waver.refreshWaverPool(context, data, Waver.gpoolfd, [])
         waverslist = Waver.getWaveRaiseList(Waver.gpoolfd, True)[0:Waver.MAX_SEND_COUNT]
