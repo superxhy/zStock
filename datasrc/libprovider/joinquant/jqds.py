@@ -235,7 +235,7 @@ class JqDatasrc(SecurityDataSrcBase):
                     grid.at[security,'industry_code'] = code
         else:
             grid.loc[:,'industry_code'] = 'None'
-            grid.loc[:,'industry_name'] = 'None'
+            #grid.loc[:,'industry_name'] = 'None'
             industrydic = None
             try:
                 print("%s get_industry" %(str(date)))
@@ -255,17 +255,17 @@ class JqDatasrc(SecurityDataSrcBase):
                     industryinfostr = industryinfore if isinstance(industryinfore, str) else industryinfore.decode("unicode-escape")
                     print("%s:%s" %(str(security),str(industryinfostr)))
                     continue  
-                grid.at[security,'industry_code'] = industrydis['industry_code']
-                grid.at[security,'industry_name'] = industrydis['industry_name']
+                grid.at[security,'industry_code'] = str(industrydis['industry_code'])
+                #grid.at[security,'industry_name'] = industrydis['industry_name']
         return grid
 
     def GET_SECURITY_DF(self, cpre=None, date=None):
         if not date:
             date = self.GET_CONTEXT().getnowdate() 
         print("%s GET_SECURITY_DF" %(str(date)))
-        base = self.__GET_SECURITY_INFO_BASE__(date, True, True)
+        base = self.__GET_SECURITY_INFO_BASE__(date, True, True, True)
         if base.empty:
-            return base
+            return None
         basedt = base[base['start_date']<=date]
         if not cpre:
             return basedt
@@ -278,14 +278,19 @@ class JqDatasrc(SecurityDataSrcBase):
             slist = [s for s in basedtlist if s.startswith(cpre)]
         if len(slist) > 0:
             return basedt.loc[slist,:]
-        return basedt
+        return None
    
     #获取科创板标的列表
     def GET_SECURITY_STARS(self, context=None):
         dt = context.current_dt if context else None
-        curdate = BContext.strpdate(dt) if context else None
+        curdate = BContext.strpdate(dt) if dt else None
         precodeStar = self.index_arr[-1]['cpre']
+        print("%s GET_SECURITY_STARS %s" %(str(curdate),str(precodeStar)))
         basedt = self.GET_SECURITY_DF(precodeStar, curdate)
+        if basedt is None:
+            return []
+        if basedt.empty:
+            return []
         return basedt.index.tolist()
         
     def GET_SECURITY_INFO_BASE(self, date=None, refresh=False):
@@ -336,10 +341,12 @@ class JqDatasrc(SecurityDataSrcBase):
         l_stocks04 = get_index_stocks(self.index_list[1])
         l_stocks = l_stocks03 + l_stocks04
         print ("l_stocks %s in index" % (str(len(l_stocks))))
-        l_stocksstars = self.GET_SECURITY_STARS(context)
-        l_stocks68 = [s for s in l_stocksstars if not s in l_stocks]
-        print ("add stars %s" % (str(len(l_stocks68))))
-        l_stocks = l_stocks + l_stocks68
+        # 2019-07-22 add SSE STAR MARKET
+        if context:
+            l_stocksstars = self.GET_SECURITY_STARS(context)
+            l_stocks68 = [s for s in l_stocksstars if not s in l_stocks]
+            print ("add stars %s" % (str(len(l_stocks68))))
+            l_stocks = l_stocks + l_stocks68
         print ("l_stocks %s in all" % (str(len(l_stocks))))
         if filtPaused or filtSt:
             hasCurrent = True
@@ -428,10 +435,10 @@ class JqDatasrc(SecurityDataSrcBase):
                 #timeToMarket = basedf.loc[security,'start_date']
                 sindustry = basedf.loc[security,'industry_code']
             else:
-                name  =  'None'
-                sname =  'None'
-                #timeToMarket = 'None'
-                sindustry = 'None'
+                name  =  None
+                sname =  None
+                #timeToMarket = None
+                sindustry = None
         else:
             info =  get_security_info(security)
             name  = info.display_name
@@ -441,11 +448,14 @@ class JqDatasrc(SecurityDataSrcBase):
             sname =  info.name
             #timeToMarket = info.start_date
             sindustry = cur.industry_code
+        dindustry = self.industry_dict.get(sindustry,'行业'+str(sindustry)) if sindustry else '--'
+        if security.startswith('68'):
+            dindustry = '科创' + dindustry
         securityInfo = {
-        'name': str(name),
-        'sname': str(sname),
+        'name': str(name or '--'),
+        'sname': str(sname or '--'),
         #'timeToMarket':datetime.datetime.fromtimestamp(timeToMarket).strftime("%Y-%m-%d"),
-        'industry':self.industry_dict.get(sindustry,'行业'+str(sindustry)),
+        'industry':str(dindustry),
         'sindustry':str(sindustry)}
         return securityInfo
     
@@ -745,6 +755,8 @@ class JqDatasrc(SecurityDataSrcBase):
                         closeLast = get_current_data()[security].last_price
                 if np.isnan(closeLast):
                     closeLast = self.GET_CLOSE_DAY(context, security, 1, data)
+                    if np.isnan(closeLast):
+                        closeLast = self.GET_CLOSE_DAY(context, security, -1, data)
             elif run_minutes==240:
                 closeLast = get_current_data()[security].last_price
             else:
@@ -763,9 +775,12 @@ class JqDatasrc(SecurityDataSrcBase):
         #    else:
         #        closeLast = attribute_history(security, 1,'1d', ('close'), True)['close'][0]
         #    return closeLast
-        else:
+        elif ref >=1:
             #df True 倒序
             return attribute_history(security, ref, '1d', ('close'), True)['close'][0]
+        else:
+            #ref<0获取上市价格
+            return get_price(security, count=-ref, end_date=context.current_dt,fields=('pre_close'),frequency='1d',skip_paused=True,fq='pre')['pre_close'][0]
     
     def GET_PERIOD_DATA_DAY(self,context, security, data={}, dataCount=1):
         bcontext = self.IS_INNER_CONTEXT(context)
