@@ -548,8 +548,10 @@ class SecurityDataSrcBase(object):
             closeRef = self.GET_CLOSE_DAY(context, security,ref)
         if ref==1 and np.isnan(closeRef):
             #issue price higher 120% than openday
-            closeRef = self.GET_OPEN_DAY(context, security, 0)*1.0/1.2
+            closeRef = self.GET_CLOSE_DAY(context, security,-1)
             #print ("security:%s no refclose, use issueprice:%s" %(str(security),str(closeRef)))
+            openCur = self.GET_OPEN_DAY(context, security, 0)
+            return [self.calRate(close-closeRef, closeRef),self.calRate(close-openCur, openCur)], close
         return self.calRate(close-closeRef, closeRef), close
     
     def STD_DATA_DAY(self, context, security, data={}, dataCount=1):
@@ -1809,15 +1811,18 @@ class SecurityDataSrcBase(object):
         code = security.split('.')[0]
         info = self.GET_SECURITY_INFO(security, context)
         name = info['name']
-        if per >= 20:
+        if isinstance(per, list):
             name = 'N'+ str(name)
+            perdis = "%s%%/%s%%" %(str(per[0]),str(per[1]))
+        else:
+            perdis = "%s%%" %(str(per))
         industry = info['industry']
         bundle = {
         'code':code,
         'name':name,
         'industry':industry,
         'close':close,
-        'per':per}
+        'per':perdis}
         #TODO pulldata
         #if not pulldata:
         #    return bundle
