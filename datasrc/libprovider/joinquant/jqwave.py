@@ -25,6 +25,8 @@ def CONFIG_POOL_INIT(context):
     g.debug =''
     g.l_pool_fd = []
     g.fire_fd_max = 3
+    if context.run_params.type in ['simple_backtest','full_backtest','notebook']:
+        disable_cache()
     #g.stocks = ['002386.XSHE','600295.XSHG','600125.XSHG']
     #g.stocks =['600295.XSHG']
     # 选择所有股票（代码、名称、简称）
