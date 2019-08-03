@@ -173,7 +173,7 @@ class JqDatasrc(SecurityDataSrcBase):
         'HY011':'房地产',
     }
     
-    def __GET_SECURITY_INFO_BASE__(self, date, filtPaused=False, filtSt=False, filtIndustry=False):
+    def __GET_SECURITY_INFO_BASE__(self, date, filtPaused=True, filtSt=False, filtIndustry=False):
         #today = datetime.date.today() if date==None else date
         # base code,name,displayname
         today = None
@@ -202,6 +202,7 @@ class JqDatasrc(SecurityDataSrcBase):
             gridindex = list(mart.index)
         # query crew info
         if not filtPaused:
+            # get_price COST memory use!!
             crew = get_price(gridindex, start_date=date, end_date=date, fields=['paused'])
             crew = crew.paused.T
             if len(crew.columns) > 0:
@@ -221,19 +222,20 @@ class JqDatasrc(SecurityDataSrcBase):
                 pack = pd.DataFrame([[False]], columns=['is_st'])
                 grid.loc[:,'is_st'] = False
         # query industry code
-        if filtIndustry:
-            grid.loc[:,'industry_code'] = 'None'
-            for code in self.industry_dict.keys():
-                codepool = []
-                try:
-                    codepool = get_industry_stocks(code,date)
-                except Exception as e:
-                    print ("%s:%s" %(str(Exception),str(e)))
-                if len(codepool) == 0:
-                    continue
-                for security in codepool:
-                    grid.at[security,'industry_code'] = code
-        else:
+#         if filtIndustry:
+#             grid.loc[:,'industry_code'] = 'None'
+#             for code in self.industry_dict.keys():
+#                 codepool = []
+#                 try:
+#                     codepool = get_industry_stocks(code,date)
+#                 except Exception as e:
+#                     print ("%s:%s" %(str(Exception),str(e)))
+#                 if len(codepool) == 0:
+#                     continue
+#                 for security in codepool:
+#                     grid.at[security,'industry_code'] = code
+#         else:
+        if not filtIndustry:
             grid.loc[:,'industry_code'] = 'None'
             #grid.loc[:,'industry_name'] = 'None'
             industrydic = None
@@ -293,7 +295,7 @@ class JqDatasrc(SecurityDataSrcBase):
             return []
         return basedt.index.tolist()
         
-    def GET_SECURITY_INFO_BASE(self, date=None, refresh=False):
+    def GET_SECURITY_INFO_BASE(self, date=None, hasPaused=False):
         if not date:
             bcontext = self.GET_CONTEXT()
             date = bcontext.getenddate()
@@ -301,8 +303,8 @@ class JqDatasrc(SecurityDataSrcBase):
         else:
             datenow = BContext.strpdate(date)
         if self.__securitybaseinfo__.empty == True or datenow != self.__securitybasedate__:
-            print("%s GET_SECURITY_INFO_BASE" %(str(date)))
-            self.__securitybaseinfo__ = self.__GET_SECURITY_INFO_BASE__(date)
+            print("%s GET_SECURITY_INFO_BASE hasPaused:%s" %(str(date),str(hasPaused)))
+            self.__securitybaseinfo__ = self.__GET_SECURITY_INFO_BASE__(date, not hasPaused)
             self.__securitybasedate__ = datenow
         return self.__securitybaseinfo__
     
@@ -324,7 +326,7 @@ class JqDatasrc(SecurityDataSrcBase):
         self.__securitybasedate__ = None
         
     def getVersionName(self):
-        return "2.7.30"
+        return "2.8.3"
     
     def getDataSrcName(self):
         return "joinquant"
@@ -357,15 +359,9 @@ class JqDatasrc(SecurityDataSrcBase):
                 #may used in notebook!
                 hasCurrent = False
                 #print ("%s:%s" %(str(Exception),str(e)))
-            #ignore pretrade to get_current for data lag
-            if hasCurrent:
-                auction_minutes = self.GET_CALLAUCTION_MINUTES(context)
-                if auction_minutes >= 0 and auction_minutes < 15:
-                    hasCurrent = False
-                    #print ("GET_ALL_SECURITIES:%s, ignore getcurrent for context:%s" %(str(auction_minutes),str(context)))
             if not hasCurrent:
                 dt = context.current_dt if context else None
-                basedf = self.GET_SECURITY_INFO_BASE(dt)
+                basedf = self.GET_SECURITY_INFO_BASE(dt, filtPaused)
                 if filtPaused:
                     listpaused = list(basedf[basedf['paused']>0].index)
                     l_stocks = [s for s in l_stocks if not s in listpaused]
@@ -1020,7 +1016,8 @@ class JqConfigLoader(object):
             'end_date' : params.end_date,  #回测/模拟结束日期, datetime.date对象
             'type' :params.type, #simple_backtest’: 回测, 通过点击’编译运行’运行 full_backtest’: 回测, 通过点击’运行回测’运行 sim_trade’: 模拟交易
             'frequency':params.frequency, #运行频率
-            'onbacktest': params.type in ['simple_backtest','full_backtest','notebook']
+            'onbacktest': params.type in ['simple_backtest','full_backtest','notebook'],
+            'oncompile': params.type in ['simple_backtest']
         }
         return config
     #def getXXConfig():
