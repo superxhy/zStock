@@ -5,7 +5,8 @@ Created on 2017-3-9
 
 @author: yuql
 '''
-
+import psutil
+import os
 import sys
 from abcbase import DataSrcFactory, SecurityDataSrcBase
 from until.tools import sendTable
@@ -15,6 +16,10 @@ from until.tools import sendTable
 DS_CLASS_PATH = "datasrc.tsprovider.tushare69ds.TsDatasrc"
 DS_CLASS_NAME = "tushare"
 
+def TEST_MEM():
+    info = psutil.virtual_memory()
+    print ('memory useage：%sM' %(psutil.Process(os.getpid()).memory_info().rss/(1024.0**2)))
+      
 dsfactory = DataSrcFactory.getFrom(DS_CLASS_PATH,DS_CLASS_NAME)
 dsobj = dsfactory.getDataSrc()
 print (dsobj.getDataSrcName())
@@ -313,7 +318,7 @@ def GET_VOL_AMOUNT_DAY(context, security,isLastest=True,data={},dataCount=20):
 
 #静态方法公用工具类
 class DSUtil(object):
-    
+  
     @staticmethod
     def getConfigLoader():
         if (DS_CLASS_NAME == 'joinquant'):
@@ -350,6 +355,7 @@ class DSUtil(object):
             context = dsobj.GET_CONTEXT()
         configloader = DSUtil.getConfigLoader()
         backtest = configloader != None and configloader.getRunConfig(context)['onbacktest']
+        compiletest = configloader != None and configloader.getRunConfig(context)['oncompile']
         isSend = sendMail and (not backtest)
         title = DS_CLASS_NAME if useAttach else DS_CLASS_NAME + '_intraday'
         title += str(context.current_dt.strftime('%Y-%m-%d %H:%M'))
@@ -369,5 +375,9 @@ class DSUtil(object):
                 #    #may used in notebook!
                 #    print ("%s:%s" %(str(Exception),str(e)))
             else:
-                print (str(mdstr))
+                if not compiletest:
+                    print (str(mdstr))
+                else:
+                    print ('compiletest')
+                    TEST_MEM()
         return mdstr,htmstr,msghtm 
