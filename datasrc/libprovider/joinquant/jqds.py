@@ -268,7 +268,7 @@ class JqDatasrc(SecurityDataSrcBase):
         base = self.__GET_SECURITY_INFO_BASE__(date, True, True, True)
         if base.empty:
             return None
-        basedt = base[base['start_date']<=date]
+        basedt = base[(base['start_date']<=date)&(base['end_date']>date)]
         if not cpre:
             return basedt
         basedtlist = basedt.index.tolist()
@@ -326,7 +326,7 @@ class JqDatasrc(SecurityDataSrcBase):
         self.__securitybasedate__ = None
         
     def getVersionName(self):
-        return "2.8.3"
+        return "2.8.7"
     
     def getDataSrcName(self):
         return "joinquant"
